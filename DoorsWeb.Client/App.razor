@@ -1,0 +1,26 @@
+﻿<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+            <Authorizing>
+                <div class="d-flex justify-content-center align-items-center" style="height:50vh">
+                    <Progress Color="TablerColor.Blue" Indeterminate />
+                </div>
+            </Authorizing>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <h3>Not found</h3>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <div class="d-flex justify-content-center align-items-center">
+                <Icon class="icon" IconType="@TablerIcons.NotFound404"  />
+                <h1>404</h1>
+                <h3>Sorry, there's nothing2see at this address.</h3>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>
+

@@ -1,0 +1,110 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@using DoorsWeb.Shared.DTO
+@using DoorsWeb.Shared.Models
+@using DoorsWeb.Client.Auth
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject JwtAuthStateProvider AuthStateProvider
+
+<div class="container container-tight py-5">
+    <div class="card card-md shadow-sm">
+        <div class="card-body">
+            <h2 class="h2 text-center mb-4">Sign in</h2>
+            <EditForm Model="loginDto" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <InputText class="form-control" @bind-Value="loginDto.Username" placeholder="Enter username" />
+                    <ValidationMessage For="@(() => loginDto.Username)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <InputText type="password" class="form-control" @bind-Value="loginDto.Password" placeholder="Password" />
+                    <ValidationMessage For="@(() => loginDto.Password)" />
+                </div>
+                @if (errorMessage is not null)
+                {
+                    <div class="alert alert-danger mb-3">@errorMessage</div>
+                }
+                <div class="form-footer">
+                    <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        Sign in
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    private AdminLoginDto loginDto = new() { Username = "", Password = "" };
+    private string? errorMessage;
+    private bool isLoading;
+
+    private string RedirectTarget => string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            if (state.User.Identity?.IsAuthenticated == true)
+                Navigation.NavigateTo(RedirectTarget);
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = await client.PostAsJsonAsync("auth/signin", loginDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jwtPair = await response.Content.ReadFromJsonAsync<JwtPairResponse>();
+                if (jwtPair?.AccessToken is not null)
+                {
+                    await JS.InvokeVoidAsync("localStorage.setItem", "access_token", jwtPair.AccessToken);
+                    await JS.InvokeVoidAsync("localStorage.setItem", "refresh_token", jwtPair.RefreshToken);
+                    AuthStateProvider.NotifyAuthStateChanged();
+                    Navigation.NavigateTo(RedirectTarget);
+                }
+            }
+            else
+            {
+                var problem = await response.Content.ReadFromJsonAsync<ClientProblemDetails>();
+                errorMessage = problem?.Detail ?? "Invalid credentials.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Could not connect to the server.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private record JwtPairResponse(
+        string AccessToken,
+        DateTimeOffset AccessTokenExpiresAt,
+        string RefreshToken,
+        DateTimeOffset RefreshTokenExpiresAt);
+}

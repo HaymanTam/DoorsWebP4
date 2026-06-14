@@ -1,0 +1,69 @@
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1500;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+/* Force dropdown menu to be on top */ 
+.dropdown-menu.show {
+    z-index: 9999 !important;
+    position: fixed !important;
+}
+
+/* remove updown arrow on inputnumber box */
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* remove updown arrow on inputnumber box */
+/* Firefox */
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Initial Loading screen Spinner */
+
+/* Darkens the background slightly and centers the spinner */
+#wasm-loadpage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 7px;
+    height: 100vh; /* Adjust based on where you put it */
+}
+
+#spinner {
+    width: 80px;
+    height: 80px;
+    border: 8px solid #f3f3f3; /* Light grey base */
+    border-top: 8px solid #3498db; /* Blue spinning part */
+    border-radius: 50%;
+    animation: spin .5s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

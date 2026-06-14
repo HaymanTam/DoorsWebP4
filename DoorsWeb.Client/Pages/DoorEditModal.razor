@@ -1,0 +1,183 @@
+﻿<TablerForm Model="@dDetail" OnValidSubmit="Submit" >
+    <Tabs>
+        <Tab Title="General">
+            <div class="mb-3">
+                <label class="form-label">Door Name</label>
+                <InputText class="form-control" @bind-Value="dDetail.Name"></InputText>
+                <TabValidationMessage For="(() => dDetail.Name)"></TabValidationMessage>
+            </div>
+            <div class="mb-3 row">
+                <div class="col-lg-4">
+                    <label class="form-label">Controller ID</label>
+                    <InputNumber class="form-control" @bind-Value="dDetail.ControllerId"  ></InputNumber>
+                    <TabValidationMessage For="(() => dDetail.ControllerId)"></TabValidationMessage>
+                </div>
+                <div class="col-lg-8">
+                    <label class="form-label">IP Address</label>
+                    <InputText class="form-control" @bind-Value="dDetail.IPAddressString"></InputText>
+                    <TabValidationMessage For="(() => dDetail.IPAddressString)"></TabValidationMessage>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <InputTextArea class="form-control" @bind-Value="dDetail.Notes"></InputTextArea>
+                <TabValidationMessage For="(() => dDetail.Notes)"></TabValidationMessage>
+            </div>
+            <div class="mb-3 row">
+                <div class="col-lg-6">
+                    <label class="form-label">Valid From</label>
+                    <Input type="time" class="form-control" @bind-Value="dDetail.ValidFrom"></Input>
+                    <TabValidationMessage For="(() => dDetail.ValidFrom)"></TabValidationMessage>
+                </div>
+                <div class="col-lg-6">
+                    <label class="form-label">Valid To</label>
+                    <Input type="time" class="form-control" @bind-Value="dDetail.ValidTo"></Input>
+                    <TabValidationMessage For="(() => dDetail.ValidTo)"></TabValidationMessage>
+                </div>
+            </div>
+        </Tab>
+        <Tab Title="Readers">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Reader A</CardTitle>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <InputText class="form-control" @bind-Value="dDetail.ReaderA_Name"></InputText>
+                        <TabValidationMessage For="(() => dDetail.ReaderA_Name)"></TabValidationMessage>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6 ">
+                            <label class="form-label">Volume</label>
+                            <span class="d-flex my-auto gap-2">
+                                <Icon IconType="@TablerIcons.Volume" />
+                                <RangeSlider TValue="byte" @bind-Value="dDetail.ReaderA_Volume" Min="0" Max="15"  />
+                                <label class="form-label">   @dDetail.ReaderA_Volume</label>
+                            </span>
+                            <TabValidationMessage For="(() => dDetail.ReaderA_Volume)"></TabValidationMessage>
+                        </div>  
+                        <div class="col-lg-6">
+                            <label class="form-label">Brightness</label>
+                            <span class="d-flex my-auto gap-2">
+                                <Icon IconType="@TablerIcons.Brightness_up" />
+                                <RangeSlider TValue="byte" @bind-Value="dDetail.ReaderA_Brightness" Min="0" Max="9" />
+                                <label class="form-label">   @dDetail.ReaderA_Brightness</label>
+                            </span>
+                            <TabValidationMessage For="(() => dDetail.ReaderA_Brightness)"></TabValidationMessage>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Reader B</CardTitle>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <InputText class="form-control" @bind-Value="dDetail.ReaderB_Name"></InputText>
+                        <TabValidationMessage For="(() => dDetail.ReaderB_Name)"></TabValidationMessage>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6 ">
+                            <label class="form-label">Volume</label>
+                            <span class="d-flex my-auto gap-2">
+                                <Icon IconType="@TablerIcons.Volume" />
+                                <RangeSlider TValue="byte" @bind-Value="dDetail.ReaderB_Volume" Min="0" Max="15" />
+                                <label class="form-label">   @dDetail.ReaderB_Volume</label>
+                            </span>
+                            <TabValidationMessage For="(() => dDetail.ReaderB_Volume)"></TabValidationMessage>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Brightness</label>
+                            <span class="d-flex my-auto gap-2">
+                                <Icon IconType="@TablerIcons.Brightness_up" />
+                                <RangeSlider TValue="byte" @bind-Value="dDetail.ReaderB_Brightness" Min="0" Max="9" />
+                                <label class="form-label">   @dDetail.ReaderB_Brightness</label>
+                            </span>
+                            <TabValidationMessage For="(() => dDetail.ReaderB_Brightness)"></TabValidationMessage>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+        <Tab Title="Output">
+            <h3>This tab 3</h3>
+            <Icon IconType="@TablerIcons.Users" Size="100" />
+        </Tab>
+        <Tab Title="Status">
+            <h3>This tab 4</h3>
+            <Icon IconType="@TablerIcons.Door" Size="100" />
+        </Tab>
+    </Tabs>
+
+<br />
+<label>Last Updated: @dDetail.LastUpdated </label>
+<Button class="float-end" BackgroundColor="TablerColor.Primary" Type="ButtonType.Submit" Text="Submit"></Button>
+</TablerForm>
+
+
+
+@code {
+
+    [Inject] TabBlazor.Services.TablerService TablerService { get; set; } = null!;
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+    [Inject] IHttpClientFactory ClientFactory { get; set; } = null!;
+
+    public DoorDetailDto dDetail { get; set; } = new DoorDetailDto();
+    [Parameter] public Guid DoorId { get; set; }
+    [CascadingParameter] public bool CascadingParameter { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (DoorId != Guid.Empty){
+            var client = ClientFactory.CreateClient("WebAPI");
+            var result = await client.GetFromJsonAsync<DoorDetailDto?>("api/Door/" + DoorId);
+            if(result is not null)
+            {
+                dDetail = result;
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private async Task Submit(EditContext obj)
+    {
+        if (DoorId == Guid.Empty)
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var result = await client.PostAsJsonAsync<DoorDetailDto>("api/Door/", dDetail);
+            if (result.IsSuccessStatusCode) ModalService.Close(ModalResult.Ok());
+            else
+            {
+                await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+                {
+                    MainText = result.StatusCode.ToString(),
+                    SubText = await result.Content.ReadAsStringAsync(),
+                    IconType = TablerIcons.Alert_triangle,
+                    CancelText = "",
+                    StatusColor = TablerColor.Danger
+                });
+            }
+        }
+        else
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var result = await client.PutAsJsonAsync<DoorDetailDto>("api/Door/" + dDetail.Id, dDetail);
+            if (result.IsSuccessStatusCode) ModalService.Close(ModalResult.Ok());
+            else
+            {
+                await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+                {
+                    MainText = result.StatusCode.ToString(),
+                    SubText = await result.Content.ReadAsStringAsync(),
+                    IconType = TablerIcons.Alert_triangle,
+                    CancelText = "",
+                    StatusColor = TablerColor.Danger
+                });
+            }
+        } 
+    }
+
+}

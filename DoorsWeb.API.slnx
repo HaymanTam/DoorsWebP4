@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="docker-compose.dcproj">
+    <BuildType Project="Debug" />
+    <Build />
+  </Project>
+  <Project Path="DoorsWeb.API/DoorsWeb.API.csproj" />
+  <Project Path="DoorsWeb.Client/DoorsWeb.Client.csproj" Id="41ea643a-b8f6-4a49-8754-58c6272a32ac" />
+  <Project Path="DoorsWeb.Shared/DoorsWeb.Shared.csproj" />
+</Solution>

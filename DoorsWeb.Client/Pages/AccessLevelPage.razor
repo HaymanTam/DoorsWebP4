@@ -1,0 +1,122 @@
+@page "/accesslevels"
+@inject IHttpClientFactory ClientFactory
+
+<Table Item="AccessLevelDto" @ref="table" Items="accessLevelList" PageSize="10" AddItemFactory="AddItem"
+       OnItemAdded="OnItemAdd" OnItemEdited="OnItemEdit" OnItemDeleted="OnItemDelete" OnBeforeEdit="OnBeforeEdit"
+       CancelStrategy="TabBlazor.Components.Tables.OnCancelStrategy.Revert"
+       Hover Responsive EditMode=TableEditMode.Inline>
+    <HeaderTemplate>
+
+    </HeaderTemplate>
+
+    <ChildContent>
+        @if (!IsLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        <Column Item="AccessLevelDto" Property="e => e.Id" Title="ID" Visible="false">
+            <EditorTemplate>
+                @(context.Id == Guid.Empty ? context.Id : "")
+                <InputNumber class="form-control" @bind-value="@context.Id" Hidden />
+            </EditorTemplate>
+        </Column>
+        <Column Item="AccessLevelDto" Property="e => e.Name" Title="Name" Searchable Sortable>
+            <EditorTemplate>
+                <InputText class="form-control" @bind-value="@context.Name" DisplayName="Name" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="AccessLevelDto" Property="e => e.LastUpdatedAt" Title="Last Updated" Sortable>
+            <EditorTemplate>
+                @(context.LastUpdatedAt != default ? context.LastUpdatedAt : "")
+            </EditorTemplate>
+        </Column>
+    </ChildContent>
+</Table>
+
+@code {
+    [Inject] TabBlazor.Services.TablerService TablerService { get; set; } = null!;
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    private bool IsLoaded = false;
+    private AccessLevelDto? _editSnapshot;
+    private Table<AccessLevelDto> table = null!;
+    private HttpClient client = new HttpClient();
+    private List<AccessLevelDto> accessLevelList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        accessLevelList = await client.GetFromJsonAsync<List<AccessLevelDto>>("api/AccessLevel") ?? [];
+        IsLoaded = true;
+    }
+
+    private Task<AccessLevelDto> AddItem() =>
+        Task.FromResult(new AccessLevelDto { Id = Guid.Empty, Name = "New Access Level" });
+
+    private Task OnBeforeEdit(AccessLevelDto dto)
+    {
+        _editSnapshot = new AccessLevelDto
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            LastUpdatedAt = dto.LastUpdatedAt
+        };
+        return Task.CompletedTask;
+    }
+
+    private async Task OnItemAdd(AccessLevelDto dto)
+    {
+        var result = await client.PostAsJsonAsync("api/AccessLevel/", dto);
+        if (result.IsSuccessStatusCode) await UpdateList();
+        else
+        {
+            accessLevelList.Remove(dto);
+            await ShowErrorDialog(result);
+        }
+    }
+
+    private async Task OnItemEdit(AccessLevelDto dto)
+    {
+        var result = await client.PutAsJsonAsync("api/AccessLevel/" + dto.Id, dto);
+        if (result.IsSuccessStatusCode) await UpdateList();
+        else
+        {
+            var index = accessLevelList.FindIndex(a => a.Id == dto.Id);
+            if (index >= 0) accessLevelList[index] = _editSnapshot!;
+            await ShowErrorDialog(result);
+        }
+    }
+
+    private async Task OnItemDelete(AccessLevelDto dto)
+    {
+        accessLevelList = await client.DeleteFromJsonAsync<List<AccessLevelDto>>("api/AccessLevel/" + dto.Id) ?? [];
+    }
+
+    private async Task UpdateList()
+    {
+        accessLevelList = await client.GetFromJsonAsync<List<AccessLevelDto>>("api/AccessLevel") ?? [];
+    }
+
+    private async Task ShowErrorDialog(HttpResponseMessage result)
+    {
+        ClientProblemDetails errjson;
+        try
+        {
+            errjson = await result.Content.ReadFromJsonAsync<ClientProblemDetails>() ??
+                new ClientProblemDetails { Status = 500, Title = "Error Returned Null!", Detail = "An unexpected error occurred." };
+        }
+        catch
+        {
+            errjson = new ClientProblemDetails { Status = 500, Title = "Unable to Read Error!", Detail = "Failed to read error response." };
+        }
+        if (errjson.Status == 500) errjson.Detail = "traceId: " + errjson.TraceId;
+        await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = errjson.Status + " " + errjson.Title,
+            SubText = errjson.Detail,
+            IconType = TablerIcons.Alert_triangle,
+            CancelText = "",
+            StatusColor = TablerColor.Danger
+        });
+    }
+}

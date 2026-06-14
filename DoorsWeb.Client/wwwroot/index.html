@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>DoorsWeb.Client</title>
+    <script type="importmap"></script>
+    <base href="/" />
+
+    <link rel="stylesheet" href="https://unpkg.com/@tabler/core@1.4.0/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="_content/TabBlazor/css/tabblazor.min.css" />
+    <script src="_content/TabBlazor/js/tabblazor.js"></script>
+
+
+    <link href="css/site.css" rel="stylesheet" />
+    <link href="DoorsWeb.Client.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">
+        <div id="wasm-loadpage">
+            <div id="spinner"></div>
+            <h3>Loading doorsWebApp</h3>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js" asp-append-version="true"></script>
+</body>
+
+</html>

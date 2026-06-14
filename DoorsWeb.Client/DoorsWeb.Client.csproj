@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+	<UserSecretsId>9d19ba55-9ade-4b1c-9b52-88544f4640a1</UserSecretsId>
+	<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+	<!-- Disable deterministic builds to allow wildcards -->
+	<Deterministic>false</Deterministic>
+	<!-- Use asterisk for auto-increment (Major.Minor.Build.Revision) -->
+	<AssemblyVersion>0.1.*</AssemblyVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.5" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
+    <PackageReference Include="TabBlazor" Version="0.14.59-beta" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Components\Users\" />
+    <None Include="..\.dockerignore" Link=".dockerignore">
+      <DependentUpon>$(DockerDefaultDockerfile)</DependentUpon>
+    </None>
+	<ProjectReference Include="..\DoorsWeb.Shared\DoorsWeb.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,105 @@
+﻿@page "/doors"
+@inject IHttpClientFactory ClientFactory
+
+<Table Item="DoorListDto" Items="doorList" PageSize="10"
+       ShowCheckboxes MultiSelect Hover Responsive EditMode=TableEditMode.Popup >
+    <HeaderTemplate>
+        <Button Class="btn float-end" BackgroundColor="TablerColor.Primary" Size="ButtonSize.Default" @onclick='(() => ShowDoorEditModal("New Door", Guid.Empty))'>Add Door</Button>
+    </HeaderTemplate>
+
+    <ChildContent>
+        @if (!IsLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        <Column Item="DoorListDto" Property="e => e.Id" Title="Id" Sortable Visible=false>
+            <EditorTemplate>
+                <input type="text" class="form-control" @bind-value="@context.Id" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="DoorListDto" Property="e => e.Name" Title="Name" Searchable Sortable>
+            <EditorTemplate>
+                <input type="text" class="form-control" @bind-value="@context.Name" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="DoorListDto" Property="e => e.ControllerId" Title="Controller ID" Searchable Sortable>
+            <EditorTemplate>
+                <input type="text" class="form-control" @bind-value="@context.ControllerId" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="DoorListDto" Property="e => e.IPAddressString" Title="IP Address" Searchable Sortable>
+            <EditorTemplate>
+                <input type="text" class="form-control" @bind-value="@context.IPAddressString" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="DoorListDto" Property="e => e.LastUpdated" Title="Last Updated" Sortable >
+        </Column>
+        <Column Item="DoorListDto" title="" ActionColumn Width="130px">
+            <Template>
+                <span class="row-action" >
+                    <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='(() => ShowDoorEditModal("Edit Door", context.Id))' />
+                    <Icon class="icon" IconType="@TablerIcons.Trash" @onclick='(() => ConfirmDeleteDoor(context.Id, context.ControllerId))' />
+                </span> 
+            </Template>
+        </Column>
+    </ChildContent>
+</Table>
+
+
+
+@code {
+    [Inject] TabBlazor.Services.TablerService TablerService { get; set; } = null!;
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    private bool IsLoaded = false;
+    private HttpClient client = new HttpClient();
+    private List<DoorListDto> doorList = new List<DoorListDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        doorList = await client.GetFromJsonAsync<List<DoorListDto>>("api/Door") ?? [];
+        IsLoaded = true;
+    }
+
+    private async Task ShowDoorEditModal(string title, Guid DoorId)
+    {
+        var component = new RenderComponent<DoorEditModal>().Set(e => e.DoorId, DoorId);
+        var result = await ModalService.ShowAsync(title, component, new ModalOptions { 
+                                    Size = ModalSize.Large, 
+                                    ShowHeader = true, 
+                                    Scrollable = false,
+                                    });
+        if (!result.Cancelled)
+        {
+            doorList = await client.GetFromJsonAsync<List<DoorListDto>>("api/Door") ?? [];
+        }
+    }
+
+    private async Task ConfirmDeleteDoor(Guid DoorId, int CtrlId)
+    {
+        var result = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Delete Door Controller {CtrlId}?",
+            SubText = "This action cannot be undone!",
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+        if (result)
+        {
+            doorList = await client.DeleteFromJsonAsync<List<DoorListDto>>("api/Door/" + DoorId) ?? [];
+        }
+    }
+
+    private async Task ShowDialog(string title)
+    {
+        await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            CancelText = "",
+            StatusColor = TablerColor.Primary,
+            IconType = TablerIcons.Info_circle,
+            MainText = title
+        });
+    }
+
+}

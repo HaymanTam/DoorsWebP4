@@ -1,0 +1,178 @@
+﻿@page "/users"
+@using DoorsWeb.Shared.Models
+@inject IHttpClientFactory ClientFactory
+
+
+<Table Item="UserDto" @ref="table" Items="userList" PageSize="10" AddItemFactory="AddItem"
+       OnItemAdded="OnItemAdd" OnItemEdited="OnItemEdit" OnItemDeleted="OnItemDelete" OnBeforeEdit="OnBeforeEdit" CancelStrategy="TabBlazor.Components.Tables.OnCancelStrategy.Revert"
+       Hover Responsive EditMode=TableEditMode.Inline>
+    <HeaderTemplate>
+
+    </HeaderTemplate>
+
+    <ChildContent>
+        @if (!IsLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        <Column Item="UserDto" Property="e => e.Id" Title="User ID" Width="50px" Sortable Visible="false">
+            <EditorTemplate>
+                @(context.Id == Guid.Empty ? context.Id : "")
+                <InputNumber class="form-control" @bind-value="@context.Id" Hidden />
+            </EditorTemplate>
+        </Column>
+        <Column Item="UserDto" Property="e => e.CardNumber" Title="Card#"  Searchable Sortable>
+            <EditorTemplate>
+                <InputNumber class="form-control" @bind-value="@context.CardNumber" DisplayName="Card Number" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="UserDto" Property="e => e.Name" Title="Name" Searchable Sortable>
+            <EditorTemplate>
+                <InputText class="form-control" @bind-value="@context.Name" DisplayName="Name" />
+            </EditorTemplate>
+        </Column>
+        @* They use property for search hence joining all accessLevel names together in a string *@
+        <Column Item="UserDto" Property="e => e.AccessNames" Title="Access Levels" Searchable>
+            <Template>
+                <div class="badge-list">
+                @foreach (var alid in @context.AccessLevelIds)
+                {
+                    <Badge BackgroundColor="TablerColor.Primary" Size="BadgeSize.Large"> @(accessNameList.Find(e => e.Id == alid.Id)?.Name ?? "") </Badge>
+                }
+                </div>
+            </Template>
+            <EditorTemplate>
+                <ItemSelect Items="accessNameList" @bind-SelectedValues="@context.AccessLevelIds" SelectedTextExpression="e => e.Name" 
+                        ConvertExpression="e => e" MultiSelect>
+                    <ListTemplate context="listcontext">
+                        @listcontext.Name
+                    </ListTemplate>
+                </ItemSelect>
+            </EditorTemplate>
+        </Column>
+        <Column Item="UserDto" Property="e => e.IsEnabled" Title="Enabled" Width="50px" Sortable>
+            <Template>
+                @if(context.IsEnabled)
+                {
+                    <Icon class="icon" IconType="@TablerIcons.Check" />
+                }
+                else
+                {
+                    <Icon class="icon" IconType="@TablerIcons.X" />
+                }
+            </Template>
+            <EditorTemplate>
+                <Checkbox @bind-value="@context.IsEnabled" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="UserDto" Property="e => e.LastUpdatedAt" Title="Last Updated" Searchable Sortable>
+            <EditorTemplate>
+                @(context.LastUpdatedAt != default ? context.LastUpdatedAt : "")
+            </EditorTemplate>
+        </Column>
+    </ChildContent>
+</Table>
+
+
+
+@code {
+    [Inject] TabBlazor.Services.TablerService TablerService { get; set; } = null!;
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    private bool IsLoaded = false;
+    private UserDto? _editSnapshot;
+    private Table<UserDto> table = null!; //setup to point the object table to maneuver it
+    private HttpClient client = new HttpClient();
+    private List<UserDto> userList = new List<UserDto>();
+    List<AccessLevelNameListDto> accessNameList = new List<AccessLevelNameListDto>();
+    List<Guid> accessIds = new List<Guid>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        userList = await client.GetFromJsonAsync<List<UserDto>>("api/User") ?? [];
+        var accessList = await client.GetFromJsonAsync<List<AccessLevelDto>>("api/AccessLevel") ?? [];
+        foreach (var item in accessList)
+        {
+            accessNameList.Add(new AccessLevelNameListDto { Id = item.Id, Name = item.Name });
+        }
+        IsLoaded = true;    
+    }
+
+    private Task<UserDto> AddItem()
+    {
+        // this function feeds default value
+        return Task.FromResult(new UserDto { Id = Guid.Empty, CardNumber = 0, IsEnabled = true, AccessLevelIds = new List<AccessLevelNameListDto>() });
+    }
+
+    private async Task OnItemAdd(UserDto userDto)
+    {
+        var result = await client.PostAsJsonAsync<UserDto>("api/User/", userDto);
+
+        if (result.IsSuccessStatusCode) await UpdateList();
+        else {
+            userList.Remove(userDto);
+            await ShowErrorDialog(result);
+        }
+    }
+
+    private Task OnBeforeEdit(UserDto userDto)
+    {
+        _editSnapshot = new UserDto
+        {
+            Id = userDto.Id,
+            CardNumber = userDto.CardNumber,
+            PhotoPath = userDto.PhotoPath,
+            Name = userDto.Name,
+            IsEnabled = userDto.IsEnabled,
+            LastUpdatedAt = userDto.LastUpdatedAt,
+            AccessLevelIds = new List<AccessLevelNameListDto>(userDto.AccessLevelIds)
+        };
+        return Task.CompletedTask;
+    }
+
+    private async Task OnItemEdit(UserDto userDto)
+    {
+        var result = await client.PutAsJsonAsync<UserDto>("api/User/" + userDto.Id, userDto);
+        if (result.IsSuccessStatusCode) await UpdateList();
+        else
+        {
+            var index = userList.FindIndex(u => u.Id == userDto.Id);
+            if (index >= 0) userList[index] = _editSnapshot!;
+            await ShowErrorDialog(result);
+        }
+    }
+
+    private async Task OnItemDelete(UserDto userDto)
+    {
+        userList = await client.DeleteFromJsonAsync<List<UserDto>>("api/User/" + userDto.Id) ?? [];
+    }
+
+    private async Task UpdateList()
+    {
+        userList = await client.GetFromJsonAsync<List<UserDto>>("api/User") ?? [];
+    }
+
+    private async Task ShowErrorDialog(HttpResponseMessage result)
+    {
+        ClientProblemDetails errjson;
+        try
+        {
+            errjson = await result.Content.ReadFromJsonAsync<ClientProblemDetails>() ??
+                new ClientProblemDetails { Status = 500, Title = "Error Returned Null!", Detail = "An unexpected error occurred." };
+        }
+        catch
+        {
+            errjson = new ClientProblemDetails { Status = 500, Title = "Unable to Read Error!", Detail = "Failed to read error response." };
+        }
+        if(errjson.Status == 500) errjson.Detail = "traceId: " + errjson.TraceId;
+        await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = errjson.Status + " " + errjson.Title,
+            SubText = errjson.Detail, 
+            IconType = TablerIcons.Alert_triangle,
+            CancelText = "",
+            StatusColor = TablerColor.Danger
+        });
+    }
+}

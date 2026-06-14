@@ -17,9 +17,9 @@ namespace DoorsWeb.API.Migrations
                 name: "AccessCalendar",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()")
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -30,13 +30,13 @@ namespace DoorsWeb.API.Migrations
                 name: "Admin",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Username = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
-                    PasswordHash = table.Column<string>(type: "text", nullable: false),
-                    CanEditUsers = table.Column<bool>(type: "boolean", nullable: false),
-                    CanEditDoors = table.Column<bool>(type: "boolean", nullable: false),
-                    CanEditAdmins = table.Column<bool>(type: "boolean", nullable: false),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()")
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CanEditUsers = table.Column<bool>(type: "bit", nullable: false),
+                    CanEditDoors = table.Column<bool>(type: "bit", nullable: false),
+                    CanEditAdmins = table.Column<bool>(type: "bit", nullable: false),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -47,11 +47,11 @@ namespace DoorsWeb.API.Migrations
                 name: "DoorHeader",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ControllerId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    IPAddressBytes = table.Column<byte[]>(type: "bytea", maxLength: 16, nullable: false),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()")
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ControllerId = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IPAddressBytes = table.Column<byte[]>(type: "varbinary(16)", maxLength: 16, nullable: false),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -63,7 +63,7 @@ namespace DoorsWeb.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<short>(type: "smallint", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -74,12 +74,12 @@ namespace DoorsWeb.API.Migrations
                 name: "User",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CardNumber = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: true),
-                    PhotoPath = table.Column<string>(type: "text", nullable: true),
-                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()")
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CardNumber = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    PhotoPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -90,10 +90,10 @@ namespace DoorsWeb.API.Migrations
                 name: "AccessCalendarElement",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     StartDate = table.Column<DateOnly>(type: "date", nullable: false),
                     EndDate = table.Column<DateOnly>(type: "date", nullable: true),
-                    AccessCalendarId = table.Column<Guid>(type: "uuid", nullable: true)
+                    AccessCalendarId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -109,10 +109,10 @@ namespace DoorsWeb.API.Migrations
                 name: "AccessTimeZone",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    CalendarId = table.Column<Guid>(type: "uuid", nullable: true),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()")
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CalendarId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -128,34 +128,34 @@ namespace DoorsWeb.API.Migrations
                 name: "DoorSettings",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    AutoRelockEnable = table.Column<bool>(type: "boolean", nullable: false),
-                    RelayA_Delay = table.Column<byte>(type: "smallint", nullable: false),
-                    RelayA_Time = table.Column<byte>(type: "smallint", nullable: false),
-                    RelayA_TZOverideEnable = table.Column<bool>(type: "boolean", nullable: false),
-                    RelayB_Mode = table.Column<byte>(type: "smallint", nullable: false),
-                    RelayB_Delay = table.Column<byte>(type: "smallint", nullable: false),
-                    RelayB_Time = table.Column<byte>(type: "smallint", nullable: false),
-                    PDO_Alarm_Time = table.Column<byte>(type: "smallint", nullable: false),
-                    LockDriveMode = table.Column<byte>(type: "smallint", nullable: false),
-                    ValidFrom = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
-                    ValidTo = table.Column<TimeOnly>(type: "time without time zone", nullable: false),
-                    Notes = table.Column<string>(type: "text", nullable: true),
-                    Keypad_VCardLength = table.Column<byte>(type: "smallint", nullable: false),
-                    Keypad_AccessCode = table.Column<int>(type: "integer", nullable: true),
-                    Keypad_StarModeEnable = table.Column<bool>(type: "boolean", nullable: false),
-                    ReaderA_Name = table.Column<string>(type: "text", nullable: false),
-                    ReaderA_TechId = table.Column<byte>(type: "smallint", nullable: false),
-                    ReaderA_Volume = table.Column<byte>(type: "smallint", nullable: false),
-                    ReaderA_Brightness = table.Column<byte>(type: "smallint", nullable: false),
-                    ReaderA_MFA_Sequence = table.Column<byte>(type: "smallint", nullable: false),
-                    ReaderB_Name = table.Column<string>(type: "text", nullable: false),
-                    ReaderB_TechId = table.Column<byte>(type: "smallint", nullable: false),
-                    ReaderB_Volume = table.Column<byte>(type: "smallint", nullable: false),
-                    ReaderB_Brightness = table.Column<byte>(type: "smallint", nullable: false),
-                    ReaderB_MFA_Sequence = table.Column<byte>(type: "smallint", nullable: false),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()"),
-                    DoorHeader = table.Column<Guid>(type: "uuid", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AutoRelockEnable = table.Column<bool>(type: "bit", nullable: false),
+                    RelayA_Delay = table.Column<byte>(type: "tinyint", nullable: false),
+                    RelayA_Time = table.Column<byte>(type: "tinyint", nullable: false),
+                    RelayA_TZOverideEnable = table.Column<bool>(type: "bit", nullable: false),
+                    RelayB_Mode = table.Column<byte>(type: "tinyint", nullable: false),
+                    RelayB_Delay = table.Column<byte>(type: "tinyint", nullable: false),
+                    RelayB_Time = table.Column<byte>(type: "tinyint", nullable: false),
+                    PDO_Alarm_Time = table.Column<byte>(type: "tinyint", nullable: false),
+                    LockDriveMode = table.Column<byte>(type: "tinyint", nullable: false),
+                    ValidFrom = table.Column<TimeOnly>(type: "time", nullable: false),
+                    ValidTo = table.Column<TimeOnly>(type: "time", nullable: false),
+                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Keypad_VCardLength = table.Column<byte>(type: "tinyint", nullable: false),
+                    Keypad_AccessCode = table.Column<int>(type: "int", nullable: true),
+                    Keypad_StarModeEnable = table.Column<bool>(type: "bit", nullable: false),
+                    ReaderA_Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ReaderA_TechId = table.Column<byte>(type: "tinyint", nullable: false),
+                    ReaderA_Volume = table.Column<byte>(type: "tinyint", nullable: false),
+                    ReaderA_Brightness = table.Column<byte>(type: "tinyint", nullable: false),
+                    ReaderA_MFA_Sequence = table.Column<byte>(type: "tinyint", nullable: false),
+                    ReaderB_Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ReaderB_TechId = table.Column<byte>(type: "tinyint", nullable: false),
+                    ReaderB_Volume = table.Column<byte>(type: "tinyint", nullable: false),
+                    ReaderB_Brightness = table.Column<byte>(type: "tinyint", nullable: false),
+                    ReaderB_MFA_Sequence = table.Column<byte>(type: "tinyint", nullable: false),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    DoorHeader = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -172,21 +172,21 @@ namespace DoorsWeb.API.Migrations
                 name: "DoorStatus",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    RelayA = table.Column<bool>(type: "boolean", nullable: false),
-                    RelayB = table.Column<bool>(type: "boolean", nullable: false),
-                    TwoStageRelease = table.Column<bool>(type: "boolean", nullable: false),
-                    RequestToExit = table.Column<bool>(type: "boolean", nullable: false),
-                    DoorPosition = table.Column<bool>(type: "boolean", nullable: false),
-                    Interlocked = table.Column<bool>(type: "boolean", nullable: false),
-                    AlarmDoorForced = table.Column<bool>(type: "boolean", nullable: false),
-                    AlarmDuress = table.Column<bool>(type: "boolean", nullable: false),
-                    AlarmHacker = table.Column<bool>(type: "boolean", nullable: false),
-                    AlarmFire = table.Column<bool>(type: "boolean", nullable: false),
-                    AlarmIntruder = table.Column<bool>(type: "boolean", nullable: false),
-                    AlarmObstruction = table.Column<bool>(type: "boolean", nullable: false),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()"),
-                    DoorHeader = table.Column<Guid>(type: "uuid", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RelayA = table.Column<bool>(type: "bit", nullable: false),
+                    RelayB = table.Column<bool>(type: "bit", nullable: false),
+                    TwoStageRelease = table.Column<bool>(type: "bit", nullable: false),
+                    RequestToExit = table.Column<bool>(type: "bit", nullable: false),
+                    DoorPosition = table.Column<bool>(type: "bit", nullable: false),
+                    Interlocked = table.Column<bool>(type: "bit", nullable: false),
+                    AlarmDoorForced = table.Column<bool>(type: "bit", nullable: false),
+                    AlarmDuress = table.Column<bool>(type: "bit", nullable: false),
+                    AlarmHacker = table.Column<bool>(type: "bit", nullable: false),
+                    AlarmFire = table.Column<bool>(type: "bit", nullable: false),
+                    AlarmIntruder = table.Column<bool>(type: "bit", nullable: false),
+                    AlarmObstruction = table.Column<bool>(type: "bit", nullable: false),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    DoorHeader = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -203,13 +203,13 @@ namespace DoorsWeb.API.Migrations
                 name: "Event",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CardNumber = table.Column<int>(type: "integer", nullable: false),
-                    DoorId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ReaderId = table.Column<byte>(type: "smallint", nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CardNumber = table.Column<int>(type: "int", nullable: false),
+                    DoorId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ReaderId = table.Column<byte>(type: "tinyint", nullable: true),
                     EventTypeId = table.Column<short>(type: "smallint", nullable: false),
-                    TimeStamp = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
+                    TimeStamp = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -236,10 +236,10 @@ namespace DoorsWeb.API.Migrations
                 name: "AccessLevel",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    TimeZoneId = table.Column<Guid>(type: "uuid", nullable: true),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false, defaultValueSql: "now()")
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    TimeZoneId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -255,18 +255,18 @@ namespace DoorsWeb.API.Migrations
                 name: "AccessTimeZoneElement",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    StartTime = table.Column<TimeOnly>(type: "time without time zone", nullable: true),
-                    EndTime = table.Column<TimeOnly>(type: "time without time zone", nullable: true),
-                    Monday = table.Column<bool>(type: "boolean", nullable: false),
-                    Tuesday = table.Column<bool>(type: "boolean", nullable: false),
-                    Wednesday = table.Column<bool>(type: "boolean", nullable: false),
-                    Thursday = table.Column<bool>(type: "boolean", nullable: false),
-                    Friday = table.Column<bool>(type: "boolean", nullable: false),
-                    Saturday = table.Column<bool>(type: "boolean", nullable: false),
-                    Sunday = table.Column<bool>(type: "boolean", nullable: false),
-                    CalendarId = table.Column<Guid>(type: "uuid", nullable: true),
-                    AccessTimeZoneId = table.Column<Guid>(type: "uuid", nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    StartTime = table.Column<TimeOnly>(type: "time", nullable: true),
+                    EndTime = table.Column<TimeOnly>(type: "time", nullable: true),
+                    Monday = table.Column<bool>(type: "bit", nullable: false),
+                    Tuesday = table.Column<bool>(type: "bit", nullable: false),
+                    Wednesday = table.Column<bool>(type: "bit", nullable: false),
+                    Thursday = table.Column<bool>(type: "bit", nullable: false),
+                    Friday = table.Column<bool>(type: "bit", nullable: false),
+                    Saturday = table.Column<bool>(type: "bit", nullable: false),
+                    Sunday = table.Column<bool>(type: "bit", nullable: false),
+                    CalendarId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    AccessTimeZoneId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -287,10 +287,10 @@ namespace DoorsWeb.API.Migrations
                 name: "AccessLevelElement",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    AccessLevelId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DoorId = table.Column<Guid>(type: "uuid", nullable: false),
-                    AccessTimeZone = table.Column<Guid>(type: "uuid", nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AccessLevelId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DoorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AccessTimeZone = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -318,8 +318,8 @@ namespace DoorsWeb.API.Migrations
                 name: "AccessLevelUser",
                 columns: table => new
                 {
-                    AccessLevelsId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UsersId = table.Column<Guid>(type: "uuid", nullable: false)
+                    AccessLevelsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UsersId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -520,7 +520,8 @@ namespace DoorsWeb.API.Migrations
                 name: "IX_User_Name",
                 table: "User",
                 column: "Name",
-                unique: true);
+                unique: true,
+                filter: "[Name] IS NOT NULL");
         }
 
         /// <inheritdoc />

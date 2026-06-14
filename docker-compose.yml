@@ -24,41 +24,26 @@ services:
       - "60878:8080"
       - "60879:8081"
     depends_on:
-      postgres:
+      mssql:
         condition: service_healthy
     networks:
       - doorsweb
 
-  postgres:
-    image: postgres:17
-    container_name: doorsweb.postgres
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: doorsweb.mssql
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
-      - "5432:5432"
+      - "1433:1433"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mssql-data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - doorsweb
-
-  mosquitto:
-    image: eclipse-mosquitto:2
-    container_name: doorsweb.mosquitto
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - mosquitto-data:/mosquitto/data
-      - mosquitto-log:/mosquitto/log
+      retries: 10
     restart: unless-stopped
     networks:
       - doorsweb
@@ -70,9 +55,5 @@ networks:
 volumes:
   user-photo:
     driver: local
-  postgres-data:
-    driver: local
-  mosquitto-data:
-    driver: local
-  mosquitto-log:
+  mssql-data:
     driver: local

@@ -6,7 +6,7 @@
       "serviceActions": {
         "doorsweb.api": "StartWithoutDebugging",
         "doorsweb.client": "StartWithoutDebugging",
-        "postgres": "StartWithoutDebugging"
+        "mssql": "StartWithoutDebugging"
       }
     }
   }

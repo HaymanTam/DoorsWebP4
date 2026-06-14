@@ -48,7 +48,7 @@ namespace DoorsWeb.API.Data
                 .IsUnique();
             modelBuilder.Entity<AccessLevel>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             // One-to-many without navigation to pricipal and optional shadow foreign key 
             modelBuilder.Entity<AccessTimeZone>()
@@ -66,7 +66,7 @@ namespace DoorsWeb.API.Data
                 .IsUnique();
             modelBuilder.Entity<AccessTimeZone>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             // One-to-many without navigation to dependents and optional shadow foreign key
             modelBuilder.Entity<AccessTimeZoneElement>()
@@ -82,14 +82,14 @@ namespace DoorsWeb.API.Data
                 .IsRequired(false);
             modelBuilder.Entity<AccessCalendar>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<Admin>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
             modelBuilder.Entity<Admin>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
 
             // Many-to-Many Relation with AccessLevel already defined, skipping.....
@@ -98,7 +98,7 @@ namespace DoorsWeb.API.Data
                 .IsUnique();
             modelBuilder.Entity<DoorHeader>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<DoorSettings>()
                 .HasOne(e => e.Header)
@@ -107,7 +107,7 @@ namespace DoorsWeb.API.Data
                 .IsRequired();
             modelBuilder.Entity<DoorSettings>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             modelBuilder.Entity<DoorStatus>()
                 .HasOne(e => e.Header)
@@ -116,7 +116,7 @@ namespace DoorsWeb.API.Data
                 .IsRequired();
             modelBuilder.Entity<DoorStatus>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             // One-to-many without navigation to pricipal and optional shadow foreign key 
             modelBuilder.Entity<Event>()
@@ -140,7 +140,7 @@ namespace DoorsWeb.API.Data
             // Many-to-Many Relation with AccessLevel already defined, skipping.....
             modelBuilder.Entity<User>()
                 .Property(p => p.LastUpdatedAt)
-                .HasDefaultValueSql("now()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
 
 

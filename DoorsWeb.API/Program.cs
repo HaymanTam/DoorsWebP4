@@ -9,12 +9,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Npgsql maps DateTime to 'timestamp with time zone' and rejects non-UTC Kind by default.
-// Legacy mode keeps the prior behavior so existing DateTime.Now writes keep working.
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
 builder.Services.AddDbContextFactory<DataContext>(options =>
-    options.UseNpgsql(
+    options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection") ??
         throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")
     )

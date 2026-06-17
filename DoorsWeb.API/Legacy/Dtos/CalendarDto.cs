@@ -1,0 +1,29 @@
+namespace DoorsWeb.API.Legacy.Dtos
+{
+    // Mirrors frmMain.LoadCalendars (LegacyDoorsClient\frmMain.frm). Calendars are
+    // grouped per site in the server XML:
+    //
+    //   <Site Code="..." Name="...">
+    //     <Calendars>
+    //       <Calendar Code="..." Name="..." />
+    //     </Calendars>
+    //   </Site>
+    //
+    // Scaffolded entities: TCalendarHeader (Code, Site, Description, ...), TSites.
+
+    /// <summary>One calendar joined to its owning site.</summary>
+    public class CalendarDto
+    {
+        /// <summary>Calendar code. Source: Calendar/@Code (TCalendarHeader.Code).</summary>
+        public int Code { get; set; }
+
+        /// <summary>Calendar name. Source: Calendar/@Name (TCalendarHeader.Description).</summary>
+        public string? Name { get; set; }
+
+        /// <summary>Owning site code. Source: Site/@Code (TSites.Site).</summary>
+        public int SiteCode { get; set; }
+
+        /// <summary>Owning site name. Source: Site/@Name (TSites.Name).</summary>
+        public string? SiteName { get; set; }
+    }
+}

@@ -1,0 +1,68 @@
+@* Custom Fields dialog (mirrors LegacyDoorsClient). Shown via
+   ModalService.ShowAsync("Custom Fields", ...). OK + Cancel only (Apply ignored). *@
+
+<TablerForm Model="@field" OnValidSubmit="OK">
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <div class="mb-3 row align-items-center">
+                <div class="col-lg-3">
+                    <label class="form-label mb-0">Name</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputText class="form-control" @bind-Value="field.Name"></InputText>
+                </div>
+            </div>
+
+            <div class="mb-1 row align-items-center">
+                <div class="col-lg-3">
+                    <label class="form-label mb-0">Type</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputSelect class="form-select" @bind-Value="field.Type">
+                        <option value="Checkbox">Checkbox</option>
+                        <option value="Drop down list">Drop down list</option>
+                        <option value="Date">Date</option>
+                        <option value="Text">Text</option>
+                        <option value="Number">Number</option>
+                    </InputSelect>
+                </div>
+            </div>
+        </CardBody>
+    </Card>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing custom field).</summary>
+    [Parameter] public CustomFieldModel? Field { get; set; }
+
+    private CustomFieldModel field = new();
+
+    protected override void OnInitialized()
+    {
+        if (Field is not null) field = Field;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    public class CustomFieldModel
+    {
+        public string? Name { get; set; }
+        public string Type { get; set; } = "Checkbox";
+    }
+}

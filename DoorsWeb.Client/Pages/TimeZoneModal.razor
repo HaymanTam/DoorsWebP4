@@ -1,0 +1,165 @@
+@* Time Zone dialog (mirrors LegacyDoorsClient "Time Zones - New time zone").
+   Shown via ModalService.ShowAsync("Time Zones - New time zone", ...).
+   OK + Cancel only (Apply ignored). The green "Auto-update is ON" banner is intentionally omitted. *@
+
+<TablerForm Model="@timeZone" OnValidSubmit="OK">
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Time Zone</CardTitle>
+            <div class="mb-2 row align-items-center">
+                <div class="col-lg-3 text-end">
+                    <label class="form-label mb-0">Name</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputText class="form-control" @bind-Value="timeZone.Name"></InputText>
+                </div>
+            </div>
+            <div class="mb-1 row align-items-center">
+                <div class="col-lg-3 text-end">
+                    <label class="form-label mb-0">Calendar</label>
+                </div>
+                <div class="col-lg-8">
+                    <InputSelect class="form-select" @bind-Value="timeZone.Calendar">
+                        <option value="(none)">(none)</option>
+                    </InputSelect>
+                </div>
+                <div class="col-lg-1">
+                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="EditCalendars">...</button>
+                </div>
+            </div>
+        </CardBody>
+    </Card>
+
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Elements</CardTitle>
+            <p class="mb-1">Time zones are split into elements. Each element has a start time and end time and can be applied to specific days of the week.</p>
+            <p class="mb-2">Click "Add.." to create a new element.</p>
+
+            <div class="table-responsive border rounded mb-2" style="max-height: 260px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Mon</th>
+                            <th>Tues</th>
+                            <th>Wed</th>
+                            <th>Thu</th>
+                            <th>Fri</th>
+                            <th>Sat</th>
+                            <th>Sun</th>
+                            <th>Calendar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (timeZone.Elements.Count == 0)
+                        {
+                            <tr><td colspan="10" class="text-muted text-center py-4">No elements. Click "Add..." to create one.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var el in timeZone.Elements)
+                            {
+                                <tr class="@(el == selected ? "table-active" : null)" @onclick="() => selected = el">
+                                    <td>@el.Start</td>
+                                    <td>@el.End</td>
+                                    <td>@(el.Mon ? "X" : "")</td>
+                                    <td>@(el.Tues ? "X" : "")</td>
+                                    <td>@(el.Wed ? "X" : "")</td>
+                                    <td>@(el.Thu ? "X" : "")</td>
+                                    <td>@(el.Fri ? "X" : "")</td>
+                                    <td>@(el.Sat ? "X" : "")</td>
+                                    <td>@(el.Sun ? "X" : "")</td>
+                                    <td>@el.Calendar</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" @onclick="AddElement">Add...</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="RemoveElement" disabled="@(selected is null)">Remove</button>
+                <button type="button" class="btn btn-outline-secondary" @onclick="ChangeElement" disabled="@(selected is null)">Change...</button>
+            </div>
+        </CardBody>
+    </Card>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing time zone).</summary>
+    [Parameter] public TimeZoneModel? TimeZone { get; set; }
+
+    private TimeZoneModel timeZone = new();
+    private TimeZoneElement? selected;
+
+    protected override void OnInitialized()
+    {
+        if (TimeZone is not null) timeZone = TimeZone;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private void EditCalendars()
+    {
+        // Placeholder: open the calendar editor (no dialog wired yet).
+    }
+
+    private void AddElement()
+    {
+        // Placeholder: open the element editor to create a new element.
+    }
+
+    private void RemoveElement()
+    {
+        if (selected is not null)
+        {
+            timeZone.Elements.Remove(selected);
+            selected = null;
+        }
+    }
+
+    private void ChangeElement()
+    {
+        // Placeholder: open the element editor for the selected element.
+    }
+
+    public class TimeZoneModel
+    {
+        public string? Name { get; set; }
+        public string Calendar { get; set; } = "(none)";
+        public List<TimeZoneElement> Elements { get; set; } = new();
+    }
+
+    public class TimeZoneElement
+    {
+        public string? Start { get; set; }
+        public string? End { get; set; }
+        public bool Mon { get; set; }
+        public bool Tues { get; set; }
+        public bool Wed { get; set; }
+        public bool Thu { get; set; }
+        public bool Fri { get; set; }
+        public bool Sat { get; set; }
+        public bool Sun { get; set; }
+        public string? Calendar { get; set; }
+    }
+}

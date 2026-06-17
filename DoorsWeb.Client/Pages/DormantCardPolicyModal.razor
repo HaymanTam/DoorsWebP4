@@ -1,0 +1,95 @@
+@* Dormant Card Policy dialog (mirrors LegacyDoorsClient). Shown via
+   ModalService.ShowAsync("Dormant Card Policy", ...). OK + Cancel only (Apply ignored). *@
+
+<TablerForm Model="@policy" OnValidSubmit="OK">
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Settings</CardTitle>
+
+            <div class="mb-3 row align-items-center">
+                <div class="col-lg-8">
+                    <label class="form-check mb-0">
+                        <InputCheckbox class="form-check-input" @bind-Value="policy.CheckDaily"></InputCheckbox>
+                        <span class="form-check-label">Check for dormant cards every day at</span>
+                    </label>
+                </div>
+                <div class="col-lg-4">
+                    <input type="time" class="form-control" @bind="policy.CheckTime" @bind:format="HH:mm" disabled="@(!policy.CheckDaily)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row align-items-center">
+                <div class="col-lg-6">
+                    <label class="form-label mb-0">Make cards dormant if not used in last</label>
+                </div>
+                <div class="col-lg-3">
+                    <InputNumber class="form-control" @bind-Value="policy.DormantAfter" disabled="@(!policy.CheckDaily)"></InputNumber>
+                </div>
+                <div class="col-lg-3">
+                    <InputSelect class="form-select" @bind-Value="policy.DormantUnit" disabled="@(!policy.CheckDaily)">
+                        <option value="Days">Days</option>
+                        <option value="Weeks">Weeks</option>
+                        <option value="Months">Months</option>
+                        <option value="Years">Years</option>
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="TurnOff">Off</button>
+            </div>
+            <div class="mb-1">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="CheckNow">Check Now</button>
+            </div>
+        </CardBody>
+    </Card>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing policy).</summary>
+    [Parameter] public DormantCardPolicyModel? Policy { get; set; }
+
+    private DormantCardPolicyModel policy = new();
+
+    protected override void OnInitialized()
+    {
+        if (Policy is not null) policy = Policy;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private void TurnOff()
+    {
+        // "Off" disables the daily dormant-card check.
+        policy.CheckDaily = false;
+    }
+
+    private void CheckNow()
+    {
+        // Placeholder: run an immediate dormant-card check (no API wired yet).
+    }
+
+    public class DormantCardPolicyModel
+    {
+        public bool CheckDaily { get; set; } = false;
+        public TimeOnly CheckTime { get; set; } = new TimeOnly(20, 0);
+        public int? DormantAfter { get; set; }
+        public string DormantUnit { get; set; } = "Days";
+    }
+}

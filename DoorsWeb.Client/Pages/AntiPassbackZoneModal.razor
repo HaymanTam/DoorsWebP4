@@ -1,0 +1,286 @@
+@* Anti-Passback Zone dialog (mirrors LegacyDoorsClient "Anti-passback zones - New anti-passback zone").
+   Shown via ModalService.ShowAsync("Anti-passback zones - New anti-passback zone", ...).
+   Two tabs: Properties / Doors. OK + Cancel only (Apply ignored). *@
+
+<TablerForm Model="@zone" OnValidSubmit="OK">
+    <Tabs>
+        @* ============================= PROPERTIES ============================= *@
+        <Tab Title="Properties">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Anti-Passback Zone</CardTitle>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-3 text-end">
+                            <label class="form-label mb-0">Name</label>
+                        </div>
+                        <div class="col-lg-9">
+                            <InputText class="form-control" @bind-Value="zone.Name"></InputText>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Mode</CardTitle>
+                    <InputRadioGroup @bind-Value="zone.Mode">
+                        <div class="row align-items-center mb-2">
+                            <div class="col-lg-4">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@("Discovery")"></InputRadio>
+                                    <span class="form-check-label fw-bold">Discovery</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-8"><em class="text-muted">[Anti-passback status will be updated to the doors, but not enforced]</em></div>
+                        </div>
+                        <div class="row align-items-center mb-2">
+                            <div class="col-lg-4">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@("Active")"></InputRadio>
+                                    <span class="form-check-label fw-bold">Active</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-8"><em class="text-muted">[Anti-passback will be updated and enforced]</em></div>
+                        </div>
+                        <div class="row align-items-center mb-1">
+                            <div class="col-lg-4">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@("Off")"></InputRadio>
+                                    <span class="form-check-label fw-bold">Off</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-8"><em class="text-muted">[Anti-passback will be not be updated or enforced]</em></div>
+                        </div>
+                    </InputRadioGroup>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Discovery Mode Settings</CardTitle>
+                    <InputRadioGroup @bind-Value="zone.DiscoveryDuration">
+                        <div class="row align-items-center mb-2">
+                            <div class="col-lg-4">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@("LastsFor")"></InputRadio>
+                                    <span class="form-check-label">Lasts for</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-3">
+                                <InputNumber class="form-control" @bind-Value="zone.DiscoveryMinutes" disabled="@(zone.DiscoveryDuration != "LastsFor")"></InputNumber>
+                            </div>
+                            <div class="col-lg-3">
+                                <label class="form-label mb-0">minutes</label>
+                            </div>
+                        </div>
+                        <div class="row align-items-center mb-2">
+                            <div class="col-lg-4">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@("SetUntil")"></InputRadio>
+                                    <span class="form-check-label">Set until</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-4">
+                                <input type="date" class="form-control" @bind="zone.SetUntilDate" disabled="@(zone.DiscoveryDuration != "SetUntil")" />
+                            </div>
+                            <div class="col-lg-1 text-center">
+                                <label class="form-label mb-0">at</label>
+                            </div>
+                            <div class="col-lg-3">
+                                <input type="time" class="form-control" @bind="zone.SetUntilTime" @bind:format="HH:mm" disabled="@(zone.DiscoveryDuration != "SetUntil")" />
+                            </div>
+                        </div>
+                        <div class="row align-items-center mb-1">
+                            <div class="col-lg-12">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@("FurtherNotice")"></InputRadio>
+                                    <span class="form-check-label">Set until further notice</span>
+                                </label>
+                            </div>
+                        </div>
+                    </InputRadioGroup>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>
+                        <label class="form-check mb-0">
+                            <InputCheckbox class="form-check-input" @bind-Value="zone.FireAlarmReset"></InputCheckbox>
+                            <span class="form-check-label">Set to "Discovery Mode" on fire alarm reset</span>
+                        </label>
+                    </CardTitle>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-5 text-end">
+                            <label class="form-label mb-0">Use fire alarm input from</label>
+                        </div>
+                        <div class="col-lg-7">
+                            <InputSelect class="form-select" @bind-Value="zone.FireAlarmInput" disabled="@(!zone.FireAlarmReset)">
+                                <option value="(none)">(none)</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-5 text-end">
+                            <label class="form-label mb-0">Discovery mode lasts for</label>
+                        </div>
+                        <div class="col-lg-3">
+                            <InputNumber class="form-control" @bind-Value="zone.FireAlarmDiscoveryMinutes" disabled="@(!zone.FireAlarmReset)"></InputNumber>
+                        </div>
+                        <div class="col-lg-4">
+                            <label class="form-label mb-0">minutes</label>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Auto correction</CardTitle>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-8">
+                            <label class="form-check mb-0">
+                                <InputCheckbox class="form-check-input" @bind-Value="zone.LogOutDaily"></InputCheckbox>
+                                <span class="form-check-label">Log out cards every day at</span>
+                            </label>
+                        </div>
+                        <div class="col-lg-4">
+                            <input type="time" class="form-control" @bind="zone.LogOutTime" @bind:format="HH:mm" disabled="@(!zone.LogOutDaily)" />
+                        </div>
+                    </div>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-4 text-end">
+                            <label class="form-label mb-0">Next logout at</label>
+                        </div>
+                        <div class="col-lg-8">
+                            <div class="form-control text-center text-muted bg-light">Never - auto logout not set</div>
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <button type="button" class="btn btn-outline-secondary w-100" @onclick="LogoutNow">Logout Now</button>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <div class="alert alert-secondary text-center mb-0" role="alert">
+                Discovery mode not active - click "OK" to save
+            </div>
+        </Tab>
+
+        @* ============================= DOORS ============================= *@
+        <Tab Title="Doors">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <p class="mb-2">Tick the doors you want to include in this anti-passback zone. Double-click a door to change it's behaviour.</p>
+                    <div class="table-responsive border rounded" style="max-height: 420px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Door</th>
+                                    <th>Role</th>
+                                    <th>Reader A</th>
+                                    <th>Reader B</th>
+                                    <th>Enforce</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (zone.Doors.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="text-muted text-center py-4">No doors available.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var door in zone.Doors)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <label class="form-check mb-0">
+                                                    <InputCheckbox class="form-check-input" @bind-Value="door.Included"></InputCheckbox>
+                                                    <span class="form-check-label">@door.Name</span>
+                                                </label>
+                                            </td>
+                                            <td>@door.Role</td>
+                                            <td>@door.ReaderA</td>
+                                            <td>@door.ReaderB</td>
+                                            <td>@(door.Enforce ? "Yes" : "No")</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+    </Tabs>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing anti-passback zone).</summary>
+    [Parameter] public AntiPassbackZoneModel? Zone { get; set; }
+
+    private AntiPassbackZoneModel zone = new();
+
+    protected override void OnInitialized()
+    {
+        if (Zone is not null) zone = Zone;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private void LogoutNow()
+    {
+        // Placeholder: force-logout all cards in the zone now (no API wired yet).
+    }
+
+    public class AntiPassbackZoneModel
+    {
+        public string? Name { get; set; }
+
+        // Mode: Discovery / Active / Off
+        public string Mode { get; set; } = "Discovery";
+
+        // Discovery Mode Settings: LastsFor / SetUntil / FurtherNotice
+        public string DiscoveryDuration { get; set; } = "FurtherNotice";
+        public int? DiscoveryMinutes { get; set; }
+        public DateOnly SetUntilDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public TimeOnly SetUntilTime { get; set; } = new TimeOnly(0, 0);
+
+        // Fire alarm reset
+        public bool FireAlarmReset { get; set; } = false;
+        public string FireAlarmInput { get; set; } = "(none)";
+        public int FireAlarmDiscoveryMinutes { get; set; } = 0;
+
+        // Auto correction
+        public bool LogOutDaily { get; set; } = false;
+        public TimeOnly LogOutTime { get; set; } = new TimeOnly(0, 0);
+
+        public List<DoorRow> Doors { get; set; } = new();
+    }
+
+    public class DoorRow
+    {
+        public bool Included { get; set; }
+        public string? Name { get; set; }
+        public string? Role { get; set; }
+        public string? ReaderA { get; set; }
+        public string? ReaderB { get; set; }
+        public bool Enforce { get; set; }
+    }
+}

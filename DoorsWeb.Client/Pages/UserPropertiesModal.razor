@@ -1,0 +1,109 @@
+@* User Properties - Permissions (single modal; the User / Permissions / Sites tabs are ignored,
+   only the Permissions tree is built). Shown via ModalService.ShowAsync("User Properties", ...).
+   OK + Cancel only.
+
+   The permission tree mirrors the main-navigation buttons (MainNavigation.razor): each checkbox
+   corresponds to a nav item, so ticking a node grants the user access to that button. *@
+
+<Card Size="CardSize.Default">
+    <CardBody>
+        <div class="border rounded p-2" style="max-height: 460px; overflow-y: auto;">
+            <ul class="mb-0 ps-0">
+                <PermissionTreeNode Node="root" />
+            </ul>
+        </div>
+    </CardBody>
+</Card>
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+    <button type="button" class="btn btn-primary" @onclick="OK">OK</button>
+</div>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting permission tree (e.g. when editing an existing user).</summary>
+    [Parameter] public PermissionNode? Root { get; set; }
+
+    private PermissionNode root = DefaultTree();
+
+    protected override void OnInitialized()
+    {
+        if (Root is not null) root = Root;
+    }
+
+    private void OK()
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    /// <summary>Permission tree mirroring the main-navigation buttons.</summary>
+    private static PermissionNode DefaultTree() => new()
+    {
+        Name = "System Manager",
+        IconType = TablerIcons.Shield_check,
+        Children =
+        {
+            new PermissionNode { Name = "Events", IconType = TablerIcons.Search },
+            new PermissionNode
+            {
+                Name = "Card Manager",
+                IconType = TablerIcons.Users,
+                Children =
+                {
+                    new PermissionNode { Name = "Card Filters", IconType = TablerIcons.Filter },
+                    new PermissionNode { Name = "Card Designs", IconType = TablerIcons.Pencil },
+                    new PermissionNode { Name = "Card Packs", IconType = TablerIcons.Stack_2 },
+                    new PermissionNode { Name = "Audit Log", IconType = TablerIcons.List_search },
+                    new PermissionNode { Name = "Custom Fields", IconType = TablerIcons.Star },
+                    new PermissionNode { Name = "Time Sheet", IconType = TablerIcons.Report },
+                }
+            },
+            new PermissionNode
+            {
+                Name = "Sites",
+                IconType = TablerIcons.Building,
+                Children =
+                {
+                    new PermissionNode { Name = "Doors", IconType = TablerIcons.Door },
+                    new PermissionNode { Name = "Connectors", IconType = TablerIcons.Affiliate },
+                    new PermissionNode { Name = "Access Levels", IconType = TablerIcons.Key },
+                    new PermissionNode { Name = "Time Zones", IconType = TablerIcons.Clock },
+                    new PermissionNode { Name = "Calendars", IconType = TablerIcons.Calendar_clock },
+                    new PermissionNode { Name = "Space Zones", IconType = TablerIcons.World },
+                    new PermissionNode { Name = "Anti-Passback Zones", IconType = TablerIcons.Hand_stop },
+                    new PermissionNode
+                    {
+                        Name = "Triggers",
+                        IconType = TablerIcons.Flag,
+                        Children =
+                        {
+                            new PermissionNode { Name = "Door Triggers", IconType = TablerIcons.Door },
+                            new PermissionNode { Name = "Space Zone Triggers", IconType = TablerIcons.World },
+                        }
+                    },
+                    new PermissionNode { Name = "Floor Plans", IconType = TablerIcons.Home },
+                }
+            },
+            new PermissionNode { Name = "Alarms", IconType = TablerIcons.Alert_triangle },
+            new PermissionNode
+            {
+                Name = "Control Panel",
+                IconType = TablerIcons.Settings,
+                Children =
+                {
+                    new PermissionNode { Name = "Update Hardware", IconType = TablerIcons.Refresh },
+                    new PermissionNode { Name = "Backup and Restore", IconType = TablerIcons.Database },
+                    new PermissionNode { Name = "Users and Passwords", IconType = TablerIcons.Users },
+                }
+            },
+        }
+    };
+}

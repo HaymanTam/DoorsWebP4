@@ -1,0 +1,184 @@
+@* Calendar dialog (mirrors LegacyDoorsClient "Calendars - New Calendar").
+   Shown via ModalService.ShowAsync("Calendars - New Calendar", ...).
+   OK + Cancel only (Apply ignored). The green "Auto-update is ON" banner is intentionally omitted.
+
+   A calendar is a set of holiday dates. The legacy dialog shows the year a half at a
+   time (Jan-Jun / Jul-Dec) as six month grids; clicking a day toggles it as a holiday. *@
+
+<TablerForm Model="@calendar" OnValidSubmit="OK">
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Calendar</CardTitle>
+            <div class="mb-1 row align-items-center">
+                <div class="col-lg-3 text-end">
+                    <label class="form-label mb-0">Name</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputText class="form-control" @bind-Value="calendar.Name"></InputText>
+                </div>
+            </div>
+        </CardBody>
+    </Card>
+
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <button type="button" class="btn btn-outline-secondary" @onclick="PreviousHalf">&lsaquo;</button>
+                <h3 class="mb-0">@year &nbsp;(@(showSecondHalf ? "Jul-Dec" : "Jan-Jun"))</h3>
+                <button type="button" class="btn btn-outline-secondary" @onclick="NextHalf">&rsaquo;</button>
+            </div>
+
+            <div class="row g-3">
+                @foreach (var month in CurrentMonths)
+                {
+                    <div class="col-lg-4 col-md-6">
+                        <div class="border rounded p-2 h-100">
+                            <div class="text-center fw-bold mb-1">@MonthName(month)</div>
+                            <table class="table table-sm text-center mb-0" style="table-layout: fixed;">
+                                <thead>
+                                    <tr>
+                                        <th class="p-1">Mo</th>
+                                        <th class="p-1">Tu</th>
+                                        <th class="p-1">We</th>
+                                        <th class="p-1">Th</th>
+                                        <th class="p-1">Fr</th>
+                                        <th class="p-1">Sa</th>
+                                        <th class="p-1 text-primary">Su</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var week in GetWeeks(year, month))
+                                    {
+                                        <tr>
+                                            @foreach (var day in week)
+                                            {
+                                                @if (day is null)
+                                                {
+                                                    <td class="p-1"></td>
+                                                }
+                                                else
+                                                {
+                                                    var date = day.Value;
+                                                    var selected = calendar.Holidays.Contains(date);
+                                                    var isSunday = date.DayOfWeek == DayOfWeek.Sunday;
+                                                    <td class="p-1">
+                                                        <button type="button"
+                                                                class="btn btn-sm w-100 p-0 @(selected ? "btn-primary" : "btn-link text-decoration-none") @(!selected && isSunday ? "text-primary" : null) @(!selected && !isSunday ? "text-body" : null)"
+                                                                @onclick="() => ToggleDay(date)">
+                                                            @date.Day
+                                                        </button>
+                                                    </td>
+                                                }
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (calendar.Holidays.Count > 0)
+            {
+                <div class="text-muted small mt-2">@calendar.Holidays.Count holiday(s) selected.</div>
+            }
+        </CardBody>
+    </Card>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing calendar).</summary>
+    [Parameter] public CalendarModel? Calendar { get; set; }
+
+    private CalendarModel calendar = new();
+
+    private int year = DateTime.Today.Year;
+    private bool showSecondHalf = DateTime.Today.Month > 6;
+
+    protected override void OnInitialized()
+    {
+        if (Calendar is not null) calendar = Calendar;
+    }
+
+    private IEnumerable<int> CurrentMonths => showSecondHalf
+        ? new[] { 7, 8, 9, 10, 11, 12 }
+        : new[] { 1, 2, 3, 4, 5, 6 };
+
+    private static string MonthName(int month) =>
+        System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
+
+    /// <summary>Returns the month laid out as Monday-first weeks; leading/trailing blanks are null.</summary>
+    private static List<List<DateOnly?>> GetWeeks(int year, int month)
+    {
+        var weeks = new List<List<DateOnly?>>();
+        var first = new DateOnly(year, month, 1);
+        int daysInMonth = DateTime.DaysInMonth(year, month);
+        int leading = ((int)first.DayOfWeek + 6) % 7; // Monday = 0
+
+        var week = new List<DateOnly?>();
+        for (int i = 0; i < leading; i++) week.Add(null);
+
+        for (int d = 1; d <= daysInMonth; d++)
+        {
+            week.Add(new DateOnly(year, month, d));
+            if (week.Count == 7)
+            {
+                weeks.Add(week);
+                week = new List<DateOnly?>();
+            }
+        }
+
+        if (week.Count > 0)
+        {
+            while (week.Count < 7) week.Add(null);
+            weeks.Add(week);
+        }
+
+        return weeks;
+    }
+
+    private void ToggleDay(DateOnly date)
+    {
+        if (!calendar.Holidays.Add(date))
+        {
+            calendar.Holidays.Remove(date);
+        }
+    }
+
+    private void PreviousHalf()
+    {
+        if (showSecondHalf) { showSecondHalf = false; }
+        else { showSecondHalf = true; year--; }
+    }
+
+    private void NextHalf()
+    {
+        if (showSecondHalf) { showSecondHalf = false; year++; }
+        else { showSecondHalf = true; }
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    public class CalendarModel
+    {
+        public string? Name { get; set; }
+        public HashSet<DateOnly> Holidays { get; set; } = new();
+    }
+}

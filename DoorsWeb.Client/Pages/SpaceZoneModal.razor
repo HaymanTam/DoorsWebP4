@@ -1,0 +1,296 @@
+@* Space Zone dialog (mirrors LegacyDoorsClient "Space zones - New space zone").
+   Shown via ModalService.ShowAsync("Space zones - New space zone", ...).
+   Three tabs: Properties / Doors / Cardholders. OK + Cancel only (Apply ignored). *@
+
+<TablerForm Model="@zone" OnValidSubmit="OK">
+    <Tabs>
+        @* ============================= PROPERTIES ============================= *@
+        <Tab Title="Properties">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Space Zone</CardTitle>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-3 text-end">
+                            <label class="form-label mb-0">Name</label>
+                        </div>
+                        <div class="col-lg-9">
+                            <InputText class="form-control" @bind-Value="zone.Name"></InputText>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Options</CardTitle>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-8">
+                            <label class="form-check mb-0">
+                                <InputCheckbox class="form-check-input" @bind-Value="zone.RemoveOnExceed"></InputCheckbox>
+                                <span class="form-check-label">Remove card holder from zone if stay exceeds</span>
+                            </label>
+                        </div>
+                        <div class="col-lg-2">
+                            <InputNumber class="form-control" @bind-Value="zone.MaxStayHours" disabled="@(!zone.RemoveOnExceed)"></InputNumber>
+                        </div>
+                        <div class="col-lg-2">
+                            <label class="form-label mb-0">hours</label>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="form-control text-center text-muted bg-light">No cardholders currently logged in</div>
+                    </div>
+                    <div class="mb-1">
+                        <button type="button" class="btn btn-outline-secondary w-100" @onclick="LogoutNow">Logout Now</button>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>
+                        <label class="form-check mb-0">
+                            <InputCheckbox class="form-check-input" @bind-Value="zone.FireZone"></InputCheckbox>
+                            <span class="form-check-label">Fire Zone</span>
+                        </label>
+                    </CardTitle>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-4 text-end">
+                            <label class="form-label mb-0">Fire Status</label>
+                        </div>
+                        <div class="col-lg-8">
+                            <div class="form-control text-center text-white bg-danger">Off</div>
+                        </div>
+                    </div>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-4 text-end">
+                            <label class="form-label mb-0">Interface Controller</label>
+                        </div>
+                        <div class="col-lg-8">
+                            <InputSelect class="form-select" @bind-Value="zone.InterfaceController" disabled="@(!zone.FireZone)">
+                                <option value="(none)">(none)</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-4 text-end">
+                            <label class="form-label mb-0">Report</label>
+                        </div>
+                        <div class="col-lg-8">
+                            <InputSelect class="form-select" @bind-Value="zone.Report" disabled="@(!zone.FireZone)">
+                                <option value="(none)">(none)</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* ============================= DOORS ============================= *@
+        <Tab Title="Doors">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <p class="mb-2">Tick the doors you want to include in this space zone. Double-click a door to change it's behaviour.</p>
+                    <div class="table-responsive border rounded" style="max-height: 420px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Door</th>
+                                    <th>Reader A</th>
+                                    <th>Reader B</th>
+                                    <th>Keyboard</th>
+                                    <th>Open on fire alarm</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (zone.Doors.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="text-muted text-center py-4">No doors available.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var door in zone.Doors)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <label class="form-check mb-0">
+                                                    <InputCheckbox class="form-check-input" @bind-Value="door.Included"></InputCheckbox>
+                                                    <span class="form-check-label">@door.Name</span>
+                                                </label>
+                                            </td>
+                                            <td>@door.ReaderA</td>
+                                            <td>@door.ReaderB</td>
+                                            <td>@door.Keyboard</td>
+                                            <td>@(door.OpenOnFireAlarm ? "Yes" : "No")</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* ============================= CARDHOLDERS ============================= *@
+        <Tab Title="Cardholders">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>
+                        <label class="form-check mb-0">
+                            <InputCheckbox class="form-check-input" @bind-Value="zone.RestrictZoneAccess"></InputCheckbox>
+                            <span class="form-check-label">Restrict Zone Access</span>
+                        </label>
+                    </CardTitle>
+
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-3 text-end">
+                            <label class="form-label mb-0">Card ID</label>
+                        </div>
+                        <div class="col-lg-7">
+                            <InputText class="form-control" @bind-Value="newCardId" disabled="@(!zone.RestrictZoneAccess)"></InputText>
+                        </div>
+                    </div>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-3 text-end">
+                            <label class="form-label mb-0">Last name</label>
+                        </div>
+                        <div class="col-lg-7">
+                            <InputText class="form-control" @bind-Value="newLastName" disabled="@(!zone.RestrictZoneAccess)"></InputText>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="AddCardholder" disabled="@(!zone.RestrictZoneAccess)">Add</button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="ModifyCardholder" disabled="@(!zone.RestrictZoneAccess || selected is null)">Modify</button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="RemoveCardholder" disabled="@(!zone.RestrictZoneAccess || selected is null)">Remove</button>
+                    </div>
+
+                    <div class="table-responsive border rounded" style="max-height: 320px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50%;">Card ID</th>
+                                    <th style="width: 50%;">Last Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (zone.Cardholders.Count == 0)
+                                {
+                                    <tr><td colspan="2" class="text-muted text-center py-4">No cardholders.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var ch in zone.Cardholders)
+                                    {
+                                        <tr class="@(ch == selected ? "table-active" : null)" @onclick="() => selected = ch">
+                                            <td>@ch.CardId</td>
+                                            <td>@ch.LastName</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+    </Tabs>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing space zone).</summary>
+    [Parameter] public SpaceZoneModel? Zone { get; set; }
+
+    private SpaceZoneModel zone = new();
+
+    private string? newCardId;
+    private string? newLastName;
+    private CardholderRow? selected;
+
+    protected override void OnInitialized()
+    {
+        if (Zone is not null) zone = Zone;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private void LogoutNow()
+    {
+        // Placeholder: force-logout all cardholders currently in the zone (no API wired yet).
+    }
+
+    private void AddCardholder()
+    {
+        if (string.IsNullOrWhiteSpace(newCardId)) return;
+        zone.Cardholders.Add(new CardholderRow { CardId = newCardId, LastName = newLastName });
+        newCardId = null;
+        newLastName = null;
+    }
+
+    private void ModifyCardholder()
+    {
+        if (selected is null) return;
+        selected.CardId = newCardId;
+        selected.LastName = newLastName;
+    }
+
+    private void RemoveCardholder()
+    {
+        if (selected is null) return;
+        zone.Cardholders.Remove(selected);
+        selected = null;
+    }
+
+    public class SpaceZoneModel
+    {
+        public string? Name { get; set; }
+
+        // Options
+        public bool RemoveOnExceed { get; set; } = false;
+        public int MaxStayHours { get; set; } = 0;
+
+        // Fire Zone
+        public bool FireZone { get; set; } = false;
+        public string InterfaceController { get; set; } = "(none)";
+        public string Report { get; set; } = "(none)";
+
+        // Cardholders
+        public bool RestrictZoneAccess { get; set; } = true;
+
+        public List<DoorRow> Doors { get; set; } = new();
+        public List<CardholderRow> Cardholders { get; set; } = new();
+    }
+
+    public class DoorRow
+    {
+        public bool Included { get; set; }
+        public string? Name { get; set; }
+        public string? ReaderA { get; set; }
+        public string? ReaderB { get; set; }
+        public string? Keyboard { get; set; }
+        public bool OpenOnFireAlarm { get; set; }
+    }
+
+    public class CardholderRow
+    {
+        public string? CardId { get; set; }
+        public string? LastName { get; set; }
+    }
+}

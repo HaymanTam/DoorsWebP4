@@ -1,8 +1,10 @@
 @using System.Reflection
 @using DoorsWeb.Client.Auth
+@using DoorsWeb.Client.Pages
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject JwtAuthStateProvider AuthStateProvider
+@inject TabBlazor.Services.IModalService ModalService
 
 <Navbar Direction=NavbarDirection.Vertical Background=NavbarBackground.Dark>
 
@@ -64,9 +66,39 @@
                         <NavbarMenuItem Href="apbzones" Text="Anti-Passback Zones">
                             <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Hand_stop" /></MenuItemIcon>
                         </NavbarMenuItem>
-                        <NavbarMenuItem Href="triggers" Text="Triggers">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Flag" /></MenuItemIcon>
-                        </NavbarMenuItem>
+                        @* ---- Triggers (click to expand) ---- *@
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @onclick="ToggleTriggers" @onclick:preventDefault>
+                                <span class="nav-link-icon">
+                                    <Icon class="icon" IconType="@TablerIcons.Flag" />
+                                </span>
+                                <span class="nav-link-title">Triggers</span>
+                                <span class="ms-auto">
+                                    <Icon IconType="@(triggersOpen ? TablerIcons.Chevron_down : TablerIcons.Chevron_right)" />
+                                </span>
+                            </a>
+                        </li>
+                        @if (triggersOpen)
+                        {
+                            <div class="ms-4">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="ShowDoorTriggerModal" @onclick:preventDefault>
+                                        <span class="nav-link-icon">
+                                            <Icon class="icon" IconType="@TablerIcons.Door" />
+                                        </span>
+                                        <span class="nav-link-title">Door Triggers</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="ShowSpaceZoneTriggerModal" @onclick:preventDefault>
+                                        <span class="nav-link-icon">
+                                            <Icon class="icon" IconType="@TablerIcons.World" />
+                                        </span>
+                                        <span class="nav-link-title">Space Zone Triggers</span>
+                                    </a>
+                                </li>
+                            </div>
+                        }
                         <NavbarMenuItem Href="floorplans" Text="Floor Plans">
                             <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Home" /></MenuItemIcon>
                         </NavbarMenuItem>
@@ -134,9 +166,33 @@
 
     private bool tempOpen = true;
     private bool controlPanelOpen = false;
+    private bool triggersOpen = false;
 
     private void ToggleTemp() => tempOpen = !tempOpen;
     private void ToggleControlPanel() => controlPanelOpen = !controlPanelOpen;
+    private void ToggleTriggers() => triggersOpen = !triggersOpen;
+
+    private async Task ShowDoorTriggerModal()
+    {
+        var component = new RenderComponent<TriggerModal>();
+        await ModalService.ShowAsync("Triggers - New Trigger", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task ShowSpaceZoneTriggerModal()
+    {
+        var component = new RenderComponent<SpaceZoneTriggerModal>();
+        await ModalService.ShowAsync("Triggers - New Trigger", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
 
     private async Task Logout()
     {

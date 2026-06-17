@@ -1,0 +1,223 @@
+@* Space-Zone population Trigger dialog (mirrors LegacyDoorsClient "Triggers - New Trigger",
+   the space-zone population variant). Shown via ModalService.ShowAsync("Triggers - New Trigger", ...).
+   Two tabs: General / Actions. OK + Cancel only (Apply ignored). *@
+
+<TablerForm Model="@trigger" OnValidSubmit="OK">
+    <Tabs>
+        @* ============================= GENERAL ============================= *@
+        <Tab Title="General">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Name</CardTitle>
+                    <InputText class="form-control" @bind-Value="trigger.Name"></InputText>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Where - select the space zones you want to include</CardTitle>
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="border rounded" style="height: 160px; overflow-y: auto;">
+                                @{
+                                    var zones = trigger.ShowSelectedZonesOnly ? trigger.Zones.Where(z => z.Selected).ToList() : trigger.Zones;
+                                }
+                                @if (zones.Count == 0)
+                                {
+                                    <div class="text-muted text-center py-4">No space zones available.</div>
+                                }
+                                else
+                                {
+                                    @foreach (var zone in zones)
+                                    {
+                                        <label class="form-check mb-1 px-3">
+                                            <InputCheckbox class="form-check-input" @bind-Value="zone.Selected"></InputCheckbox>
+                                            <span class="form-check-label">@zone.Name</span>
+                                        </label>
+                                    }
+                                }
+                            </div>
+                        </div>
+                        <div class="col-lg-4 d-flex flex-column gap-2">
+                            <button type="button" class="btn btn-outline-secondary" @onclick="SelectAllZones">Select All</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="ClearAllZones">Clear All</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="AddNewZone">Add New...</button>
+                        </div>
+                    </div>
+                    <label class="form-check mb-0 mt-2">
+                        <InputCheckbox class="form-check-input" @bind-Value="trigger.ShowSelectedZonesOnly"></InputCheckbox>
+                        <span class="form-check-label">Show selected space zones only</span>
+                    </label>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Population</CardTitle>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-6">
+                            <label class="form-label mb-0">Create trigger when zone population</label>
+                        </div>
+                        <div class="col-lg-4">
+                            <InputSelect class="form-select" @bind-Value="trigger.PopulationCondition">
+                                <option value="goes down to">goes down to</option>
+                                <option value="goes up to">goes up to</option>
+                                <option value="reaches">reaches</option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-lg-2">
+                            <InputNumber class="form-control" @bind-Value="trigger.PopulationValue"></InputNumber>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>
+                        <label class="form-check mb-0">
+                            <InputCheckbox class="form-check-input" @bind-Value="trigger.ShowAlarmMessage"></InputCheckbox>
+                            <span class="form-check-label">Show alarm message</span>
+                        </label>
+                    </CardTitle>
+                    <InputTextArea class="form-control" rows="4" @bind-Value="trigger.AlarmMessage" disabled="@(!trigger.ShowAlarmMessage)"></InputTextArea>
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* ============================= ACTIONS ============================= *@
+        <Tab Title="Actions">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <label class="form-check mb-3">
+                        <InputCheckbox class="form-check-input" @bind-Value="trigger.SuppressDuplicateAlarms"></InputCheckbox>
+                        <span class="form-check-label">Suppress duplicate alarms</span>
+                    </label>
+
+                    <Card Size="CardSize.Default">
+                        <CardBody>
+                            <CardTitle>
+                                <label class="form-check mb-0">
+                                    <InputCheckbox class="form-check-input" @bind-Value="trigger.TriggerRelayB"></InputCheckbox>
+                                    <span class="form-check-label">Trigger Relay B</span>
+                                </label>
+                            </CardTitle>
+
+                            <div class="mb-2 row align-items-center">
+                                <div class="col-lg-3 text-end">
+                                    <label class="form-label mb-0">Door</label>
+                                </div>
+                                <div class="col-lg-7">
+                                    <InputSelect class="form-select" @bind-Value="trigger.RelayDoor" disabled="@(!trigger.TriggerRelayB)">
+                                        <option value="">(none)</option>
+                                    </InputSelect>
+                                </div>
+                                <div class="col-lg-2">
+                                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="EditDoors" disabled="@(!trigger.TriggerRelayB)">...</button>
+                                </div>
+                            </div>
+
+                            <div class="mb-2 row align-items-center">
+                                <div class="col-lg-3 text-end">
+                                    <label class="form-label mb-0">Action</label>
+                                </div>
+                                <div class="col-lg-7">
+                                    <InputSelect class="form-select" @bind-Value="trigger.RelayAction" disabled="@(!trigger.TriggerRelayB)">
+                                        <option value="">(none)</option>
+                                    </InputSelect>
+                                </div>
+                            </div>
+
+                            <div class="mb-1 row align-items-center">
+                                <div class="col-lg-3"></div>
+                                <div class="col-lg-4">
+                                    <label class="form-check mb-0">
+                                        <InputCheckbox class="form-check-input" @bind-Value="trigger.ResetAfter" disabled="@(!trigger.TriggerRelayB)"></InputCheckbox>
+                                        <span class="form-check-label">Reset after</span>
+                                    </label>
+                                </div>
+                                <div class="col-lg-3">
+                                    <InputNumber class="form-control" @bind-Value="trigger.ResetAfterSeconds" disabled="@(!trigger.TriggerRelayB || !trigger.ResetAfter)"></InputNumber>
+                                </div>
+                                <div class="col-lg-2">
+                                    <label class="form-label mb-0">seconds</label>
+                                </div>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </CardBody>
+            </Card>
+        </Tab>
+    </Tabs>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing trigger).</summary>
+    [Parameter] public SpaceZoneTriggerModel? Trigger { get; set; }
+
+    private SpaceZoneTriggerModel trigger = new();
+
+    protected override void OnInitialized()
+    {
+        if (Trigger is not null) trigger = Trigger;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private void SelectAllZones() { foreach (var z in trigger.Zones) z.Selected = true; }
+    private void ClearAllZones() { foreach (var z in trigger.Zones) z.Selected = false; }
+    private void AddNewZone()
+    {
+        // Placeholder: open the space-zone editor to create a new zone (no dialog wired yet).
+    }
+
+    private void EditDoors()
+    {
+        // Placeholder: open the door chooser (no dialog wired yet).
+    }
+
+    public class SpaceZoneTriggerModel
+    {
+        public string? Name { get; set; }
+
+        public List<ZoneItem> Zones { get; set; } = new();
+        public bool ShowSelectedZonesOnly { get; set; } = false;
+
+        // Population rule
+        public string PopulationCondition { get; set; } = "goes down to";
+        public int? PopulationValue { get; set; }
+
+        public bool ShowAlarmMessage { get; set; } = false;
+        public string? AlarmMessage { get; set; }
+
+        // Actions tab
+        public bool SuppressDuplicateAlarms { get; set; } = false;
+        public bool TriggerRelayB { get; set; } = false;
+        public string? RelayDoor { get; set; }
+        public string? RelayAction { get; set; }
+        public bool ResetAfter { get; set; } = false;
+        public int? ResetAfterSeconds { get; set; }
+    }
+
+    public class ZoneItem
+    {
+        public bool Selected { get; set; }
+        public string? Name { get; set; }
+    }
+}

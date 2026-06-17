@@ -1,0 +1,134 @@
+@* Access Level dialog (mirrors LegacyDoorsClient "Access levels - New access level").
+   Shown via ModalService.ShowAsync("Access levels - New access level", ...).
+   OK + Cancel only (Apply ignored). The green "Auto-update is ON" banner is intentionally omitted. *@
+
+<TablerForm Model="@level" OnValidSubmit="OK">
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Access Level</CardTitle>
+            <div class="mb-1 row align-items-center">
+                <div class="col-lg-3 text-end">
+                    <label class="form-label mb-0">Name</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputText class="form-control" @bind-Value="level.Name"></InputText>
+                </div>
+            </div>
+        </CardBody>
+    </Card>
+
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Time Zone</CardTitle>
+            <div class="mb-1 row align-items-center">
+                <div class="col-lg-4 text-end">
+                    <label class="form-label mb-0">Allow access during</label>
+                </div>
+                <div class="col-lg-7">
+                    <InputSelect class="form-select" @bind-Value="level.TimeZone">
+                        <option value="all hours">all hours</option>
+                        <option value="no access">no access</option>
+                    </InputSelect>
+                </div>
+                <div class="col-lg-1">
+                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="EditTimeZones">...</button>
+                </div>
+            </div>
+        </CardBody>
+    </Card>
+
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Doors</CardTitle>
+            <p class="mb-1">Select the doors you want to include in this access level.</p>
+            <p class="mb-2">Double-click a door to set an individual time zone.</p>
+
+            <div class="table-responsive border rounded mb-2" style="max-height: 320px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">Door</th>
+                            <th style="width: 50%;">Time Zone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (level.Doors.Count == 0)
+                        {
+                            <tr><td colspan="2" class="text-muted text-center py-4">No doors available.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var door in level.Doors)
+                            {
+                                <tr>
+                                    <td>
+                                        <label class="form-check mb-0">
+                                            <InputCheckbox class="form-check-input" @bind-Value="door.Selected"></InputCheckbox>
+                                            <span class="form-check-label">@door.Name</span>
+                                        </label>
+                                    </td>
+                                    <td>@door.TimeZone</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <label class="form-check mb-0">
+                <InputCheckbox class="form-check-input" @bind-Value="level.ShowSelectedOnly"></InputCheckbox>
+                <span class="form-check-label">Show selected doors only</span>
+            </label>
+        </CardBody>
+    </Card>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when editing an existing access level).</summary>
+    [Parameter] public AccessLevelModel? Level { get; set; }
+
+    private AccessLevelModel level = new();
+
+    protected override void OnInitialized()
+    {
+        if (Level is not null) level = Level;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private void EditTimeZones()
+    {
+        // Placeholder: open the time-zone editor (no dialog wired yet).
+    }
+
+    public class AccessLevelModel
+    {
+        public string? Name { get; set; }
+        public string TimeZone { get; set; } = "all hours";
+        public bool ShowSelectedOnly { get; set; } = false;
+        public List<DoorRow> Doors { get; set; } = new();
+    }
+
+    public class DoorRow
+    {
+        public bool Selected { get; set; }
+        public string? Name { get; set; }
+        public string? TimeZone { get; set; }
+    }
+}

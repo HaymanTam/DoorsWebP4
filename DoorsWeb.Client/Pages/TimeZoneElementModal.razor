@@ -1,0 +1,125 @@
+@* Time Zone Element dialog (mirrors LegacyDoorsClient "Time Zone Element").
+   Opened from TimeZoneModal's Add.../Change... buttons.
+   Shown via ModalService.ShowAsync("Time Zone Element", ...). OK + Cancel only (Apply ignored). *@
+
+<TablerForm Model="@element" OnValidSubmit="OK">
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <div class="mb-3 row align-items-center">
+                <div class="col-lg-5 text-end">
+                    <label class="form-label mb-0">This element will be active from</label>
+                </div>
+                <div class="col-lg-3">
+                    <input type="time" class="form-control" @bind="element.From" @bind:format="HH:mm" />
+                </div>
+                <div class="col-lg-1 text-center">
+                    <label class="form-label mb-0">to</label>
+                </div>
+                <div class="col-lg-3">
+                    <input type="time" class="form-control" @bind="element.To" @bind:format="HH:mm" />
+                </div>
+            </div>
+
+            <div class="mb-3 row align-items-center">
+                <div class="col-lg-5 text-end">
+                    <label class="form-label mb-0">excluding days specified in</label>
+                </div>
+                <div class="col-lg-6">
+                    <InputSelect class="form-select" @bind-Value="element.ExcludingDays">
+                        <option value="Level default">Level default</option>
+                        <option value="(none)">(none)</option>
+                    </InputSelect>
+                </div>
+                <div class="col-lg-1">
+                    <button type="button" class="btn btn-outline-secondary w-100" @onclick="EditCalendars">...</button>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-5 text-end">
+                    <label class="form-label mb-0">and will be applied on</label>
+                </div>
+                <div class="col-lg-7">
+                    <label class="form-check mb-1">
+                        <InputCheckbox class="form-check-input" @bind-Value="element.Monday"></InputCheckbox>
+                        <span class="form-check-label">Monday</span>
+                    </label>
+                    <label class="form-check mb-1">
+                        <InputCheckbox class="form-check-input" @bind-Value="element.Tuesday"></InputCheckbox>
+                        <span class="form-check-label">Tuesday</span>
+                    </label>
+                    <label class="form-check mb-1">
+                        <InputCheckbox class="form-check-input" @bind-Value="element.Wednesday"></InputCheckbox>
+                        <span class="form-check-label">Wednesday</span>
+                    </label>
+                    <label class="form-check mb-1">
+                        <InputCheckbox class="form-check-input" @bind-Value="element.Thursday"></InputCheckbox>
+                        <span class="form-check-label">Thursday</span>
+                    </label>
+                    <label class="form-check mb-1">
+                        <InputCheckbox class="form-check-input" @bind-Value="element.Friday"></InputCheckbox>
+                        <span class="form-check-label">Friday</span>
+                    </label>
+                    <label class="form-check mb-1">
+                        <InputCheckbox class="form-check-input" @bind-Value="element.Saturday"></InputCheckbox>
+                        <span class="form-check-label">Saturday</span>
+                    </label>
+                    <label class="form-check mb-0">
+                        <InputCheckbox class="form-check-input" @bind-Value="element.Sunday"></InputCheckbox>
+                        <span class="form-check-label">Sunday</span>
+                    </label>
+                </div>
+            </div>
+        </CardBody>
+    </Card>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Optional starting values (e.g. when changing an existing element).</summary>
+    [Parameter] public TimeZoneElementModel? Element { get; set; }
+
+    private TimeZoneElementModel element = new();
+
+    protected override void OnInitialized()
+    {
+        if (Element is not null) element = Element;
+    }
+
+    private void OK(EditContext context)
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private void EditCalendars()
+    {
+        // Placeholder: open the calendar editor (no dialog wired yet).
+    }
+
+    public class TimeZoneElementModel
+    {
+        public TimeOnly From { get; set; } = new TimeOnly(9, 0);
+        public TimeOnly To { get; set; } = new TimeOnly(17, 0);
+        public string ExcludingDays { get; set; } = "Level default";
+
+        public bool Monday { get; set; } = true;
+        public bool Tuesday { get; set; } = true;
+        public bool Wednesday { get; set; } = true;
+        public bool Thursday { get; set; } = true;
+        public bool Friday { get; set; } = true;
+        public bool Saturday { get; set; } = true;
+        public bool Sunday { get; set; } = true;
+    }
+}

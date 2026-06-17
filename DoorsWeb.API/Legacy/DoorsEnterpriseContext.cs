@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using DoorsWeb.Shared.Legacy.Entities;
+using DoorsWeb.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DoorsWeb.API.Legacy;

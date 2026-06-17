@@ -17,47 +17,97 @@
     <NavbarMenu>
         <AuthorizeView>
             <Authorized>
-                <NavbarMenuItem Href="" Text="Dashboard">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Dashboard" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
                 <NavbarMenuItem Href="events" Text="Events">
                     <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Bolt" />
+                        <Icon class="icon" IconType="@TablerIcons.Search" />
                     </MenuItemIcon>
                 </NavbarMenuItem>
-                <NavbarMenuItem Href="users" Text="Users">
+                <NavbarMenuItem Href="cardmanager" Text="Card Manager">
                     <MenuItemIcon>
                         <Icon class="icon" IconType="@TablerIcons.Users" />
                     </MenuItemIcon>
                 </NavbarMenuItem>
-                <NavbarMenuItem Href="accesslevels" Text="Access Levels">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Key" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
-                <NavbarMenuItem Href="timezone" Text="Time Zones">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Clock" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
-                <NavbarMenuItem Href="calendar" Text="Calendars">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Calendar_clock" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
-                <NavbarMenuItem Href="doors" Text="Doors">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Door" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
-                <NavbarMenuItem Href="admins" Text="Admins">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.User_star" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
+
+                @* ---- Site: Temp (click to expand) ---- *@
                 <li class="nav-item">
+                    <a class="nav-link" href="#" @onclick="ToggleTemp" @onclick:preventDefault>
+                        <span class="nav-link-icon">
+                            <Icon class="icon" IconType="@TablerIcons.Building" />
+                        </span>
+                        <span class="nav-link-title">Temp</span>
+                        <span class="ms-auto">
+                            <Icon IconType="@(tempOpen ? TablerIcons.Chevron_down : TablerIcons.Chevron_right)" />
+                        </span>
+                    </a>
+                </li>
+                @if (tempOpen)
+                {
+                    <div class="ms-4">
+                        <NavbarMenuItem Href="doors" Text="Doors">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Door" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="connectors" Text="Connectors">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Affiliate" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="accesslevels" Text="Access Levels">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Key" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="timezone" Text="Time Zones">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Clock" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="calendar" Text="Calendars">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Calendar_clock" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="spacezones" Text="Space Zones">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.World" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="apbzones" Text="Anti-Passback Zones">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Hand_stop" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="triggers" Text="Triggers">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Flag" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="floorplans" Text="Floor Plans">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Home" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                    </div>
+                }
+
+                <NavbarMenuItem Href="alarms" Text="Alarms">
+                    <MenuItemIcon>
+                        <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
+                    </MenuItemIcon>
+                </NavbarMenuItem>
+
+                @* ---- Control Panel (click to expand) ---- *@
+                <li class="nav-item">
+                    <a class="nav-link" href="#" @onclick="ToggleControlPanel" @onclick:preventDefault>
+                        <span class="nav-link-icon">
+                            <Icon class="icon" IconType="@TablerIcons.Settings" />
+                        </span>
+                        <span class="nav-link-title">Control Panel</span>
+                        <span class="ms-auto">
+                            <Icon IconType="@(controlPanelOpen ? TablerIcons.Chevron_down : TablerIcons.Chevron_right)" />
+                        </span>
+                    </a>
+                </li>
+                @if (controlPanelOpen)
+                {
+                    <div class="ms-4">
+                        <NavbarMenuItem Href="updatehardware" Text="Update Hardware">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Refresh" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="backuprestore" Text="Backup and Restore">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Database" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                        <NavbarMenuItem Href="userspasswords" Text="Users and Passwords">
+                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Users" /></MenuItemIcon>
+                        </NavbarMenuItem>
+                    </div>
+                }
+
+                @* ---- Login/Logout pinned to bottom ---- *@
+                <li class="nav-item mt-auto">
                     <a class="nav-link" href="#" @onclick="Logout" @onclick:preventDefault>
                         <span class="nav-link-icon">
                             <Icon class="icon" IconType="@TablerIcons.Logout" />
@@ -67,11 +117,13 @@
                 </li>
             </Authorized>
             <NotAuthorized>
-                <NavbarMenuItem Href="login" Text="Sign in">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Login" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
+                <li class="nav-item mt-auto">
+                    <NavbarMenuItem Href="login" Text="Sign in">
+                        <MenuItemIcon>
+                            <Icon class="icon" IconType="@TablerIcons.Login" />
+                        </MenuItemIcon>
+                    </NavbarMenuItem>
+                </li>
             </NotAuthorized>
         </AuthorizeView>
     </NavbarMenu>
@@ -79,6 +131,12 @@
 
 @code {
     private string AppVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0.0";
+
+    private bool tempOpen = true;
+    private bool controlPanelOpen = false;
+
+    private void ToggleTemp() => tempOpen = !tempOpen;
+    private void ToggleControlPanel() => controlPanelOpen = !controlPanelOpen;
 
     private async Task Logout()
     {

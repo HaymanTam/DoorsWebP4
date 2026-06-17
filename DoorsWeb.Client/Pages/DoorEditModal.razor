@@ -1,49 +1,133 @@
-﻿<TablerForm Model="@dDetail" OnValidSubmit="Submit" >
+<TablerForm Model="@dDetail" OnValidSubmit="Submit" >
     <Tabs>
+        @* ============================= GENERAL ============================= *@
         <Tab Title="General">
-            <div class="mb-3">
-                <label class="form-label">Door Name</label>
-                <InputText class="form-control" @bind-Value="dDetail.Name"></InputText>
-                <TabValidationMessage For="(() => dDetail.Name)"></TabValidationMessage>
-            </div>
-            <div class="mb-3 row">
-                <div class="col-lg-4">
-                    <label class="form-label">Controller ID</label>
-                    <InputNumber class="form-control" @bind-Value="dDetail.ControllerId"  ></InputNumber>
-                    <TabValidationMessage For="(() => dDetail.ControllerId)"></TabValidationMessage>
-                </div>
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Controller</CardTitle>
+                    <div class="mb-3">
+                        <label class="form-label">Door Name</label>
+                        <InputText class="form-control" @bind-Value="dDetail.Name"></InputText>
+                        <TabValidationMessage For="(() => dDetail.Name)"></TabValidationMessage>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Controller Address</label>
+                        <InputNumber class="form-control" @bind-Value="dDetail.ControllerId"></InputNumber>
+                        <TabValidationMessage For="(() => dDetail.ControllerId)"></TabValidationMessage>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <div class="row">
                 <div class="col-lg-8">
-                    <label class="form-label">IP Address</label>
-                    <InputText class="form-control" @bind-Value="dDetail.IPAddressString"></InputText>
-                    <TabValidationMessage For="(() => dDetail.IPAddressString)"></TabValidationMessage>
+                    <Card Size="CardSize.Default">
+                        <CardBody>
+                            <CardTitle>Connection</CardTitle>
+                            <div class="mb-3">
+                                <label class="form-label">Connector</label>
+                                <InputSelect class="form-select" @bind-Value="connector">
+                                    <option value=""></option>
+                                </InputSelect>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">IP Address</label>
+                                <InputText class="form-control" @bind-Value="dDetail.IPAddressString"></InputText>
+                                <TabValidationMessage For="(() => dDetail.IPAddressString)"></TabValidationMessage>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </div>
+                <div class="col-lg-4">
+                    <Card Size="CardSize.Default">
+                        <CardBody>
+                            <CardTitle>Security Random Search</CardTitle>
+                            <div class="mb-3">
+                                <label class="form-label">Frequency</label>
+                                <InputNumber class="form-control" @bind-Value="randomSearchFrequency"></InputNumber>
+                            </div>
+                        </CardBody>
+                    </Card>
                 </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Notes</label>
-                <InputTextArea class="form-control" @bind-Value="dDetail.Notes"></InputTextArea>
-                <TabValidationMessage For="(() => dDetail.Notes)"></TabValidationMessage>
-            </div>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Sound</CardTitle>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Feedback</label>
+                            <span class="d-flex my-auto gap-2">
+                                <Icon IconType="@TablerIcons.Volume" />
+                                <RangeSlider TValue="byte" @bind-Value="feedbackVolume" Min="0" Max="15" />
+                                <label class="form-label">@feedbackVolume</label>
+                            </span>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Alarm</label>
+                            <span class="d-flex my-auto gap-2">
+                                <Icon IconType="@TablerIcons.Volume" />
+                                <RangeSlider TValue="byte" @bind-Value="alarmVolume" Min="0" Max="15" />
+                                <label class="form-label">@alarmVolume</label>
+                            </span>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Notes</CardTitle>
+                    <div class="mb-3">
+                        <InputTextArea class="form-control" @bind-Value="dDetail.Notes"></InputTextArea>
+                        <TabValidationMessage For="(() => dDetail.Notes)"></TabValidationMessage>
+                    </div>
+                </CardBody>
+            </Card>
+
             <div class="mb-3 row">
                 <div class="col-lg-6">
-                    <label class="form-label">Valid From</label>
+                    <label class="form-label">Valid From Time</label>
                     <Input type="time" class="form-control" @bind-Value="dDetail.ValidFrom"></Input>
                     <TabValidationMessage For="(() => dDetail.ValidFrom)"></TabValidationMessage>
                 </div>
                 <div class="col-lg-6">
-                    <label class="form-label">Valid To</label>
+                    <label class="form-label">Valid To Time</label>
                     <Input type="time" class="form-control" @bind-Value="dDetail.ValidTo"></Input>
                     <TabValidationMessage For="(() => dDetail.ValidTo)"></TabValidationMessage>
                 </div>
             </div>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Statistics</CardTitle>
+                    <div class="d-flex justify-content-between">
+                        <span>Date: <strong>Unknown</strong></span>
+                        <span>Firmware version: <strong>Unknown</strong></span>
+                    </div>
+                </CardBody>
+            </Card>
         </Tab>
+
+        @* ============================= READERS ============================= *@
         <Tab Title="Readers">
             <Card Size="CardSize.Default">
                 <CardBody>
                     <CardTitle>Reader A</CardTitle>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <InputText class="form-control" @bind-Value="dDetail.ReaderA_Name"></InputText>
-                        <TabValidationMessage For="(() => dDetail.ReaderA_Name)"></TabValidationMessage>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Description</label>
+                            <InputText class="form-control" @bind-Value="dDetail.ReaderA_Name"></InputText>
+                            <TabValidationMessage For="(() => dDetail.ReaderA_Name)"></TabValidationMessage>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Technology</label>
+                            <InputSelect class="form-select" @bind-Value="dDetail.ReaderA_TechId">
+                                @foreach (var t in ReaderTechnologies)
+                                {
+                                    <option value="@t.Key">@t.Value</option>
+                                }
+                            </InputSelect>
+                        </div>
                     </div>
                     <div class="mb-3 row">
                         <div class="col-lg-6 ">
@@ -54,7 +138,7 @@
                                 <label class="form-label">   @dDetail.ReaderA_Volume</label>
                             </span>
                             <TabValidationMessage For="(() => dDetail.ReaderA_Volume)"></TabValidationMessage>
-                        </div>  
+                        </div>
                         <div class="col-lg-6">
                             <label class="form-label">Brightness</label>
                             <span class="d-flex my-auto gap-2">
@@ -70,10 +154,21 @@
             <Card Size="CardSize.Default">
                 <CardBody>
                     <CardTitle>Reader B</CardTitle>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <InputText class="form-control" @bind-Value="dDetail.ReaderB_Name"></InputText>
-                        <TabValidationMessage For="(() => dDetail.ReaderB_Name)"></TabValidationMessage>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Description</label>
+                            <InputText class="form-control" @bind-Value="dDetail.ReaderB_Name"></InputText>
+                            <TabValidationMessage For="(() => dDetail.ReaderB_Name)"></TabValidationMessage>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Technology</label>
+                            <InputSelect class="form-select" @bind-Value="dDetail.ReaderB_TechId">
+                                @foreach (var t in ReaderTechnologies)
+                                {
+                                    <option value="@t.Key">@t.Value</option>
+                                }
+                            </InputSelect>
+                        </div>
                     </div>
                     <div class="mb-3 row">
                         <div class="col-lg-6 ">
@@ -97,14 +192,315 @@
                     </div>
                 </CardBody>
             </Card>
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Keypad</CardTitle>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Text Description</label>
+                            <InputText class="form-control" @bind-Value="keypadName"></InputText>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Technology</label>
+                            <InputSelect class="form-select" @bind-Value="keypadTech">
+                                @foreach (var t in KeypadTechnologies)
+                                {
+                                    <option value="@t.Key">@t.Value</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="mb-3 row align-items-end">
+                        <div class="col-lg-6">
+                            <label class="form-label">Access Code</label>
+                            <InputNumber class="form-control" @bind-Value="dDetail.Keypad_AccessCode"></InputNumber>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="dDetail.Keypad_StarModeEnable"></InputCheckbox>
+                                <span class="form-check-label">Enable * Key</span>
+                            </label>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Multi Factor Authentication</CardTitle>
+                    <div class="mb-3 row">
+                        <div class="col-lg-4">
+                            <label class="form-label">ID Sequence Reader A</label>
+                            <InputNumber class="form-control" @bind-Value="dDetail.ReaderA_MFA_Sequence"></InputNumber>
+                        </div>
+                        <div class="col-lg-4">
+                            <label class="form-label">ID Sequence Reader B</label>
+                            <InputNumber class="form-control" @bind-Value="dDetail.ReaderB_MFA_Sequence"></InputNumber>
+                        </div>
+                        <div class="col-lg-4">
+                            <label class="form-label">Override Time zone</label>
+                            <InputSelect class="form-select" @bind-Value="mfaOverrideTimeZone">
+                                <option value=""></option>
+                            </InputSelect>
+                            <small class="text-muted">(Single factor during this time)</small>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
         </Tab>
-        <Tab Title="Output">
-            <h3>This tab 3</h3>
-            <Icon IconType="@TablerIcons.Users" Size="100" />
+
+        @* ============================= OUTPUTS ============================= *@
+        <Tab Title="Outputs">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Lock</CardTitle>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Delay release by (seconds)</label>
+                            <InputNumber class="form-control" @bind-Value="dDetail.RelayA_Delay"></InputNumber>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Drive Mode</label>
+                            <InputSelect class="form-select" @bind-Value="dDetail.LockDriveMode">
+                                @foreach (var t in DriveModes)
+                                {
+                                    <option value="@t.Key">@t.Value</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Release for (seconds)</label>
+                            <InputNumber class="form-control" @bind-Value="dDetail.RelayA_Time"></InputNumber>
+                        </div>
+                    </div>
+                    <div class="mb-3 row align-items-center">
+                        <div class="col-lg-4">
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="dDetail.RelayA_TZOverideEnable"></InputCheckbox>
+                                <span class="form-check-label">Open during time zone</span>
+                            </label>
+                        </div>
+                        <div class="col-lg-5">
+                            <InputSelect class="form-select" @bind-Value="lockOpenTimeZone">
+                                <option value=""></option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="dDetail.AutoRelockEnable"></InputCheckbox>
+                            <span class="form-check-label">Auto-relock</span>
+                        </label>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Relay B</CardTitle>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Mode</label>
+                            <InputSelect class="form-select" @bind-Value="dDetail.RelayB_Mode">
+                                @foreach (var t in RelayBModes)
+                                {
+                                    <option value="@t.Key">@t.Value</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Release relay for (seconds)</label>
+                            <InputNumber class="form-control" @bind-Value="dDetail.RelayB_Time"></InputNumber>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-lg-6">
+                            <label class="form-label">Time zone</label>
+                            <InputSelect class="form-select" @bind-Value="relayBTimeZone">
+                                <option value=""></option>
+                            </InputSelect>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label">Delay between relay A &amp; B (x 10ms)</label>
+                            <InputNumber class="form-control" @bind-Value="dDetail.RelayB_Delay"></InputNumber>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Failed to Close Door</CardTitle>
+                    <div class="mb-3 row align-items-center">
+                        <div class="col-lg-7">
+                            <label class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="failedToCloseEnable"></InputCheckbox>
+                                <span class="form-check-label">Sound an alarm if the door is open for</span>
+                            </label>
+                        </div>
+                        <div class="col-lg-3">
+                            <span class="d-flex align-items-center gap-2">
+                                <InputNumber class="form-control" @bind-Value="dDetail.PDO_Alarm_Time"></InputNumber>
+                                <span>seconds</span>
+                            </span>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
         </Tab>
+
+        @* ============================= STATUS ============================= *@
         <Tab Title="Status">
-            <h3>This tab 4</h3>
-            <Icon IconType="@TablerIcons.Door" Size="100" />
+            <div class="row">
+                <div class="col-lg-6">
+                    <Card Size="CardSize.Default">
+                        <CardBody>
+                            <CardTitle>Relay A</CardTitle>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex flex-column gap-2">
+                                    <button type="button" class="btn btn-outline-secondary">Open</button>
+                                    <button type="button" class="btn btn-outline-secondary">Close</button>
+                                    <button type="button" class="btn btn-outline-secondary">Release</button>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 ms-auto">
+                                    <span>Relay A</span>
+                                    <span class="status-light"></span>
+                                </div>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </div>
+                <div class="col-lg-6">
+                    <Card Size="CardSize.Default">
+                        <CardBody>
+                            <CardTitle>Relay B</CardTitle>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span>Relay A</span>
+                                <span class="status-light"></span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex flex-column gap-2">
+                                    <button type="button" class="btn btn-outline-secondary">Open</button>
+                                    <button type="button" class="btn btn-outline-secondary">Close</button>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 ms-auto">
+                                    <span>Relay B</span>
+                                    <span class="status-light"></span>
+                                </div>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </div>
+            </div>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Status</CardTitle>
+                    <div class="row">
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Door Monitor</span>
+                            <span class="status-light"></span>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Request to Exit</span>
+                            <span class="status-light"></span>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Interlock Input</span>
+                            <span class="status-light"></span>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Alarms</CardTitle>
+                    <div class="d-flex align-items-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary">Reset</button>
+                        <div class="row flex-fill">
+                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                                <span>Door Forced</span>
+                                <span class="status-light"></span>
+                            </div>
+                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                                <span>Duress</span>
+                                <span class="status-light"></span>
+                            </div>
+                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                                <span>Hacker</span>
+                                <span class="status-light"></span>
+                            </div>
+                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                                <span>Fire</span>
+                                <span class="status-light"></span>
+                            </div>
+                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                                <span>Intruder</span>
+                                <span class="status-light"></span>
+                            </div>
+                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                                <span>Door Failed to Close</span>
+                                <span class="status-light"></span>
+                            </div>
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* ============================= CONTROLLER ============================= *@
+        <Tab Title="Controller">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Controller Administration</CardTitle>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary w-100">Clear Cards</button>
+                        <small class="text-muted d-block text-center fst-italic">[All card information will be deleted from the controller]</small>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary w-100">Clear Events</button>
+                        <small class="text-muted d-block text-center fst-italic">[All event information will be deleted from the controller]</small>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary w-100">Clear Time Zones, Calendars and Access Levels</button>
+                        <small class="text-muted d-block text-center fst-italic">[All time zone and access level information will be deleted from the controller]</small>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-secondary w-100">Set Date and Time</button>
+                        <small class="text-muted d-block text-center fst-italic">[The date and time will automatically be corrected if 5 seconds different to the server time]</small>
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Biometric</CardTitle>
+                    <div class="mb-3 row align-items-center">
+                        <div class="col-lg-6">
+                            <button type="button" class="btn btn-outline-secondary w-100">Clear Biometric data</button>
+                        </div>
+                        <div class="col-lg-3">
+                            <label class="form-label">Target</label>
+                            <InputSelect class="form-select" @bind-Value="biometricTarget">
+                                <option value="Reader A">Reader A</option>
+                                <option value="Reader B">Reader B</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block fst-italic mb-3">[All Biometric Templates and Aliases will be deleted from the controller]</small>
+                    <div class="mb-3 row">
+                        <div class="col-lg-3">
+                            <button type="button" class="btn btn-outline-secondary w-100">Cancel</button>
+                        </div>
+                        <div class="col-lg-6">
+                            <button type="button" class="btn btn-outline-secondary w-100">Send Biometric data</button>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block fst-italic">[Send all biometric templates to this controller]</small>
+                </CardBody>
+            </Card>
         </Tab>
     </Tabs>
 
@@ -113,7 +509,17 @@
 <Button class="float-end" BackgroundColor="TablerColor.Primary" Type="ButtonType.Submit" Text="Submit"></Button>
 </TablerForm>
 
-
+<style>
+    .status-light {
+        display: inline-block;
+        width: 70px;
+        height: 22px;
+        border: 1px solid #888;
+        border-radius: 3px;
+        background-color: #d63939; /* red - static for now */
+        vertical-align: middle;
+    }
+</style>
 
 @code {
 
@@ -124,6 +530,44 @@
     public DoorDetailDto dDetail { get; set; } = new DoorDetailDto();
     [Parameter] public Guid DoorId { get; set; }
     [CascadingParameter] public bool CascadingParameter { get; set; } = false;
+
+    // ---- Local backing fields for controls not yet present on DoorDetailDto ----
+    private string connector = "";
+    private int randomSearchFrequency = 0;
+    private byte feedbackVolume = 15;
+    private byte alarmVolume = 15;
+    private string keypadName = "Keyboard";
+    private byte keypadTech = 0;
+    private string mfaOverrideTimeZone = "";
+    private string lockOpenTimeZone = "";
+    private string relayBTimeZone = "";
+    private bool failedToCloseEnable = false;
+    private string biometricTarget = "Reader A";
+
+    // ---- Dropdown option sources ----
+    private readonly Dictionary<byte, string> ReaderTechnologies = new()
+    {
+        { 0, "Crystal Reader" },
+        { 1, "Prox Reader" },
+        { 2, "Smart Reader" },
+    };
+    private readonly Dictionary<byte, string> KeypadTechnologies = new()
+    {
+        { 0, "Normal Keypad" },
+        { 1, "Secure Keypad" },
+    };
+    private readonly Dictionary<byte, string> DriveModes = new()
+    {
+        { 0, "Relay" },
+        { 1, "Magnet" },
+        { 2, "Solenoid" },
+    };
+    private readonly Dictionary<byte, string> RelayBModes = new()
+    {
+        { 0, "Follow relay A" },
+        { 1, "Independent" },
+        { 2, "Time zone" },
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -177,7 +621,7 @@
                     StatusColor = TablerColor.Danger
                 });
             }
-        } 
+        }
     }
 
 }

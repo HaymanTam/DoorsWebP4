@@ -1,0 +1,327 @@
+@* Backup and Restore dialog. Shown via ModalService.ShowAsync("Backup and Restore", ...).
+   Calls the API's BackupController (native T-SQL BACKUP/RESTORE run server-side). *@
+
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@inject IHttpClientFactory ClientFactory
+
+<Card Size="CardSize.Default">
+    <CardBody>
+        <CardTitle>Create Backup</CardTitle>
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-3 text-end">
+                <label class="form-label mb-0">File name</label>
+            </div>
+            <div class="col-lg-9">
+                <input class="form-control" placeholder="(auto: DatabaseName_yyyyMMdd_HHmmss.bak)" @bind="newFileName" disabled="@busy" />
+            </div>
+        </div>
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-3"></div>
+            <div class="col-lg-9">
+                <label class="form-check mb-0">
+                    <input type="checkbox" class="form-check-input" @bind="compress" disabled="@busy" />
+                    <span class="form-check-label">Compress backup (turn off for SQL Express / LocalDB)</span>
+                </label>
+            </div>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary" @onclick="CreateBackup" disabled="@busy">
+                @if (busy && busyAction == "backup") { <span class="spinner-border spinner-border-sm me-2"></span> }
+                Backup Now
+            </button>
+        </div>
+    </CardBody>
+</Card>
+
+<Card Size="CardSize.Default">
+    <CardBody>
+        <div class="d-flex align-items-center justify-content-between">
+            <CardTitle class="mb-0">Restore</CardTitle>
+            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="LoadBackups" disabled="@busy">Refresh</button>
+        </div>
+        <p class="text-muted small mt-1 mb-2">Restoring overwrites the current database and disconnects all users. This cannot be undone.</p>
+
+        <div class="table-responsive border rounded" style="max-height: 280px; overflow-y: auto;">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 2.5rem;"></th>
+                        <th>File</th>
+                        <th class="text-end">Size</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (backups is null)
+                    {
+                        <tr><td colspan="4" class="text-muted text-center py-4">Loading…</td></tr>
+                    }
+                    else if (backups.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted text-center py-4">No backups found.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var b in backups)
+                        {
+                            <tr class="@(b.FileName == selectedFile ? "table-active" : null)" @onclick="() => selectedFile = b.FileName" style="cursor: pointer;">
+                                <td>
+                                    <input type="radio" name="backupFile" class="form-check-input"
+                                           checked="@(b.FileName == selectedFile)"
+                                           @onchange="() => selectedFile = b.FileName" />
+                                </td>
+                                <td>@b.FileName</td>
+                                <td class="text-end">@FormatSize(b.SizeBytes)</td>
+                                <td>@b.CreatedUtc.ToLocalTime().ToString("g")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-2">
+            <button type="button" class="btn btn-danger" @onclick="RestoreBackup" disabled="@(busy || selectedFile is null)">
+                @if (busy && busyAction == "restore") { <span class="spinner-border spinner-border-sm me-2"></span> }
+                Restore Selected
+            </button>
+        </div>
+    </CardBody>
+</Card>
+
+@if (busy)
+{
+    <div class="mt-3">
+        <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>@(busyAction == "restore" ? "Restoring database" : "Creating backup")</span>
+            <span>@(progressPercent.HasValue ? $"{progressPercent}%" : "working")</span>
+        </div>
+        <div class="progress" style="height: 1.25rem;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated @(busyAction == "restore" ? "bg-danger" : null)"
+                 role="progressbar"
+                 style="width: @(progressPercent ?? 100)%;"
+                 aria-valuenow="@(progressPercent ?? 0)" aria-valuemin="0" aria-valuemax="100">
+            </div>
+        </div>
+    </div>
+}
+
+@if (status is not null)
+{
+    <div class="alert @(statusOk ? "alert-success" : "alert-danger") mb-0 mt-3" role="alert">
+        @status
+    </div>
+}
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+    <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@busy">Close</button>
+</div>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    private HttpClient client = null!;
+
+    private List<BackupFileDto>? backups;
+    private string? selectedFile;
+
+    private string? newFileName;
+    private bool compress = true;
+
+    private bool busy;
+    private string? busyAction;
+
+    private string? status;
+    private bool statusOk;
+
+    private HubConnection? hubConnection;
+    private int? progressPercent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+
+        // Live progress channel. Best-effort: if it can't connect, backup/restore still works,
+        // just without a percent readout (the bar falls back to indeterminate).
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl("https://localhost:60879/backupHub")
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<int>("BackupProgress", p => UpdateProgress(p));
+            hubConnection.On<int>("RestoreProgress", p => UpdateProgress(p));
+
+            await hubConnection.StartAsync();
+        }
+        catch
+        {
+            hubConnection = null;
+        }
+
+        await LoadBackups();
+    }
+
+    private void UpdateProgress(int percent)
+    {
+        progressPercent = percent;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private bool HubReady =>
+        hubConnection is not null
+        && hubConnection.State == HubConnectionState.Connected
+        && hubConnection.ConnectionId is not null;
+
+    private async Task LoadBackups()
+    {
+        try
+        {
+            backups = await client.GetFromJsonAsync<List<BackupFileDto>>("api/Backup") ?? new();
+        }
+        catch (Exception ex)
+        {
+            backups = new();
+            SetStatus(false, $"Could not load backups: {ex.Message}");
+        }
+    }
+
+    private async Task CreateBackup()
+    {
+        busy = true;
+        busyAction = "backup";
+        status = null;
+        progressPercent = HubReady ? 0 : null;
+        try
+        {
+            var request = new CreateBackupRequest
+            {
+                FileName = newFileName,
+                Compress = compress,
+                ConnectionId = HubReady ? hubConnection!.ConnectionId : null
+            };
+            var response = await client.PostAsJsonAsync("api/Backup", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<BackupOperationResult>();
+                SetStatus(true, result?.Message ?? "Backup completed.");
+                newFileName = null;
+                await LoadBackups();
+            }
+            else
+            {
+                SetStatus(false, await ReadError(response));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(false, $"Backup failed: {ex.Message}");
+        }
+        finally
+        {
+            busy = false;
+            busyAction = null;
+            progressPercent = null;
+        }
+    }
+
+    private async Task RestoreBackup()
+    {
+        if (selectedFile is null) return;
+
+        var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Restore database from {selectedFile}?",
+            SubText = "This overwrites the current database and disconnects all users. This cannot be undone!",
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+        if (!confirmed) return;
+
+        busy = true;
+        busyAction = "restore";
+        status = null;
+        progressPercent = HubReady ? 0 : null;
+        try
+        {
+            var request = new RestoreBackupRequest
+            {
+                FileName = selectedFile,
+                ConnectionId = HubReady ? hubConnection!.ConnectionId : null
+            };
+            var response = await client.PostAsJsonAsync("api/Backup/restore", request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<BackupOperationResult>();
+                SetStatus(true, result?.Message ?? "Restore completed.");
+            }
+            else
+            {
+                SetStatus(false, await ReadError(response));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(false, $"Restore failed: {ex.Message}");
+        }
+        finally
+        {
+            busy = false;
+            busyAction = null;
+            progressPercent = null;
+        }
+    }
+
+    private static async Task<string> ReadError(HttpResponseMessage response)
+    {
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+            if (!string.IsNullOrWhiteSpace(problem?.Detail)) return problem!.Detail!;
+        }
+        catch { /* fall through */ }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void SetStatus(bool ok, string message)
+    {
+        statusOk = ok;
+        status = message;
+    }
+
+    private void Close()
+    {
+        ModalService.Close(ModalResult.Ok());
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB", "TB" };
+        double size = bytes;
+        int unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+        return $"{size:0.#} {units[unit]}";
+    }
+
+    private class ProblemDetails
+    {
+        public string? Title { get; set; }
+        public string? Detail { get; set; }
+        public int? Status { get; set; }
+    }
+}

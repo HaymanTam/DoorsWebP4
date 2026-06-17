@@ -471,5 +471,27 @@ public partial class DoorsEnterpriseContext
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
         });
+
+        // ---- T_Users (default seed) ------------------------------------------
+        // Seeds the default "admin" administrator. T_Users is scaffolded keyless,
+        // so a key on Code is required before HasData can be applied.
+        //
+        // Password is a bcrypt hash of the default "654321" (see AuthService.
+        // DefaultPassword). A precomputed constant is used because a fresh
+        // BCrypt.HashPassword() call produces a new salt each model build, which
+        // would generate spurious migrations. Users on this default are forced to
+        // change it on first sign-in.
+        modelBuilder.Entity<TUsers>(entity =>
+        {
+            entity.HasKey(e => e.Code);
+
+            entity.HasData(new TUsers
+            {
+                Code = 1,
+                Description = "admin",
+                Password = "$2a$11$USGWvPjw8RXKz9LjMWWgr.IV5uCz6Zufb2zTBjSBG9fneY.JY0UDW",
+                Administrator = true
+            });
+        });
     }
 }

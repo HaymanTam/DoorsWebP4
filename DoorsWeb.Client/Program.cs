@@ -9,7 +9,13 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+builder.Services.AddTransient<JwtAuthorizationHandler>();
 builder.Services.AddHttpClient("WebAPI", client =>
+    client.BaseAddress = new Uri("https://localhost:60879"))
+    .AddHttpMessageHandler<JwtAuthorizationHandler>();
+// Plain client without the auth handler, used by the handler itself to call
+// auth/refresh so a refresh 401 can't recurse back into a refresh attempt.
+builder.Services.AddHttpClient("WebAPI-Refresh", client =>
     client.BaseAddress = new Uri("https://localhost:60879"));
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddTabler();

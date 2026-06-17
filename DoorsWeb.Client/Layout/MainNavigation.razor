@@ -129,9 +129,14 @@
                         <NavbarMenuItem Href="updatehardware" Text="Update Hardware">
                             <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Refresh" /></MenuItemIcon>
                         </NavbarMenuItem>
-                        <NavbarMenuItem Href="backuprestore" Text="Backup and Restore">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Database" /></MenuItemIcon>
-                        </NavbarMenuItem>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @onclick="ShowBackupRestoreModal" @onclick:preventDefault>
+                                <span class="nav-link-icon">
+                                    <Icon class="icon" IconType="@TablerIcons.Database" />
+                                </span>
+                                <span class="nav-link-title">Backup and Restore</span>
+                            </a>
+                        </li>
                         <NavbarMenuItem Href="userspasswords" Text="Users and Passwords">
                             <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Users" /></MenuItemIcon>
                         </NavbarMenuItem>
@@ -187,6 +192,17 @@
     {
         var component = new RenderComponent<SpaceZoneTriggerModal>();
         await ModalService.ShowAsync("Triggers - New Trigger", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task ShowBackupRestoreModal()
+    {
+        var component = new RenderComponent<BackupRestoreModal>();
+        await ModalService.ShowAsync("Backup and Restore", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,

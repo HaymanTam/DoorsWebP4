@@ -1,0 +1,68 @@
+@page "/alarms"
+@inject IHttpClientFactory ClientFactory
+
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />Alarms
+        </CardTitle>
+        <CardActions>
+            <Button Color="TablerColor.Primary" OnClick="Refresh">
+                <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
+            </Button>
+        </CardActions>
+    </CardHeader>
+    <CardBody>
+        @if (!IsLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+
+        <Tabs>
+            <Tab Title="Active">
+                <Table Item="AlarmListDto" Items="ActiveAlarms" PageSize="10" Hover Responsive>
+                    <ChildContent>
+                        <Column Item="AlarmListDto" Property="a => a.Description" Title="Description" Searchable Sortable />
+                        <Column Item="AlarmListDto" Property="a => a.Location" Title="Location" Searchable Sortable />
+                        <Column Item="AlarmListDto" Property="a => a.Date" Title="Date" Sortable />
+                    </ChildContent>
+                </Table>
+            </Tab>
+
+            <Tab Title="Actioned">
+                <Table Item="AlarmListDto" Items="ActionedAlarms" PageSize="10" Hover Responsive>
+                    <ChildContent>
+                        <Column Item="AlarmListDto" Property="a => a.Description" Title="Description" Searchable Sortable />
+                        <Column Item="AlarmListDto" Property="a => a.Location" Title="Location" Searchable Sortable />
+                        <Column Item="AlarmListDto" Property="a => a.Date" Title="Date" Sortable />
+                        <Column Item="AlarmListDto" Property="a => a.Details" Title="Details" Searchable Sortable />
+                        <Column Item="AlarmListDto" Property="a => a.ActionedBy" Title="Actioned By" Searchable Sortable />
+                        <Column Item="AlarmListDto" Property="a => a.Turnaround" Title="Turnaround" Sortable />
+                    </ChildContent>
+                </Table>
+            </Tab>
+        </Tabs>
+    </CardBody>
+</Card>
+
+@code {
+    private bool IsLoaded = false;
+    private HttpClient client = new HttpClient();
+    private List<AlarmListDto> ActiveAlarms = new();
+    private List<AlarmListDto> ActionedAlarms = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        IsLoaded = false;
+        var alarms = await client.GetFromJsonAsync<List<AlarmListDto>>("api/Alarm") ?? [];
+        ActiveAlarms = alarms.Where(a => !a.IsActioned).ToList();
+        ActionedAlarms = alarms.Where(a => a.IsActioned).ToList();
+        IsLoaded = true;
+    }
+}

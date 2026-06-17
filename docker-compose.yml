@@ -7,9 +7,7 @@ services:
     container_name: doorsweb.client
     ports:
       - "60880:443"
-    volumes:
-      - user-photo:/media/user-photo
-    depends_on: 
+    depends_on:
       - doorsweb.api
     networks:
       - doorsweb
@@ -23,6 +21,16 @@ services:
     ports:
       - "60878:8080"
       - "60879:8081"
+    environment:
+      # Container-internal storage paths (constant). The host side is chosen below.
+      - Backup__Directory=/data/backups
+      - Storage__UserPhotoDirectory=/data/user-photo
+    volumes:
+      # Hybrid storage: a Docker-managed named volume is used by default.
+      # Set BACKUP_PATH / USER_PHOTO_PATH in .env to a host folder to bind-mount
+      # a real directory instead (e.g. /srv/doorsweb/backups or D:/DoorsData).
+      - ${BACKUP_PATH:-backups}:/data/backups
+      - ${USER_PHOTO_PATH:-user-photo}:/data/user-photo
     depends_on:
       mssql:
         condition: service_healthy
@@ -53,6 +61,9 @@ networks:
     driver: bridge
 
 volumes:
+  # Defaults used when BACKUP_PATH / USER_PHOTO_PATH are not set in .env.
+  backups:
+    driver: local
   user-photo:
     driver: local
   mssql-data:

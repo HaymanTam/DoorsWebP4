@@ -1,5 +1,6 @@
 ﻿@page "/users"
 @using DoorsWeb.Shared.Models
+@using System.Net.Http.Headers
 @inject IHttpClientFactory ClientFactory
 
 
@@ -29,6 +30,30 @@
         <Column Item="UserDto" Property="e => e.Name" Title="Name" Searchable Sortable>
             <EditorTemplate>
                 <InputText class="form-control" @bind-value="@context.Name" DisplayName="Name" />
+            </EditorTemplate>
+        </Column>
+        <Column Item="UserDto" Property="e => e.PhotoPath" Title="Photo" Width="70px" Sortable="false">
+            <Template>
+                @if (!string.IsNullOrEmpty(context.PhotoPath))
+                {
+                    <img src="@PhotoUrl(context.PhotoPath)" alt="photo"
+                         style="width:40px;height:40px;object-fit:cover;border-radius:50%;" />
+                }
+                else
+                {
+                    <Icon class="icon text-muted" IconType="@TablerIcons.Photo" />
+                }
+            </Template>
+            <EditorTemplate>
+                <div class="d-flex align-items-center gap-2">
+                    @if (!string.IsNullOrEmpty(context.PhotoPath))
+                    {
+                        <img src="@PhotoUrl(context.PhotoPath)" alt="photo"
+                             style="width:40px;height:40px;object-fit:cover;border-radius:50%;" />
+                    }
+                    <InputFile OnChange="@(e => OnPhotoSelected(e, context))" accept="image/*"
+                               class="form-control form-control-sm" />
+                </div>
             </EditorTemplate>
         </Column>
         @* They use property for search hence joining all accessLevel names together in a string *@
@@ -151,6 +176,52 @@
     private async Task UpdateList()
     {
         userList = await client.GetFromJsonAsync<List<UserDto>>("api/User") ?? [];
+    }
+
+    // API host that serves the photo files. Mirrors the "WebAPI" client base address.
+    private const string ApiBase = "https://localhost:60879";
+
+    private static string PhotoUrl(string? path) =>
+        string.IsNullOrEmpty(path) ? "" :
+        (path!.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? path! : $"{ApiBase}{path}");
+
+    private async Task OnPhotoSelected(InputFileChangeEventArgs e, UserDto user)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(10 * 1024 * 1024)); // 10 MB
+            if (!string.IsNullOrEmpty(file.ContentType))
+            {
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            }
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await client.PostAsync("api/Photos", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<PhotoUploadResult>();
+                user.PhotoPath = result?.Path;
+            }
+            else
+            {
+                await ShowErrorDialog(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+            {
+                MainText = "Photo upload failed",
+                SubText = ex.Message,
+                IconType = TablerIcons.Alert_triangle,
+                CancelText = "",
+                StatusColor = TablerColor.Danger
+            });
+        }
     }
 
     private async Task ShowErrorDialog(HttpResponseMessage result)

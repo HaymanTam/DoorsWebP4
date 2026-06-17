@@ -1,5 +1,6 @@
 @page "/login"
 @attribute [AllowAnonymous]
+@using System.ComponentModel.DataAnnotations
 @using DoorsWeb.Shared.DTO
 @using DoorsWeb.Shared.Models
 @using DoorsWeb.Client.Auth
@@ -11,33 +12,73 @@
 <div class="container container-tight py-5">
     <div class="card card-md shadow-sm">
         <div class="card-body">
-            <h2 class="h2 text-center mb-4">Sign in</h2>
-            <EditForm Model="loginDto" OnValidSubmit="HandleLogin">
-                <DataAnnotationsValidator />
-                <div class="mb-3">
-                    <label class="form-label">Username</label>
-                    <InputText class="form-control" @bind-Value="loginDto.Username" placeholder="Enter username" />
-                    <ValidationMessage For="@(() => loginDto.Username)" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <InputText type="password" class="form-control" @bind-Value="loginDto.Password" placeholder="Password" />
-                    <ValidationMessage For="@(() => loginDto.Password)" />
-                </div>
-                @if (errorMessage is not null)
-                {
-                    <div class="alert alert-danger mb-3">@errorMessage</div>
-                }
-                <div class="form-footer">
-                    <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
-                        @if (isLoading)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        }
-                        Sign in
-                    </button>
-                </div>
-            </EditForm>
+            @if (!requirePasswordChange)
+            {
+                <h2 class="h2 text-center mb-4">Sign in</h2>
+                <EditForm Model="loginDto" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <InputText class="form-control" @bind-Value="loginDto.Username" @bind-Value:after="FetchHint" placeholder="Enter username" />
+                        <ValidationMessage For="@(() => loginDto.Username)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <InputText type="password" class="form-control" @bind-Value="loginDto.Password" placeholder="Password" />
+                        <ValidationMessage For="@(() => loginDto.Password)" />
+                    </div>
+                    @if (passwordHint is not null)
+                    {
+                        <div class="alert alert-info mb-3">
+                            First login: the default password is <strong>@passwordHint</strong>. You'll be asked to set a new one.
+                        </div>
+                    }
+                    @if (errorMessage is not null)
+                    {
+                        <div class="alert alert-danger mb-3">@errorMessage</div>
+                    }
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            Sign in
+                        </button>
+                    </div>
+                </EditForm>
+            }
+            else
+            {
+                <h2 class="h2 text-center mb-4">Choose a new password</h2>
+                <p class="text-secondary mb-4">Your account is using the default password. Set a new password to continue.</p>
+                <EditForm Model="changeModel" OnValidSubmit="HandleChangePassword">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label">New password</label>
+                        <InputText type="password" class="form-control" @bind-Value="changeModel.NewPassword" placeholder="New password" />
+                        <ValidationMessage For="@(() => changeModel.NewPassword)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm new password</label>
+                        <InputText type="password" class="form-control" @bind-Value="changeModel.ConfirmPassword" placeholder="Re-enter new password" />
+                        <ValidationMessage For="@(() => changeModel.ConfirmPassword)" />
+                    </div>
+                    @if (errorMessage is not null)
+                    {
+                        <div class="alert alert-danger mb-3">@errorMessage</div>
+                    }
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            Set password and continue
+                        </button>
+                    </div>
+                </EditForm>
+            }
         </div>
     </div>
 </div>
@@ -50,9 +91,12 @@
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    private AdminLoginDto loginDto = new() { Username = "", Password = "" };
+    private AdminLoginDto loginDto = new() { Username = "admin", Password = "" };
+    private ChangePasswordModel changeModel = new();
     private string? errorMessage;
+    private string? passwordHint;
     private bool isLoading;
+    private bool requirePasswordChange;
 
     private string RedirectTarget => string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
 
@@ -62,7 +106,30 @@
         {
             var state = await AuthState;
             if (state.User.Identity?.IsAuthenticated == true)
+            {
                 Navigation.NavigateTo(RedirectTarget);
+                return;
+            }
+        }
+
+        await FetchHint();
+    }
+
+    private async Task FetchHint()
+    {
+        passwordHint = null;
+        if (string.IsNullOrWhiteSpace(loginDto.Username))
+            return;
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var hint = await client.GetFromJsonAsync<DefaultHint>(
+                $"auth/default-hint/{Uri.EscapeDataString(loginDto.Username)}");
+            passwordHint = hint?.Hint;
+        }
+        catch
+        {
+            passwordHint = null;
         }
     }
 
@@ -80,10 +147,18 @@
                 var jwtPair = await response.Content.ReadFromJsonAsync<JwtPairResponse>();
                 if (jwtPair?.AccessToken is not null)
                 {
-                    await JS.InvokeVoidAsync("localStorage.setItem", "access_token", jwtPair.AccessToken);
-                    await JS.InvokeVoidAsync("localStorage.setItem", "refresh_token", jwtPair.RefreshToken);
-                    AuthStateProvider.NotifyAuthStateChanged();
-                    Navigation.NavigateTo(RedirectTarget);
+                    await StoreTokens(jwtPair);
+                    if (jwtPair.MustChangePassword)
+                    {
+                        // Hold the user on the change-password form; the stored token
+                        // authorizes the subsequent auth/change-password call.
+                        requirePasswordChange = true;
+                    }
+                    else
+                    {
+                        AuthStateProvider.NotifyAuthStateChanged();
+                        Navigation.NavigateTo(RedirectTarget);
+                    }
                 }
             }
             else
@@ -102,9 +177,64 @@
         }
     }
 
+    private async Task HandleChangePassword()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = await client.PostAsJsonAsync("auth/change-password",
+                new ChangePasswordDto { NewPassword = changeModel.NewPassword });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jwtPair = await response.Content.ReadFromJsonAsync<JwtPairResponse>();
+                if (jwtPair?.AccessToken is not null)
+                    await StoreTokens(jwtPair);
+
+                AuthStateProvider.NotifyAuthStateChanged();
+                Navigation.NavigateTo(RedirectTarget);
+            }
+            else
+            {
+                var problem = await response.Content.ReadFromJsonAsync<ClientProblemDetails>();
+                errorMessage = problem?.Detail ?? "Could not change password.";
+            }
+        }
+        catch
+        {
+            errorMessage = "Could not connect to the server.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task StoreTokens(JwtPairResponse pair)
+    {
+        await JS.InvokeVoidAsync("localStorage.setItem", "access_token", pair.AccessToken);
+        await JS.InvokeVoidAsync("localStorage.setItem", "refresh_token", pair.RefreshToken);
+    }
+
+    private class ChangePasswordModel
+    {
+        [Required]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters.")]
+        public string NewPassword { get; set; } = "";
+
+        [Required]
+        [Compare(nameof(NewPassword), ErrorMessage = "Passwords do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+
     private record JwtPairResponse(
         string AccessToken,
         DateTimeOffset AccessTokenExpiresAt,
         string RefreshToken,
-        DateTimeOffset RefreshTokenExpiresAt);
+        DateTimeOffset RefreshTokenExpiresAt,
+        bool MustChangePassword);
+
+    private record DefaultHint(bool IsDefault, string? Hint);
 }

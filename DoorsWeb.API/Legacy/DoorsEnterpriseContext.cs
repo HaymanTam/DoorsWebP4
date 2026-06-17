@@ -1281,8 +1281,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.Password)
-                .HasMaxLength(50)
-                .IsUnicode(false);
+                .HasColumnType("varchar(max)"); // widened from legacy varchar(50) to hold BCrypt hashes
         });
 
         modelBuilder.Entity<VNameAccessLevels>(entity =>

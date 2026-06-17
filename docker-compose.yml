@@ -44,7 +44,9 @@ services:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
     ports:
-      - "1433:1433"
+      # Host port is overridable via MSSQL_HOST_PORT in .env (defaults to 1433).
+      # The container port stays 1433, so in-network clients still use doorsweb.mssql:1433.
+      - "${MSSQL_HOST_PORT:-1433}:1433"
     volumes:
       - mssql-data:/var/opt/mssql
     healthcheck:

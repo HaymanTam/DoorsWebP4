@@ -18,7 +18,15 @@ builder.Services.AddDbContext<DoorsEnterpriseContext>(options =>
 );
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["SecretKey"]!));
+// Signing secret is supplied per environment and never committed: dev via
+// user-secrets, deployed environments via the Jwt__SecretKey env var. Fail fast
+// rather than silently signing tokens with a weak/empty key.
+var jwtSecret = jwtSection["SecretKey"];
+if (string.IsNullOrWhiteSpace(jwtSecret) || Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+    throw new InvalidOperationException(
+        "Jwt:SecretKey is missing or shorter than 32 bytes. Set it via user-secrets " +
+        "(dev) or the Jwt__SecretKey environment variable (deployed environments).");
+var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

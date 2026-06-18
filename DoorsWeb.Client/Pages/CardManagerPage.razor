@@ -8,7 +8,10 @@
             <Icon class="icon me-2" IconType="@TablerIcons.Users" />Card Manager
         </CardTitle>
         <CardActions class="ms-auto">
-            <Button Color="TablerColor.Primary" OnClick="Refresh">
+            <Button Color="TablerColor.Success" Class="me-2" OnClick='() => ShowCardEditModal("New Record", 0)'>
+                <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Card
+            </Button>
+            <Button Color="TablerColor.Secondary" OnClick="Refresh">
                 <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
             </Button>
         </CardActions>
@@ -25,6 +28,14 @@
                     <Column Item="TNameHeader" Property="c => c.CardNumber" Title="Card Number" Searchable Sortable />
                     <Column Item="TNameHeader" Property="c => c.Surname" Title="Last Name" Searchable Sortable />
                     <Column Item="TNameHeader" Property="c => c.Forname" Title="First Name" Searchable Sortable />
+                    <Column Item="TNameHeader" title="" ActionColumn Width="130px">
+                        <Template>
+                            <span class="row-action">
+                                <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='() => ShowCardEditModal("Card Record", context.CardNumber)' />
+                                <Icon class="icon" IconType="@TablerIcons.Trash" @onclick="() => ConfirmDeleteCard(context.CardNumber)" />
+                            </span>
+                        </Template>
+                    </Column>
                 </ChildContent>
             </Table>
             @if (Cards.Count == 0)
@@ -36,6 +47,8 @@
 </Card>
 
 @code {
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
     private bool IsLoaded = false;
     private HttpClient client = new HttpClient();
     private List<TNameHeader> Cards = new();
@@ -51,5 +64,43 @@
         IsLoaded = false;
         Cards = await client.GetFromJsonAsync<List<TNameHeader>>("api/NameHeader") ?? [];
         IsLoaded = true;
+    }
+
+    private async Task ShowCardEditModal(string title, int cardNumber)
+    {
+        // T_Name_Header.CardNumber is assigned by us (ValueGeneratedNever), so suggest the next free id.
+        var next = Cards.Count == 0 ? 1 : Cards.Max(c => c.CardNumber) + 1;
+
+        var component = new RenderComponent<CardEditModal>()
+            .Set(e => e.CardNumber, cardNumber)
+            .Set(e => e.NextCardNumber, next);
+
+        var result = await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+            ModalCssClass = "modal-wide-30", // ~30% wider than Large (see site.css)
+        });
+
+        if (!result.Cancelled)
+        {
+            await Refresh();
+        }
+    }
+
+    private async Task ConfirmDeleteCard(int cardNumber)
+    {
+        var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Delete card {cardNumber}?",
+            SubText = "This action cannot be undone!",
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+        if (!confirmed) return;
+
+        await client.DeleteAsync($"api/NameHeader/{cardNumber}");
+        await Refresh();
     }
 }

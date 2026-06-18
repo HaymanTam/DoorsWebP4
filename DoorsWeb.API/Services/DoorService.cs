@@ -9,6 +9,12 @@ namespace DoorsWeb.API.Services
         // Legacy sentinel meaning "no time zone / never open" (frmDoors lcNoTimeZone).
         private const int NoTimeZone = 10000;
 
+        // T_Connectors.ConnType marker for IP/UDP connectors. The new system is IP-only,
+        // so every new door is attached to a UDP connector (auto-created if none exists).
+        // Value confirmed from legacy mdlConnector.bas: gcRS232=1, gcModem=2, gcUDP=3, gcTCP=4.
+        private const int UdpConnType = 3;
+        private const string DefaultConnectorName = "default connector";
+
         private readonly DoorsEnterpriseContext _context;
 
         public DoorService(DoorsEnterpriseContext context)
@@ -45,6 +51,8 @@ namespace DoorsWeb.API.Services
         {
             var e = new TDoors { Door = dto.Door };
             ApplyToEntity(dto, e);
+            // IP-only system: always bind new doors to a UDP connector.
+            e.Connector = await EnsureUdpConnectorAsync();
             _context.TDoors.Add(e);
             await _context.SaveChangesAsync();
             return await GetAll();
@@ -66,6 +74,33 @@ namespace DoorsWeb.API.Services
             _context.TDoors.Remove(e);
             await _context.SaveChangesAsync();
             return await GetAll();
+        }
+
+        // Returns the id of a UDP connector, creating "default connector" if none exists.
+        private async Task<int> EnsureUdpConnectorAsync()
+        {
+            var existing = await _context.TConnectors
+                .Where(c => c.ConnType == UdpConnType)
+                .OrderBy(c => c.Connector)
+                .Select(c => c.Connector)
+                .FirstOrDefaultAsync();
+            if (existing != 0) return existing;
+
+            // Connector PK is ValueGeneratedNever -> assign manually as max+1 (or 1 if empty).
+            var nextId = await _context.TConnectors.AnyAsync()
+                ? await _context.TConnectors.MaxAsync(c => c.Connector) + 1
+                : 1;
+
+            var connector = new TConnectors
+            {
+                Connector = nextId,
+                Name = DefaultConnectorName,
+                ConnType = UdpConnType,
+                Inuse = true
+            };
+            _context.TConnectors.Add(connector);
+            await _context.SaveChangesAsync();
+            return connector.Connector;
         }
 
         // ---- mapping helpers ------------------------------------------------
@@ -133,7 +168,8 @@ namespace DoorsWeb.API.Services
             e.ControllerId = dto.ControllerId.ToString();
             e.Name = dto.Name;
             e.DoorIpaddress = dto.IPAddressString;
-            e.Connector = dto.Connector;
+            // Connector is managed automatically (see EnsureUdpConnectorAsync); never
+            // touch it here so Update() preserves the existing binding.
 
             e.AutoRelock = dto.AutoRelockEnable;
             e.ReleaseDelay = dto.RelayA_Delay;

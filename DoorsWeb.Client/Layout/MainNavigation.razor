@@ -3,6 +3,8 @@
 @using DoorsWeb.Client.Pages
 @using DoorsWeb.Shared.DTO
 @using DoorsWeb.Shared.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject JwtAuthStateProvider AuthStateProvider
@@ -41,76 +43,82 @@
                     </MenuItemIcon>
                 </NavbarMenuItem>
 
-                @* ---- Site: Temp (click to expand) ---- *@
-                <li class="nav-item">
-                    <a class="nav-link" href="#" @onclick="ToggleTemp" @onclick:preventDefault>
-                        <span class="nav-link-icon">
-                            <Icon class="icon" IconType="@TablerIcons.Building" />
-                        </span>
-                        <span class="nav-link-title">Temp</span>
-                        <span class="ms-auto">
-                            <Icon IconType="@(tempOpen ? TablerIcons.Chevron_down : TablerIcons.Chevron_right)" />
-                        </span>
-                    </a>
-                </li>
-                @if (tempOpen)
+                @* ---- One collapsible group per site (click to expand) ---- *@
+                @if (sites is not null)
                 {
-                    <div class="ms-4">
+                    @foreach (var site in sites)
+                    {
                         <li class="nav-item">
-                            <NavLink class="nav-link" href="doors">
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Door" /></span>
-                                <span class="nav-link-title">Doors</span>
-                            </NavLink>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowAccessLevelsModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Key" /></span>
-                                <span class="nav-link-title">Access Levels</span>
+                            <a class="nav-link" href="#" @onclick="() => ToggleSite(site.Site)" @onclick:preventDefault>
+                                <span class="nav-link-icon">
+                                    <Icon class="icon" IconType="@TablerIcons.Building" />
+                                </span>
+                                <span class="nav-link-title">@site.Name</span>
+                                <span class="ms-auto">
+                                    <Icon IconType="@(openSiteId == site.Site ? TablerIcons.Chevron_down : TablerIcons.Chevron_right)" />
+                                </span>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowTimeZonesModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Clock" /></span>
-                                <span class="nav-link-title">Time Zones</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowCalendarsModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Calendar_clock" /></span>
-                                <span class="nav-link-title">Calendars</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowSpaceZonesModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.World" /></span>
-                                <span class="nav-link-title">Space Zones</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowApbZonesModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Hand_stop" /></span>
-                                <span class="nav-link-title">Anti-Passback Zones</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowDoorTriggerModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Flag_bolt" /></span>
-                                <span class="nav-link-title">Door Triggers</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowSpaceZoneTriggerModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Flag_pin" /></span>
-                                <span class="nav-link-title">Space Zone Triggers</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="floorplans">
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Home" /></span>
-                                <span class="nav-link-title">Floor Plans</span>
-                            </NavLink>
-                        </li>
-                    </div>
+                        @if (openSiteId == site.Site)
+                        {
+                            <div class="ms-4">
+                                <li class="nav-item">
+                                    <NavLink class="nav-link" href="doors">
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Door" /></span>
+                                        <span class="nav-link-title">Doors</span>
+                                    </NavLink>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="() => ShowAccessLevelsModal(site)" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Key" /></span>
+                                        <span class="nav-link-title">Access Levels</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="() => ShowTimeZonesModal(site)" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Clock" /></span>
+                                        <span class="nav-link-title">Time Zones</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="() => ShowCalendarsModal(site)" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Calendar_clock" /></span>
+                                        <span class="nav-link-title">Calendars</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="() => ShowSpaceZonesModal(site)" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.World" /></span>
+                                        <span class="nav-link-title">Space Zones</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="() => ShowApbZonesModal(site)" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Hand_stop" /></span>
+                                        <span class="nav-link-title">Anti-Passback Zones</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="() => ShowDoorTriggerModal(site)" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Flag_bolt" /></span>
+                                        <span class="nav-link-title">Door Triggers</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="() => ShowSpaceZoneTriggerModal(site)" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Flag_pin" /></span>
+                                        <span class="nav-link-title">Space Zone Triggers</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <NavLink class="nav-link" href="floorplans">
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Home" /></span>
+                                        <span class="nav-link-title">Floor Plans</span>
+                                    </NavLink>
+                                </li>
+                            </div>
+                        }
+                    }
                 }
 
                 @* ---- Control Panel (click to expand) ---- *@
@@ -179,33 +187,75 @@
 </Navbar>
 
 @code {
-    private bool tempOpen = true;
+    // The list of sites that each get their own collapsible nav group.
+    private List<SiteDto>? sites;
+    // Id of the currently expanded site group (null = none). Acts as an accordion with Control Panel.
+    private int? openSiteId;
     private bool controlPanelOpen = false;
 
-    // Accordion behaviour: opening one section collapses the other so only one is expanded at a time.
-    private void ToggleTemp()
+    protected override async Task OnInitializedAsync()
     {
-        tempOpen = !tempOpen;
-        if (tempOpen) controlPanelOpen = false;
+        // Reload the site list whenever the auth state changes (e.g. after sign-in),
+        // since the nav is long-lived and OnInitialized only runs once.
+        AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        await LoadSites();
+    }
+
+    private async void OnAuthStateChanged(Task<AuthenticationState> _)
+    {
+        await LoadSites();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadSites()
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            sites = await client.GetFromJsonAsync<List<SiteDto>>("api/Sites") ?? new();
+
+            // Keep the open group valid; default to the first site when nothing is selected.
+            if (sites.Count == 0)
+                openSiteId = null;
+            else if (openSiteId is null || sites.All(s => s.Site != openSiteId))
+                openSiteId = sites[0].Site;
+        }
+        catch
+        {
+            // Anonymous (pre-login) or transient failure: render no site groups.
+            sites = new();
+        }
+    }
+
+    // Accordion behaviour: opening one section collapses the other so only one is expanded at a time.
+    private void ToggleSite(int siteId)
+    {
+        openSiteId = openSiteId == siteId ? null : siteId;
+        if (openSiteId is not null) controlPanelOpen = false;
     }
 
     private void ToggleControlPanel()
     {
         controlPanelOpen = !controlPanelOpen;
-        if (controlPanelOpen) tempOpen = false;
+        if (controlPanelOpen) openSiteId = null;
     }
 
-    // ---- Access Levels: shared name-only list modal (replaces the /accesslevels page link) ----
-    private async Task ShowAccessLevelsModal()
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+    }
+
+    // ---- Access Levels: name-only list modal (api/AccessLevelHeader, key { Site, AccessLevel }) ----
+    private async Task ShowAccessLevelsModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Access Level")
-            .Set(e => e.Load, LoadAccessLevelRows)
+            .Set(e => e.Load, () => LoadAccessLevelRows(site.Site))
             .Set(e => e.OnAdd, () => ShowAccessLevelEdit(null))
             .Set(e => e.OnEdit, (EntityListRow row) => ShowAccessLevelEdit(row))
             .Set(e => e.OnDelete, DeleteAccessLevel);
 
-        await ModalService.ShowAsync("Access Levels", component, new ModalOptions
+        await ModalService.ShowAsync($"Access Levels — {site.Name}", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -213,11 +263,13 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadAccessLevelRows()
+    private async Task<List<EntityListRow>> LoadAccessLevelRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<AccessLevelDto>>("api/AccessLevel") ?? new();
-        return list.Select(a => new EntityListRow { Id = a.Id.ToString(), Name = a.Name ?? "" }).ToList();
+        var list = await client.GetFromJsonAsync<List<TAccessLevelHeader>>("api/AccessLevelHeader") ?? new();
+        // Delete route is api/AccessLevelHeader/{site}/{accessLevel}, so encode both into the row Id.
+        return list.Where(a => a.Site == siteId)
+                   .Select(a => new EntityListRow { Id = $"{a.Site}/{a.AccessLevel}", Name = a.Name ?? "" }).ToList();
     }
 
     private async Task ShowAccessLevelEdit(EntityListRow? row)
@@ -237,20 +289,20 @@
     private async Task DeleteAccessLevel(EntityListRow row)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/AccessLevel/" + row.Id);
+        await client.DeleteAsync("api/AccessLevelHeader/" + row.Id);
     }
 
     // ---- Time Zones: name-only list modal (api/TimeZoneHeader, key { Site, TimeZone }) ----
-    private async Task ShowTimeZonesModal()
+    private async Task ShowTimeZonesModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Time Zone")
-            .Set(e => e.Load, LoadTimeZoneRows)
+            .Set(e => e.Load, () => LoadTimeZoneRows(site.Site))
             .Set(e => e.OnAdd, () => ShowTimeZoneEdit(null))
             .Set(e => e.OnEdit, (EntityListRow row) => ShowTimeZoneEdit(row))
             .Set(e => e.OnDelete, DeleteTimeZone);
 
-        await ModalService.ShowAsync("Time Zones", component, new ModalOptions
+        await ModalService.ShowAsync($"Time Zones — {site.Name}", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -258,12 +310,13 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadTimeZoneRows()
+    private async Task<List<EntityListRow>> LoadTimeZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
         var list = await client.GetFromJsonAsync<List<TTimeZoneHeader>>("api/TimeZoneHeader") ?? new();
         // Delete route is api/TimeZoneHeader/{site}/{timeZone}, so encode both into the row Id.
-        return list.Select(t => new EntityListRow { Id = $"{t.Site}/{t.TimeZone}", Name = t.Name ?? "" }).ToList();
+        return list.Where(t => t.Site == siteId)
+                   .Select(t => new EntityListRow { Id = $"{t.Site}/{t.TimeZone}", Name = t.Name ?? "" }).ToList();
     }
 
     private async Task ShowTimeZoneEdit(EntityListRow? row)
@@ -287,16 +340,16 @@
     }
 
     // ---- Calendars: name-only list modal (api/CalendarHeader, key Code) ----
-    private async Task ShowCalendarsModal()
+    private async Task ShowCalendarsModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Calendar")
-            .Set(e => e.Load, LoadCalendarRows)
+            .Set(e => e.Load, () => LoadCalendarRows(site.Site))
             .Set(e => e.OnAdd, () => ShowCalendarEdit(null))
             .Set(e => e.OnEdit, (EntityListRow row) => ShowCalendarEdit(row))
             .Set(e => e.OnDelete, DeleteCalendar);
 
-        await ModalService.ShowAsync("Calendars", component, new ModalOptions
+        await ModalService.ShowAsync($"Calendars — {site.Name}", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -304,11 +357,12 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadCalendarRows()
+    private async Task<List<EntityListRow>> LoadCalendarRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
         var list = await client.GetFromJsonAsync<List<TCalendarHeader>>("api/CalendarHeader") ?? new();
-        return list.Select(c => new EntityListRow { Id = c.Code.ToString(), Name = c.Description ?? "" }).ToList();
+        return list.Where(c => c.Site == siteId)
+                   .Select(c => new EntityListRow { Id = c.Code.ToString(), Name = c.Description ?? "" }).ToList();
     }
 
     private async Task ShowCalendarEdit(EntityListRow? row)
@@ -332,16 +386,16 @@
     }
 
     // ---- Space Zones: name-only list modal (api/SpaceZoneHeader, key ZoneNumber) ----
-    private async Task ShowSpaceZonesModal()
+    private async Task ShowSpaceZonesModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Space Zone")
-            .Set(e => e.Load, LoadSpaceZoneRows)
+            .Set(e => e.Load, () => LoadSpaceZoneRows(site.Site))
             .Set(e => e.OnAdd, () => ShowSpaceZoneEdit(null))
             .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneEdit(row))
             .Set(e => e.OnDelete, DeleteSpaceZone);
 
-        await ModalService.ShowAsync("Space Zones", component, new ModalOptions
+        await ModalService.ShowAsync($"Space Zones — {site.Name}", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -349,11 +403,12 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadSpaceZoneRows()
+    private async Task<List<EntityListRow>> LoadSpaceZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
         var list = await client.GetFromJsonAsync<List<TSpaceZoneHeader>>("api/SpaceZoneHeader") ?? new();
-        return list.Select(z => new EntityListRow { Id = z.ZoneNumber.ToString(), Name = z.Name ?? "" }).ToList();
+        return list.Where(z => z.Site == siteId)
+                   .Select(z => new EntityListRow { Id = z.ZoneNumber.ToString(), Name = z.Name ?? "" }).ToList();
     }
 
     private async Task ShowSpaceZoneEdit(EntityListRow? row)
@@ -377,16 +432,16 @@
     }
 
     // ---- Anti-Passback Zones: name-only list modal (api/ApbzoneHeader, key Apbnumber) ----
-    private async Task ShowApbZonesModal()
+    private async Task ShowApbZonesModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Anti-Passback Zone")
-            .Set(e => e.Load, LoadApbZoneRows)
+            .Set(e => e.Load, () => LoadApbZoneRows(site.Site))
             .Set(e => e.OnAdd, () => ShowApbZoneEdit(null))
             .Set(e => e.OnEdit, (EntityListRow row) => ShowApbZoneEdit(row))
             .Set(e => e.OnDelete, DeleteApbZone);
 
-        await ModalService.ShowAsync("Anti-Passback Zones", component, new ModalOptions
+        await ModalService.ShowAsync($"Anti-Passback Zones — {site.Name}", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -394,11 +449,12 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadApbZoneRows()
+    private async Task<List<EntityListRow>> LoadApbZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
         var list = await client.GetFromJsonAsync<List<TApbzoneHeader>>("api/ApbzoneHeader") ?? new();
-        return list.Select(z => new EntityListRow { Id = z.Apbnumber.ToString(), Name = z.Name ?? "" }).ToList();
+        return list.Where(z => z.Site == siteId)
+                   .Select(z => new EntityListRow { Id = z.Apbnumber.ToString(), Name = z.Name ?? "" }).ToList();
     }
 
     private async Task ShowApbZoneEdit(EntityListRow? row)
@@ -422,16 +478,16 @@
     }
 
     // ---- Door Triggers: name-only list modal (api/TriggersHeader where TriggerType == 1) ----
-    private async Task ShowDoorTriggerModal()
+    private async Task ShowDoorTriggerModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Door Trigger")
-            .Set(e => e.Load, LoadDoorTriggerRows)
+            .Set(e => e.Load, () => LoadDoorTriggerRows(site.Site))
             .Set(e => e.OnAdd, () => ShowDoorTriggerEdit(null))
             .Set(e => e.OnEdit, (EntityListRow row) => ShowDoorTriggerEdit(row))
             .Set(e => e.OnDelete, DeleteTrigger);
 
-        await ModalService.ShowAsync("Door Triggers", component, new ModalOptions
+        await ModalService.ShowAsync($"Door Triggers — {site.Name}", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -439,12 +495,12 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadDoorTriggerRows()
+    private async Task<List<EntityListRow>> LoadDoorTriggerRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
         var list = await client.GetFromJsonAsync<List<TTriggersHeader>>("api/TriggersHeader") ?? new();
         // TriggerType: 1 = Door, 3 = SpaceZone (legacy TriggerTypeConstants).
-        return list.Where(t => t.TriggerType == 1)
+        return list.Where(t => t.TriggerType == 1 && t.Site == siteId)
                    .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
     }
 
@@ -463,16 +519,16 @@
     }
 
     // ---- Space Zone Triggers: name-only list modal (api/TriggersHeader where TriggerType == 3) ----
-    private async Task ShowSpaceZoneTriggerModal()
+    private async Task ShowSpaceZoneTriggerModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Space Zone Trigger")
-            .Set(e => e.Load, LoadSpaceZoneTriggerRows)
+            .Set(e => e.Load, () => LoadSpaceZoneTriggerRows(site.Site))
             .Set(e => e.OnAdd, () => ShowSpaceZoneTriggerEdit(null))
             .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneTriggerEdit(row))
             .Set(e => e.OnDelete, DeleteTrigger);
 
-        await ModalService.ShowAsync("Space Zone Triggers", component, new ModalOptions
+        await ModalService.ShowAsync($"Space Zone Triggers — {site.Name}", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -480,11 +536,11 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadSpaceZoneTriggerRows()
+    private async Task<List<EntityListRow>> LoadSpaceZoneTriggerRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
         var list = await client.GetFromJsonAsync<List<TTriggersHeader>>("api/TriggersHeader") ?? new();
-        return list.Where(t => t.TriggerType == 3)
+        return list.Where(t => t.TriggerType == 3 && t.Site == siteId)
                    .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
     }
 
@@ -510,13 +566,16 @@
 
     private async Task ShowBackupRestoreModal()
     {
-        var component = new RenderComponent<BackupRestoreModal>();
-        await ModalService.ShowAsync("Backup and Restore", component, new ModalOptions
+        // Share the options instance with the modal body so it can hide the header
+        // close (X) button while a backup/restore is in progress (see BackupRestoreModal.busy).
+        var options = new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
             Scrollable = true,
-        });
+        };
+        var component = new RenderComponent<BackupRestoreModal>().Set(c => c.Options, options);
+        await ModalService.ShowAsync("Backup and Restore", component, options);
     }
 
     private async Task ShowSystemSettingsModal()

@@ -493,5 +493,17 @@ public partial class DoorsEnterpriseContext
                 Administrator = true
             });
         });
+
+        // ---- T_Sites (default seed) ------------------------------------------
+        // Seeds a single "Default Site" so a fresh database always has at least
+        // one site. The System Settings dialog (and SiteService.Delete) prevent
+        // removing the final remaining site, so this guarantees there is always
+        // somewhere for doors / zones / triggers / etc. to belong to.
+        modelBuilder.Entity<TSites>().HasData(new TSites
+        {
+            Site = 1,
+            Name = "Default Site",
+            Inuse = true
+        });
     }
 }

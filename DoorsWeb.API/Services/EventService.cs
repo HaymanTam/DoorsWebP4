@@ -17,6 +17,7 @@ namespace DoorsWeb.API.Services
             return await _context.TEvents
                 .AsNoTracking()
                 .OrderByDescending(e => e.EventDate)
+                .Take(2000)
                 .Select(e => new EventDto
                 {
                     EventId = e.EventId,

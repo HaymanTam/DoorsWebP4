@@ -19,16 +19,10 @@
             </Card>
 
             <div class="row">
-                <div class="col-lg-8">
+                <div class="col-lg-7">
                     <Card Size="CardSize.Default">
                         <CardBody>
                             <CardTitle>Connection</CardTitle>
-                            <div class="mb-3">
-                                <label class="form-label">Connector</label>
-                                <InputSelect class="form-select" @bind-Value="dDetail.Connector">
-                                    <option value=""></option>
-                                </InputSelect>
-                            </div>
                             <div class="mb-3">
                                 <label class="form-label">IP Address</label>
                                 <InputText class="form-control" @bind-Value="dDetail.IPAddressString"></InputText>
@@ -37,7 +31,7 @@
                         </CardBody>
                     </Card>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-5">
                     <Card Size="CardSize.Default">
                         <CardBody>
                             <CardTitle>Security Random Search</CardTitle>
@@ -230,11 +224,11 @@
                     <div class="mb-3 row">
                         <div class="col-lg-4">
                             <label class="form-label">ID Sequence Reader A</label>
-                            <InputNumber class="form-control" @bind-Value="dDetail.ReaderA_MFA_Sequence"></InputNumber>
+                            <input type="number" class="form-control" @bind="dDetail.ReaderA_MFA_Sequence" />
                         </div>
                         <div class="col-lg-4">
                             <label class="form-label">ID Sequence Reader B</label>
-                            <InputNumber class="form-control" @bind-Value="dDetail.ReaderB_MFA_Sequence"></InputNumber>
+                            <input type="number" class="form-control" @bind="dDetail.ReaderB_MFA_Sequence" />
                         </div>
                         <div class="col-lg-4">
                             <label class="form-label">Override Time zone</label>
@@ -256,7 +250,7 @@
                     <div class="mb-3 row">
                         <div class="col-lg-6">
                             <label class="form-label">Delay release by (seconds)</label>
-                            <InputNumber class="form-control" @bind-Value="dDetail.RelayA_Delay"></InputNumber>
+                            <input type="number" class="form-control" @bind="dDetail.RelayA_Delay" />
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label">Drive Mode</label>
@@ -271,7 +265,7 @@
                     <div class="mb-3 row">
                         <div class="col-lg-6">
                             <label class="form-label">Release for (seconds)</label>
-                            <InputNumber class="form-control" @bind-Value="dDetail.RelayA_Time"></InputNumber>
+                            <input type="number" class="form-control" @bind="dDetail.RelayA_Time" />
                         </div>
                     </div>
                     <div class="mb-3 row align-items-center">
@@ -311,7 +305,7 @@
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label">Release relay for (seconds)</label>
-                            <InputNumber class="form-control" @bind-Value="dDetail.RelayB_Time"></InputNumber>
+                            <input type="number" class="form-control" @bind="dDetail.RelayB_Time" />
                         </div>
                     </div>
                     <div class="mb-3 row">
@@ -323,7 +317,7 @@
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label">Delay between relay A &amp; B (x 10ms)</label>
-                            <InputNumber class="form-control" @bind-Value="dDetail.RelayB_Delay"></InputNumber>
+                            <input type="number" class="form-control" @bind="dDetail.RelayB_Delay" />
                         </div>
                     </div>
                 </CardBody>
@@ -341,7 +335,7 @@
                         </div>
                         <div class="col-lg-3">
                             <span class="d-flex align-items-center gap-2">
-                                <InputNumber class="form-control" @bind-Value="dDetail.PDO_Alarm_Time"></InputNumber>
+                                <input type="number" class="form-control" @bind="dDetail.PDO_Alarm_Time" />
                                 <span>seconds</span>
                             </span>
                         </div>
@@ -352,45 +346,25 @@
 
         @* ============================= STATUS ============================= *@
         <Tab Title="Status">
+            @* The whole Alert box is the status indicator for each relay; its colour
+               reflects the relay state (static placeholder until live status is wired). *@
             <div class="row">
                 <div class="col-lg-6">
-                    <Card Size="CardSize.Default">
-                        <CardBody>
-                            <CardTitle>Relay A</CardTitle>
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="d-flex flex-column gap-2">
-                                    <button type="button" class="btn btn-outline-secondary">Open</button>
-                                    <button type="button" class="btn btn-outline-secondary">Close</button>
-                                    <button type="button" class="btn btn-outline-secondary">Release</button>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 ms-auto">
-                                    <span>Relay A</span>
-                                    <span class="status-light"></span>
-                                </div>
-                            </div>
-                        </CardBody>
-                    </Card>
+                    <Alert BackgroundColor="relayAStatus" Title="Relay A">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-secondary">Open</button>
+                            <button type="button" class="btn btn-outline-secondary">Close</button>
+                            <button type="button" class="btn btn-outline-secondary">Release</button>
+                        </div>
+                    </Alert>
                 </div>
                 <div class="col-lg-6">
-                    <Card Size="CardSize.Default">
-                        <CardBody>
-                            <CardTitle>Relay B</CardTitle>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span>Relay A</span>
-                                <span class="status-light"></span>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="d-flex flex-column gap-2">
-                                    <button type="button" class="btn btn-outline-secondary">Open</button>
-                                    <button type="button" class="btn btn-outline-secondary">Close</button>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 ms-auto">
-                                    <span>Relay B</span>
-                                    <span class="status-light"></span>
-                                </div>
-                            </div>
-                        </CardBody>
-                    </Card>
+                    <Alert BackgroundColor="relayBStatus" Title="Relay B">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-secondary">Open</button>
+                            <button type="button" class="btn btn-outline-secondary">Close</button>
+                        </div>
+                    </Alert>
                 </div>
             </div>
 
@@ -416,34 +390,34 @@
 
             <Card Size="CardSize.Default">
                 <CardBody>
-                    <CardTitle>Alarms</CardTitle>
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <CardTitle class="mb-0">Alarms</CardTitle>
                         <button type="button" class="btn btn-outline-secondary">Reset</button>
-                        <div class="row flex-fill">
-                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
-                                <span>Door Forced</span>
-                                <span class="status-light"></span>
-                            </div>
-                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
-                                <span>Duress</span>
-                                <span class="status-light"></span>
-                            </div>
-                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
-                                <span>Hacker</span>
-                                <span class="status-light"></span>
-                            </div>
-                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
-                                <span>Fire</span>
-                                <span class="status-light"></span>
-                            </div>
-                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
-                                <span>Intruder</span>
-                                <span class="status-light"></span>
-                            </div>
-                            <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
-                                <span>Door Failed to Close</span>
-                                <span class="status-light"></span>
-                            </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Door Forced</span>
+                            <span class="status-light"></span>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Duress</span>
+                            <span class="status-light"></span>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Hacker</span>
+                            <span class="status-light"></span>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Fire</span>
+                            <span class="status-light"></span>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Intruder</span>
+                            <span class="status-light"></span>
+                        </div>
+                        <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
+                            <span>Door Failed to Close</span>
+                            <span class="status-light"></span>
                         </div>
                     </div>
                 </CardBody>
@@ -505,7 +479,10 @@
     </Tabs>
 
 <br />
-<label>Last Updated: @dDetail.LastUpdated </label>
+@if (dDetail.LastUpdated != default)
+{
+    <label>Last Updated: @dDetail.LastUpdated </label>
+}
 <Button class="float-end" BackgroundColor="TablerColor.Primary" Type="ButtonType.Submit" Text="Submit"></Button>
 </TablerForm>
 
@@ -533,6 +510,11 @@
 
     // ---- Local backing field for UI-only controls (not persisted) ----
     private string biometricTarget = "Reader A";
+
+    // Relay status colours drive the Alert boxes on the Status tab. Static placeholders
+    // (matching the previous static-red indicator) until live controller status is wired up.
+    private TablerColor relayAStatus = TablerColor.Danger;
+    private TablerColor relayBStatus = TablerColor.Danger;
 
     // ---- Dropdown option sources ----
     private readonly Dictionary<byte, string> ReaderTechnologies = new()

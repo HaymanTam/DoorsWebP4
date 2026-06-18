@@ -5,14 +5,15 @@ namespace DoorsWeb.API.Services.Protocol
 {
     public sealed class UdpProtocolOptions
     {
-        public int ListenPort { get; set; } = 10012;
+        public int ListenPort { get; set; } = 10013;
         public int DefaultSendPort { get; set; } = 10012;
     }
 
     /// <summary>
-    /// Background service that binds a single UDP socket to the listen port, continuously receives and
+    /// Background service that binds a single UDP socket to the listen port (10013), continuously receives and
     /// validates inbound <see cref="ProtocolPacket"/>s, and serves as the send handle (<see cref="IUdpProtocolService"/>).
-    /// Replies from controllers arrive on the same socket, so listening and sending share one port.
+    /// Outbound packets target the controllers' port (DefaultSendPort, 10012); their replies come back to this
+    /// socket's source port, so the single bound socket handles both receiving and sending.
     /// </summary>
     public sealed class UdpProtocolService : BackgroundService, IUdpProtocolService
     {

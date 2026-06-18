@@ -45,10 +45,31 @@ namespace DoorsWeb.API.Services
             return new SiteDto { Site = entity.Site, Name = entity.Name };
         }
 
+        public async Task<SiteDto?> Rename(int site, string name)
+        {
+            name = (name ?? string.Empty).Trim();
+            if (name.Length == 0)
+                throw new InvalidOperationException("Site name is required.");
+            if (name.Length > NameMaxLength)
+                name = name.Substring(0, NameMaxLength);
+
+            var entity = await _context.TSites.FindAsync(site);
+            if (entity is null) return null;
+
+            entity.Name = name;
+            await _context.SaveChangesAsync();
+
+            return new SiteDto { Site = entity.Site, Name = entity.Name };
+        }
+
         public async Task<bool> Delete(int site)
         {
             var entity = await _context.TSites.FindAsync(site);
             if (entity is null) return false;
+
+            // At least one site must always exist, so the last one can't be removed.
+            if (await _context.TSites.CountAsync() <= 1)
+                throw new InvalidOperationException("Cannot delete the last remaining site. At least one site must exist.");
 
             _context.TSites.Remove(entity);
             await _context.SaveChangesAsync();

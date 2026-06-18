@@ -1741,6 +1741,11 @@ namespace DoorsWeb.API.Migrations
                 columns: new[] { "Code", "Administrator", "Description", "Password" },
                 values: new object[] { 1, true, "admin", "$2a$11$USGWvPjw8RXKz9LjMWWgr.IV5uCz6Zufb2zTBjSBG9fneY.JY0UDW" });
 
+            migrationBuilder.InsertData(
+                table: "T_Sites",
+                columns: new[] { "Site", "Inuse", "Name" },
+                values: new object[] { 1, true, "Default Site" });
+
             migrationBuilder.CreateIndex(
                 name: "IX_T_AccessLevel_Details_Door",
                 table: "T_AccessLevel_Details",

@@ -17,10 +17,19 @@
     top: 0.5rem;
 }
 
-/* Force dropdown menu to be on top */ 
+/* Force dropdown menu to be on top */
 .dropdown-menu.show {
     z-index: 9999 !important;
     position: fixed !important;
+}
+
+/* Card record editor: ~30% wider than a standard Large modal (Bootstrap modal-lg
+   is 800px -> 1040px). Higher specificity than .modal-lg, scoped to the lg breakpoint
+   so small-screen responsive behaviour is left to Bootstrap. */
+@media (min-width: 992px) {
+    .modal-dialog.modal-wide-30 {
+        max-width: 1040px;
+    }
 }
 
 /* remove updown arrow on inputnumber box */

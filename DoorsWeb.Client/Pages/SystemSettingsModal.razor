@@ -12,11 +12,11 @@
         <CardTitle>Sites</CardTitle>
 
         <div class="table-responsive border rounded mb-2" style="max-height: 240px; overflow-y: auto;">
-            <table class="table table-sm table-hover mb-0">
+            <table class="table table-sm table-hover mb-0 align-middle">
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th style="width: 3rem;"></th>
+                        <th style="width: 5rem;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -33,10 +33,39 @@
                         @foreach (var s in sites)
                         {
                             <tr>
-                                <td>@s.Name</td>
-                                <td class="text-end">
-                                    <Icon class="icon text-danger" style="cursor: pointer;" IconType="@TablerIcons.Trash"
-                                          @onclick="() => RemoveSite(s)" />
+                                <td>
+                                    @if (editingSite == s.Site)
+                                    {
+                                        <input class="form-control form-control-sm" maxlength="30"
+                                               @bind="editName" @bind:event="oninput" disabled="@busy" />
+                                    }
+                                    else
+                                    {
+                                        @s.Name
+                                    }
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    @if (editingSite == s.Site)
+                                    {
+                                        <Icon class="icon text-success me-2" style="cursor: pointer;" IconType="@TablerIcons.Check"
+                                              @onclick="() => SaveRename(s)" />
+                                        <Icon class="icon text-muted" style="cursor: pointer;" IconType="@TablerIcons.X"
+                                              @onclick="CancelRename" />
+                                    }
+                                    else
+                                    {
+                                        <Icon class="icon text-primary me-2" style="cursor: pointer;" IconType="@TablerIcons.Pencil"
+                                              @onclick="() => BeginRename(s)" />
+                                        @if (sites.Count > 1)
+                                        {
+                                            <Icon class="icon text-danger" style="cursor: pointer;" IconType="@TablerIcons.Trash"
+                                                  @onclick="() => RemoveSite(s)" />
+                                        }
+                                        else
+                                        {
+                                            <Icon class="icon text-muted" style="opacity: .35; cursor: not-allowed;" IconType="@TablerIcons.Trash" />
+                                        }
+                                    }
                                 </td>
                             </tr>
                         }
@@ -45,13 +74,18 @@
             </table>
         </div>
 
+        <div class="text-muted small mb-2">
+            <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
+            At least one site is required — the last remaining site can't be removed.
+        </div>
+
         <div class="row g-2 align-items-center">
             <div class="col">
                 <input class="form-control" placeholder="New site name" maxlength="30"
                        @bind="newSiteName" @bind:event="oninput" disabled="@busy" />
             </div>
             <div class="col-auto">
-                <button type="button" class="btn btn-primary" @onclick="AddSite"
+                <button type="button" class="btn btn-success" @onclick="AddSite"
                         disabled="@(busy || string.IsNullOrWhiteSpace(newSiteName))">
                     <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Site
                 </button>
@@ -69,7 +103,7 @@
                 <label class="form-label mb-0">Ping Controllers every</label>
             </div>
             <div class="col-lg-3">
-                <input type="number" class="form-control" min="1" max="3600"
+                <input type="number" class="form-control" style="width: 30%;" min="1" max="3600"
                        @bind="settings.PingControllersSeconds" disabled="@busy" />
             </div>
             <div class="col-lg-3">
@@ -82,7 +116,7 @@
                 <label class="form-label mb-0">Check for commands every</label>
             </div>
             <div class="col-lg-3">
-                <input type="number" class="form-control" min="1" max="3600"
+                <input type="number" class="form-control" style="width: 30%;" min="1" max="3600"
                        @bind="settings.CheckCommandsSeconds" disabled="@busy" />
             </div>
             <div class="col-lg-3">
@@ -95,7 +129,7 @@
                 <label class="form-label mb-0">Force a ping after</label>
             </div>
             <div class="col-lg-3">
-                <input type="number" class="form-control" min="1" max="100000"
+                <input type="number" class="form-control" style="width: 30%;" min="1" max="100000"
                        @bind="settings.ForcePingAfterCommands" disabled="@busy" />
             </div>
             <div class="col-lg-3">
@@ -128,6 +162,10 @@
 
     private List<SiteDto>? sites;
     private string? newSiteName;
+
+    // Inline rename state: the site currently being edited and its working name.
+    private int? editingSite;
+    private string? editName;
 
     private ConnectorSettingsDto settings = new();
 
@@ -191,6 +229,56 @@
         catch (Exception ex)
         {
             SetStatus(false, $"Add site failed: {ex.Message}");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void BeginRename(SiteDto site)
+    {
+        editingSite = site.Site;
+        editName = site.Name;
+        status = null;
+    }
+
+    private void CancelRename()
+    {
+        editingSite = null;
+        editName = null;
+    }
+
+    private async Task SaveRename(SiteDto site)
+    {
+        var name = editName?.Trim();
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        // No-op if the name is unchanged.
+        if (string.Equals(name, site.Name, StringComparison.Ordinal))
+        {
+            CancelRename();
+            return;
+        }
+
+        busy = true;
+        status = null;
+        try
+        {
+            var response = await client.PutAsJsonAsync($"api/Sites/{site.Site}", new SiteDto { Name = name });
+            if (response.IsSuccessStatusCode)
+            {
+                CancelRename();
+                await LoadSites();
+            }
+            else
+            {
+                SetStatus(false, await ReadError(response));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(false, $"Rename site failed: {ex.Message}");
         }
         finally
         {

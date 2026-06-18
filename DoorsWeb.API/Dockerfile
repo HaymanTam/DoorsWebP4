@@ -2,10 +2,20 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
+
+# Pre-create the mounted data directories and hand them to the non-root runtime
+# user ($APP_UID). When Docker first mounts an *empty* named volume over one of
+# these paths it copies this ownership onto the volume, so the app can write to
+# /data/settings, /data/backups and /data/user-photo. Without this, fresh named
+# volumes are created root-owned and writes fail with "Access to the path ... is
+# denied". (Existing root-owned volumes must be recreated or chowned once.)
+USER root
+RUN mkdir -p /data/backups /data/user-photo /data/settings \
+    && chown -R $APP_UID:$APP_UID /data
+USER $APP_UID
 
 
 # This stage is used to build the service project

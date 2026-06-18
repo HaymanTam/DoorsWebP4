@@ -20,6 +20,13 @@ namespace DoorsWeb.Shared.DTO
 
         /// <summary>Tables present in the backup that were skipped (no matching table in the database).</summary>
         public List<string> Skipped { get; set; } = new();
+
+        /// <summary>
+        /// Number of duplicate UDP (Lan/UDP) connectors removed during post-restore consolidation.
+        /// Legacy data can hold several UDP connectors; the new IP-only system keeps a single one and
+        /// repoints every door at it.
+        /// </summary>
+        public int UdpConnectorsMerged { get; set; }
     }
 
     public class LegacyTableResult

@@ -34,15 +34,40 @@ namespace DoorsWeb.API.Controllers
             return Ok(created);
         }
 
-        [HttpDelete("{site}")]
-        public async Task<IActionResult> Delete(int site)
+        // Renames a site. Only Name is used; the route id identifies the site.
+        [HttpPut("{site}")]
+        public async Task<ActionResult<SiteDto>> Rename(int site, SiteDto dto)
         {
-            var removed = await _service.Delete(site);
-            if (!removed)
+            if (string.IsNullOrWhiteSpace(dto.Name))
+            {
+                return Problem(detail: "Site name is required.", title: "Invalid Site", statusCode: 400);
+            }
+
+            var updated = await _service.Rename(site, dto.Name);
+            if (updated is null)
             {
                 return Problem(detail: $"Site <{site}> was not found.", title: "Not Found", statusCode: 404);
             }
-            return NoContent();
+            return Ok(updated);
+        }
+
+        [HttpDelete("{site}")]
+        public async Task<IActionResult> Delete(int site)
+        {
+            try
+            {
+                var removed = await _service.Delete(site);
+                if (!removed)
+                {
+                    return Problem(detail: $"Site <{site}> was not found.", title: "Not Found", statusCode: 404);
+                }
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Last-site protection: at least one site must always exist.
+                return Problem(detail: ex.Message, title: "Cannot delete site", statusCode: 409);
+            }
         }
     }
 }

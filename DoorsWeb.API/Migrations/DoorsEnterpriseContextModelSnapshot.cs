@@ -2694,6 +2694,14 @@ namespace DoorsWeb.API.Migrations
                         .IsUnique();
 
                     b.ToTable("T_Sites", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Site = 1,
+                            Inuse = true,
+                            Name = "Default Site"
+                        });
                 });
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TSpaceZoneAttendance", b =>

@@ -1,0 +1,454 @@
+@* Card Record dialog. Shown via ModalService.ShowAsync("...", RenderComponent<CardEditModal>...).
+   Mirrors the legacy "Card Record" window but with friendlier UX:
+     - a "Custom Fields" section that lets you add / remove named fields inline
+       (replaces the legacy "Add or Remove Fields" toolbar), and
+     - a drag-and-drop / click photo uploader with live preview
+       (replaces the legacy "Cardholder Photo" toolbar button).
+   Core cardholder fields persist via api/NameHeader (POST for new, PUT for edit).
+   Access levels, custom fields, bio data and the photo are UI-level only for now
+   (no backing endpoint yet) and are clearly grouped so they can be wired up later. *@
+
+@using DoorsWeb.Shared.Entities
+@inject IHttpClientFactory ClientFactory
+
+<div class="row g-3">
+    @* ============================= CARDHOLDER DETAILS ============================= *@
+    <div class="col-lg-8">
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <CardTitle>Cardholder Details</CardTitle>
+
+                <div class="mb-2 row align-items-center">
+                    <label class="col-4 col-form-label text-end">Card Number</label>
+                    <div class="col-8">
+                        <input type="number" class="form-control" @bind="card.CardNumber" disabled="@(!isNew || busy)" />
+                        @if (isNew)
+                        {
+                            <small class="text-muted">System id for this card (next free number suggested).</small>
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-2 row align-items-center">
+                    <label class="col-4 col-form-label text-end">Card ID</label>
+                    <div class="col-8">
+                        <input class="form-control" maxlength="8" placeholder="Printed card number"
+                               @bind="card.CardId" disabled="@busy" />
+                    </div>
+                </div>
+
+                <div class="mb-2 row align-items-center">
+                    <label class="col-4 col-form-label text-end">Bio Data</label>
+                    <div class="col-8 d-flex gap-2">
+                        <input class="form-control" style="max-width: 6rem;" @bind="bioTemplate" disabled="@busy" />
+                        <input class="form-control" @bind="bioAlias" placeholder="Alias" disabled="@busy" />
+                    </div>
+                </div>
+
+                <div class="mb-2 row align-items-center">
+                    <label class="col-4 col-form-label text-end">First name</label>
+                    <div class="col-8">
+                        <input class="form-control" maxlength="30" @bind="card.Forname" disabled="@busy" />
+                    </div>
+                </div>
+
+                <div class="mb-3 row align-items-center">
+                    <label class="col-4 col-form-label text-end">Last name</label>
+                    <div class="col-8">
+                        <input class="form-control" maxlength="30" @bind="card.Surname" disabled="@busy" />
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <div class="col-4"></div>
+                    <div class="col-8 d-flex flex-wrap gap-4">
+                        <label class="form-check mb-0">
+                            <input type="checkbox" class="form-check-input" @bind="enabled" disabled="@busy" />
+                            <span class="form-check-label">Enabled</span>
+                        </label>
+                        <label class="form-check mb-0">
+                            <input type="checkbox" class="form-check-input" @bind="bioAdmin" disabled="@busy" />
+                            <span class="form-check-label">Biometric Administrator</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
+                    <label class="col-4 col-form-label text-end">Access Levels</label>
+                    <div class="col-8">
+                        <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
+                            @if (accessLevels is null)
+                            {
+                                <div class="text-muted small">Loading…</div>
+                            }
+                            else if (accessLevels.Count == 0)
+                            {
+                                <div class="text-muted small">No access levels defined.</div>
+                            }
+                            else
+                            {
+                                @foreach (var al in accessLevels)
+                                {
+                                    var key = $"{al.Site}/{al.AccessLevel}";
+                                    <label class="form-check mb-0">
+                                        <input type="checkbox" class="form-check-input"
+                                               checked="@selectedAccessLevels.Contains(key)"
+                                               @onchange="e => ToggleAccessLevel(key, e)" disabled="@busy" />
+                                        <span class="form-check-label">@al.Name</span>
+                                    </label>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-2 row">
+                    <div class="col-4"></div>
+                    <div class="col-8 d-flex flex-column gap-2">
+                        <label class="form-check mb-0">
+                            <input type="checkbox" class="form-check-input" @bind="flexi" disabled="@busy" />
+                            <span class="form-check-label">Flexi</span>
+                        </label>
+                        <label class="form-check mb-0">
+                            <input type="checkbox" class="form-check-input" @bind="dormant" disabled="@busy" />
+                            <span class="form-check-label">Dormant</span>
+                        </label>
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-check mb-0" style="min-width: 6rem;">
+                                <input type="checkbox" class="form-check-input" @bind="validFromEnabled" disabled="@busy" />
+                                <span class="form-check-label">Valid from</span>
+                            </label>
+                            <input type="date" class="form-control" style="max-width: 12rem;"
+                                   @bind="validFromDate" disabled="@(!validFromEnabled || busy)" />
+                        </div>
+                    </div>
+                </div>
+            </CardBody>
+        </Card>
+
+        @* ---- Custom fields: the friendlier "add / remove fields" ---- *@
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <div class="d-flex align-items-center mb-2">
+                    <CardTitle class="mb-0">Custom Fields</CardTitle>
+                    <button type="button" class="btn btn-sm btn-outline-success ms-auto" @onclick="AddCustomField" disabled="@busy">
+                        <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Field
+                    </button>
+                </div>
+
+                @if (customFields.Count == 0)
+                {
+                    <div class="text-muted small">No custom fields. Use “Add Field” to create one (e.g. Department, Vehicle Reg).</div>
+                }
+                else
+                {
+                    @foreach (var field in customFields)
+                    {
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-4">
+                                <input class="form-control" placeholder="Field name" @bind="field.Name" disabled="@busy" />
+                            </div>
+                            <div class="col">
+                                <input class="form-control" placeholder="Value" @bind="field.Value" disabled="@busy" />
+                            </div>
+                            <div class="col-auto">
+                                <Icon class="icon text-danger" style="cursor: pointer;" IconType="@TablerIcons.Trash"
+                                      @onclick="() => RemoveCustomField(field)" />
+                            </div>
+                        </div>
+                    }
+                }
+            </CardBody>
+        </Card>
+    </div>
+
+    @* ============================= PHOTO ============================= *@
+    <div class="col-lg-4">
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <CardTitle>Photo</CardTitle>
+
+                <div class="card-photo-frame">
+                    @if (!string.IsNullOrEmpty(photoDataUrl))
+                    {
+                        <img src="@photoDataUrl" alt="Cardholder photo" class="card-photo-img" />
+                    }
+                    else
+                    {
+                        <div class="card-photo-empty">
+                            <svg class="card-photo-silhouette" viewBox="0 0 128 128" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+                                <circle cx="64" cy="44" r="27" />
+                                <path d="M64 78c-27 0-47 17-47 42v8h94v-8c0-25-20-42-47-42z" />
+                            </svg>
+                            <span class="card-photo-caption">No photo</span>
+                        </div>
+                    }
+                </div>
+
+                <label class="btn btn-outline-primary w-100 mt-3 mb-0" disabled="@busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Upload" />Upload Photo
+                    <InputFile OnChange="OnPhotoSelected" accept="image/*" class="d-none" />
+                </label>
+
+                @if (!string.IsNullOrEmpty(photoDataUrl))
+                {
+                    <button type="button" class="btn btn-link text-danger w-100 mt-1" @onclick="RemovePhoto" disabled="@busy">
+                        Remove photo
+                    </button>
+                }
+
+                @if (photoError is not null)
+                {
+                    <div class="text-danger small mt-1">@photoError</div>
+                }
+
+                <div class="text-muted small mt-2">JPG or PNG, up to 4&nbsp;MB.</div>
+            </CardBody>
+        </Card>
+    </div>
+</div>
+
+@if (status is not null)
+{
+    <div class="alert alert-danger mb-0 mt-2" role="alert">@status</div>
+}
+
+<div class="d-flex align-items-center mt-3">
+    <span class="text-muted">Last transaction: @lastTransaction</span>
+    <div class="ms-auto d-flex gap-2">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+        <button type="button" class="btn btn-outline-primary" @onclick="Apply" disabled="@busy">
+            @if (busy) { <span class="spinner-border spinner-border-sm me-2"></span> }
+            Apply
+        </button>
+        <button type="button" class="btn btn-primary" @onclick="Ok" disabled="@busy">OK</button>
+    </div>
+</div>
+
+<style>
+    /* Photo frame: fixed portrait area that both the uploaded image and the
+       empty-state silhouette share, so swapping between them doesn't reflow. */
+    .card-photo-frame {
+        height: 240px;
+        border: 1px solid var(--tblr-border-color, #dbe0e6);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6);
+    }
+
+    .card-photo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .card-photo-empty {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        /* soft studio-backdrop vignette */
+        background: radial-gradient(110% 90% at 50% 22%, #f3f5f9 0%, #e4e9f1 55%, #d4dae5 100%);
+    }
+
+    .card-photo-silhouette {
+        width: 150px;
+        height: 200px;
+        margin-bottom: -2px; /* let the shoulders meet the bottom edge */
+        fill: #aeb8c8;
+        filter: drop-shadow(0 3px 5px rgba(33, 43, 64, .18));
+    }
+
+    .card-photo-caption {
+        position: absolute;
+        top: .6rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: .68rem;
+        font-weight: 600;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: #8a93a3;
+    }
+</style>
+
+@code {
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    /// <summary>Card number to edit. 0 (default) opens a new-record form.</summary>
+    [Parameter] public int CardNumber { get; set; }
+
+    /// <summary>Suggested next free card number, used when creating a new record.</summary>
+    [Parameter] public int NextCardNumber { get; set; }
+
+    private TNameHeader card = new();
+    private bool isNew = true;
+    private bool busy;
+    private string? status;
+    private string lastTransaction = "card not issued";
+
+    // ---- Checkbox-friendly local mirrors of the nullable bool columns ----
+    private bool enabled;
+    private bool bioAdmin;
+    private bool flexi;
+
+    // ---- UI-only fields (no backing column yet) ----
+    private bool dormant;
+    private string? bioTemplate;
+    private string? bioAlias;
+    private bool validFromEnabled;
+    private DateTime validFromDate = DateTime.Today;
+    private string? photoDataUrl;
+    private string? photoError;
+
+    private List<TAccessLevelHeader>? accessLevels;
+    private readonly HashSet<string> selectedAccessLevels = new();
+    private readonly List<CustomField> customFields = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+
+        if (CardNumber == 0)
+        {
+            isNew = true;
+            card = new TNameHeader { CardNumber = NextCardNumber, Enabled = true, InUse = true };
+        }
+        else
+        {
+            var result = await client.GetFromJsonAsync<TNameHeader?>($"api/NameHeader/{CardNumber}");
+            if (result is not null)
+            {
+                card = result;
+                isNew = false;
+                lastTransaction = card.LastDate?.ToString("g") ?? "card not issued";
+            }
+        }
+
+        // Seed the checkbox mirrors / valid-from controls from the loaded card.
+        enabled = card.Enabled ?? false;
+        bioAdmin = card.BioAdmin ?? false;
+        flexi = card.Flexi ?? false;
+        validFromEnabled = card.ValidFrom.HasValue;
+        validFromDate = card.ValidFrom ?? DateTime.Today;
+
+        await LoadAccessLevels();
+    }
+
+    private async Task LoadAccessLevels()
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            accessLevels = await client.GetFromJsonAsync<List<TAccessLevelHeader>>("api/AccessLevelHeader") ?? new();
+        }
+        catch
+        {
+            accessLevels = new();
+        }
+    }
+
+    private void ToggleAccessLevel(string key, ChangeEventArgs e)
+    {
+        if (e.Value is bool on && on) selectedAccessLevels.Add(key);
+        else selectedAccessLevels.Remove(key);
+    }
+
+    private void AddCustomField() => customFields.Add(new CustomField());
+    private void RemoveCustomField(CustomField field) => customFields.Remove(field);
+
+    private async Task OnPhotoSelected(InputFileChangeEventArgs e)
+    {
+        photoError = null;
+        var file = e.File;
+        if (file is null) return;
+
+        const long maxBytes = 4 * 1024 * 1024;
+        if (file.Size > maxBytes)
+        {
+            photoError = "Image is larger than 4 MB.";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxBytes);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var contentType = string.IsNullOrEmpty(file.ContentType) ? "image/png" : file.ContentType;
+            photoDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        }
+        catch (Exception ex)
+        {
+            photoError = $"Could not read image: {ex.Message}";
+        }
+    }
+
+    private void RemovePhoto() => photoDataUrl = null;
+
+    // Push the checkbox / valid-from mirrors back onto the entity before saving.
+    private void ApplyToCard()
+    {
+        card.Enabled = enabled;
+        card.BioAdmin = bioAdmin;
+        card.Flexi = flexi;
+        card.ValidFrom = validFromEnabled ? validFromDate : null;
+    }
+
+    private async Task<bool> Persist()
+    {
+        ApplyToCard();
+        busy = true;
+        status = null;
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = isNew
+                ? await client.PostAsJsonAsync("api/NameHeader", card)
+                : await client.PutAsJsonAsync($"api/NameHeader/{card.CardNumber}", card);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // After a successful create the record exists; switch to edit semantics
+                // so a follow-up Apply/OK issues a PUT rather than a duplicate POST.
+                isNew = false;
+                return true;
+            }
+
+            status = $"Save failed ({(int)response.StatusCode}). {await response.Content.ReadAsStringAsync()}";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            status = $"Save failed: {ex.Message}";
+            return false;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task Ok()
+    {
+        if (await Persist()) ModalService.Close(ModalResult.Ok());
+    }
+
+    private async Task Apply()
+    {
+        await Persist();
+    }
+
+    private void Cancel() => ModalService.Close(ModalResult.Cancel());
+
+    public class CustomField
+    {
+        public string Name { get; set; } = "";
+        public string Value { get; set; } = "";
+    }
+}

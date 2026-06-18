@@ -121,6 +121,12 @@ namespace DoorsWeb.API.Services
                         result.RowsLoaded += rows;
                         Report(connectionId, (int)(bytesDone * 100 / totalBytes));
                     }
+
+                    // Post-load cleanup: the new system is IP-only, so collapse any duplicate UDP
+                    // connectors into one and repoint every door at the survivor. Done while FK
+                    // constraints are still disabled so the orphan deletes can't trip a reference.
+                    result.UdpConnectorsMerged =
+                        await ConsolidateUdpConnectors(connection, cancellationToken);
                 }
                 finally
                 {
@@ -134,8 +140,11 @@ namespace DoorsWeb.API.Services
                 result.Success = true;
                 result.TablesLoaded = result.Tables.Count;
                 var skippedNote = result.Skipped.Count > 0 ? $" Skipped {result.Skipped.Count} unmatched table(s)." : "";
+                var mergedNote = result.UdpConnectorsMerged > 0
+                    ? $" Merged {result.UdpConnectorsMerged} duplicate UDP connector(s) into one."
+                    : "";
                 result.Message =
-                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{skippedNote}";
+                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{skippedNote}{mergedNote}";
                 return result;
             }
             catch (Exception ex)
@@ -218,6 +227,40 @@ namespace DoorsWeb.API.Services
                 cmd.CommandText = $"DELETE FROM {quoted};";
                 await cmd.ExecuteNonQueryAsync(ct);
             }
+        }
+
+        // Collapses every UDP (Lan/UDP) connector into a single survivor and repoints all doors at it.
+        // UDP connectors are T_Connectors rows with ConnType = 3 (legacy mdlConnector.bas gcUDP).
+        // Returns the number of duplicate connectors removed (0 if there were 0 or 1 to begin with).
+        private static async Task<int> ConsolidateUdpConnectors(SqlConnection connection, CancellationToken ct)
+        {
+            const int udpConnType = 3;
+            await using var cmd = connection.CreateCommand();
+            cmd.CommandTimeout = 0;
+            cmd.CommandText = @"
+SET NOCOUNT ON;
+DECLARE @merged INT = 0;
+DECLARE @survivor INT = (SELECT MIN([Connector]) FROM [dbo].[T_Connectors] WHERE [ConnType] = @udp);
+IF @survivor IS NOT NULL
+BEGIN
+    -- Repoint doors that point at a soon-to-be-removed UDP connector.
+    UPDATE [dbo].[T_Doors]
+        SET [Connector] = @survivor
+    WHERE [Connector] IN (SELECT [Connector] FROM [dbo].[T_Connectors] WHERE [ConnType] = @udp)
+      AND [Connector] <> @survivor;
+
+    -- Drop the now-orphaned duplicate UDP connectors.
+    DELETE FROM [dbo].[T_Connectors] WHERE [ConnType] = @udp AND [Connector] <> @survivor;
+    SET @merged = @@ROWCOUNT;
+END
+SELECT @merged;";
+            var p = cmd.CreateParameter();
+            p.ParameterName = "@udp";
+            p.Value = udpConnType;
+            cmd.Parameters.Add(p);
+
+            var scalar = await cmd.ExecuteScalarAsync(ct);
+            return scalar is int n ? n : Convert.ToInt32(scalar);
         }
 
         private async Task<long> BulkLoadTable(

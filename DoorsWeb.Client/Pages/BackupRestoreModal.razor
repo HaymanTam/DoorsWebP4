@@ -99,6 +99,11 @@
             table dumps). The matching tables are cleared and reloaded. This overwrites the current data
             and cannot be undone.
         </p>
+        <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
+            <Icon class="icon me-1" IconType="@TablerIcons.Alert_triangle" />
+            Connectors are deprecated — this system is <strong>IP only</strong>. On import, all UDP
+            connectors are merged into a single connector and every door is repointed to it.
+        </div>
 
         <div class="mb-2 row align-items-center">
             <div class="col-lg-3 text-end">
@@ -165,6 +170,10 @@
                  aria-valuenow="@(progressPercent ?? 0)" aria-valuemin="0" aria-valuemax="100">
             </div>
         </div>
+        <p class="small text-muted mt-2 mb-0">
+            <span class="spinner-border spinner-border-sm me-1"></span>
+            @busyNotice
+        </p>
     </div>
 }
 
@@ -183,6 +192,9 @@
 
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
 
+    // Shared with MainNavigation so we can hide the header close (X) button while busy.
+    [Parameter] public ModalOptions? Options { get; set; }
+
     private HttpClient client = null!;
 
     private List<BackupFileDto>? backups;
@@ -195,7 +207,24 @@
     private string? legacyPassword;
     private LegacyRestoreResult? legacyResult;
 
-    private bool busy;
+    private bool _busy;
+    private bool busy
+    {
+        get => _busy;
+        set
+        {
+            if (_busy == value) return;
+            _busy = value;
+            // Block closing the dialog mid-operation: hide the header X while busy.
+            // (Click-outside and Esc are already disabled; the footer Close button is
+            // disabled via @busy.) The footer button reappears automatically.
+            if (Options is not null)
+            {
+                Options.ShowCloseButton = !value;
+                ModalService.Refresh();
+            }
+        }
+    }
     private string? busyAction;
 
     private string busyLabel => busyAction switch
@@ -203,6 +232,12 @@
         "restore" => "Restoring database",
         "legacy" => "Restoring legacy backup",
         _ => "Creating backup"
+    };
+
+    private string busyNotice => busyAction switch
+    {
+        "restore" or "legacy" => "Please wait until the restore is complete — do not close this window.",
+        _ => "Please wait until the backup is complete — do not close this window."
     };
 
     private string? status;
@@ -362,7 +397,10 @@
         var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
         {
             MainText = $"Restore from legacy backup {legacyFile.Name}?",
-            SubText = "Matching tables will be cleared and reloaded from the backup. This overwrites the current data and cannot be undone!",
+            SubText = "Matching tables will be cleared and reloaded from the backup. "
+                + "Connectors are deprecated — this system is IP only, so all UDP connectors will be "
+                + "merged into a single connector and every door repointed to it. "
+                + "This overwrites the current data and cannot be undone!",
             IconType = TablerIcons.Alert_triangle,
             StatusColor = TablerColor.Danger
         });

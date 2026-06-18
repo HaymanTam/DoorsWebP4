@@ -4,7 +4,7 @@
 <Table Item="DoorListDto" Items="doorList" PageSize="10"
        ShowCheckboxes MultiSelect Hover Responsive EditMode=TableEditMode.Popup >
     <HeaderTemplate>
-        <Button Class="btn float-end" BackgroundColor="TablerColor.Primary" Size="ButtonSize.Default" @onclick='(() => ShowDoorEditModal("New Door", 0))'>Add Door</Button>
+        <Button Class="btn float-end" Color="TablerColor.Success" Size="ButtonSize.Default" @onclick='(() => ShowDoorEditModal("New Door", 0))'>Add Door</Button>
     </HeaderTemplate>
 
     <ChildContent>
@@ -33,6 +33,9 @@
             </EditorTemplate>
         </Column>
         <Column Item="DoorListDto" Property="e => e.LastUpdated" Title="Last Updated" Sortable >
+            <Template>
+                @(context.LastUpdated != default ? context.LastUpdated : "")
+            </Template>
         </Column>
         <Column Item="DoorListDto" title="" ActionColumn Width="130px">
             <Template>

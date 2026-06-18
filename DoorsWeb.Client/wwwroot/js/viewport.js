@@ -30,3 +30,36 @@ export function unregisterResize() {
     clearTimeout(debounceTimer);
     dotNetRef = null;
 }
+
+// --- Keyboard paging -------------------------------------------------------
+// Lets the Left/Right arrow keys turn table pages. Calls back into .NET
+// (OnPageKey) with -1 for previous and +1 for next. Key presses are ignored
+// while the user is typing in a form control so search / date / dropdown
+// inputs keep their normal arrow-key behaviour.
+let keyRef = null;
+let keyHandler = null;
+
+export function registerPageKeys(helper) {
+    keyRef = helper;
+    keyHandler = (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+        const el = document.activeElement;
+        if (el) {
+            const tag = el.tagName;
+            if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) return;
+        }
+
+        keyRef?.invokeMethodAsync("OnPageKey", e.key === "ArrowRight" ? 1 : -1);
+    };
+    window.addEventListener("keydown", keyHandler);
+}
+
+export function unregisterPageKeys() {
+    if (keyHandler) {
+        window.removeEventListener("keydown", keyHandler);
+        keyHandler = null;
+    }
+    keyRef = null;
+}

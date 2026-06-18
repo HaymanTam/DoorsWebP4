@@ -1,9 +1,12 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 
 namespace DoorsWeb.API.Services
 {
     public class TriggersHeaderService : ITriggersHeaderService
     {
+        private const int TriggerTypeSpaceZone = 3;
+
         private readonly DoorsEnterpriseContext _context;
 
         public TriggersHeaderService(DoorsEnterpriseContext context)
@@ -42,9 +45,120 @@ namespace DoorsWeb.API.Services
         {
             var result = await _context.TTriggersHeader.FindAsync(id);
             if (result is null) return null;
+
+            var controllers = await _context.TTriggersControllers.Where(c => c.Code == id).ToListAsync();
+            _context.TTriggersControllers.RemoveRange(controllers);
+            var events = await _context.TTriggersEvents.Where(e => e.Code == id).ToListAsync();
+            _context.TTriggersEvents.RemoveRange(events);
             _context.TTriggersHeader.Remove(result);
             await _context.SaveChangesAsync();
             return await _context.TTriggersHeader.AsNoTracking().ToListAsync();
+        }
+
+        public async Task<TriggerSaveDto> GetForEdit(int site, int triggerType, int? code)
+        {
+            // Sources are doors for door triggers, space zones for space-zone triggers.
+            List<(int Code, string? Name)> sources = triggerType == TriggerTypeSpaceZone
+                ? (await _context.TSpaceZoneHeader.AsNoTracking()
+                        .Where(z => z.Site == site)
+                        .OrderBy(z => z.Name)
+                        .Select(z => new { z.ZoneNumber, z.Name })
+                        .ToListAsync())
+                    .Select(z => (z.ZoneNumber, z.Name)).ToList()
+                : (await _context.TDoors.AsNoTracking()
+                        .Where(d => d.Site == site)
+                        .OrderBy(d => d.Name)
+                        .Select(d => new { d.Door, d.Name })
+                        .ToListAsync())
+                    .Select(d => (d.Door, d.Name)).ToList();
+
+            var dto = new TriggerSaveDto { Site = site, TriggerType = triggerType };
+
+            var selected = new HashSet<int>();
+            if (code is int c)
+            {
+                var header = await _context.TTriggersHeader.AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Code == c && t.Site == site);
+                if (header is not null)
+                {
+                    dto.Code = header.Code;
+                    dto.Name = header.Name;
+                    dto.TriggerType = header.TriggerType;
+                    dto.ShowAlarm = header.ShowAlarm;
+                    dto.AlarmText = header.AlarmText;
+                    dto.SuppressDuplicates = header.SuppressDuplicates;
+                    dto.TriggerRelayB = header.TriggerRelayB;
+                    dto.ResetRelayB = header.ResetRelayB;
+                    dto.ResetRelayBperiod = header.ResetRelayBperiod;
+                    dto.PopulationDirection = header.PopulationDirection;
+                    dto.PopulationValue = header.PopulationValue;
+                }
+                selected = (await _context.TTriggersControllers.AsNoTracking()
+                    .Where(t => t.Code == c)
+                    .Select(t => t.ControllerCode)
+                    .ToListAsync()).ToHashSet();
+            }
+
+            dto.Sources = sources.Select(s => new TriggerSourceDto
+            {
+                Code = s.Code,
+                Name = s.Name,
+                Selected = selected.Contains(s.Code),
+            }).ToList();
+
+            return dto;
+        }
+
+        public async Task<TTriggersHeader> Save(TriggerSaveDto dto)
+        {
+            TTriggersHeader header;
+            int code;
+            if (dto.Code is int c && await _context.TTriggersHeader.FindAsync(c) is { } existing)
+            {
+                ApplyHeader(existing, dto);
+                header = existing;
+                code = c;
+
+                var oldControllers = await _context.TTriggersControllers.Where(t => t.Code == c).ToListAsync();
+                _context.TTriggersControllers.RemoveRange(oldControllers);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                // Code is a DB identity, so it is assigned on insert.
+                header = new TTriggersHeader { Site = dto.Site, Name = dto.Name ?? "", AlarmText = "" };
+                ApplyHeader(header, dto);
+                _context.TTriggersHeader.Add(header);
+                await _context.SaveChangesAsync();
+                code = header.Code;
+            }
+
+            // Source code (door/zone) goes in ControllerCode; legacy stores InputIndex 0 for both.
+            foreach (var s in dto.Sources.Where(x => x.Selected))
+            {
+                _context.TTriggersControllers.Add(new TTriggersControllers
+                {
+                    Code = code,
+                    ControllerCode = s.Code,
+                    InputIndex = 0,
+                });
+            }
+            await _context.SaveChangesAsync();
+            return header;
+        }
+
+        private static void ApplyHeader(TTriggersHeader header, TriggerSaveDto dto)
+        {
+            header.Name = dto.Name ?? "";
+            header.TriggerType = dto.TriggerType;
+            header.ShowAlarm = dto.ShowAlarm;
+            header.AlarmText = dto.AlarmText ?? "";
+            header.SuppressDuplicates = dto.SuppressDuplicates;
+            header.TriggerRelayB = dto.TriggerRelayB;
+            header.ResetRelayB = dto.ResetRelayB;
+            header.ResetRelayBperiod = dto.ResetRelayBperiod;
+            header.PopulationDirection = dto.PopulationDirection;
+            header.PopulationValue = dto.PopulationValue;
         }
     }
 }

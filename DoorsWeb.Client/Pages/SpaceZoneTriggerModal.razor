@@ -150,30 +150,131 @@
         </Tab>
     </Tabs>
 
+    @if (status is not null)
+    {
+        <div class="alert alert-danger py-2 px-3 small mt-3 mb-0" role="alert">@status</div>
+    }
+
     <div class="d-flex justify-content-end gap-2 mt-3">
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary">OK</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+        <button type="submit" class="btn btn-primary" disabled="@busy">OK</button>
     </div>
 </TablerForm>
 
 @code {
 
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+    [Inject] IHttpClientFactory ClientFactory { get; set; } = null!;
 
-    /// <summary>Optional starting values (e.g. when editing an existing trigger).</summary>
-    [Parameter] public SpaceZoneTriggerModel? Trigger { get; set; }
+    // Space-zone population trigger.
+    private const int TriggerTypeSpaceZone = 3;
+
+    /// <summary>Existing trigger's code; null when creating a new one.</summary>
+    [Parameter] public int? Code { get; set; }
+
+    /// <summary>Owning site (required when creating).</summary>
+    [Parameter] public int SiteId { get; set; }
 
     private SpaceZoneTriggerModel trigger = new();
+    private bool busy;
+    private string? status;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        if (Trigger is not null) trigger = Trigger;
+        // Always pull the site's space-zone list; selection + header are seeded when editing.
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var url = $"api/TriggersHeader/edit/{SiteId}/{TriggerTypeSpaceZone}";
+            if (Code is int c) url += $"?code={c}";
+
+            var dto = await client.GetFromJsonAsync<TriggerSaveDto>(url);
+            if (dto is not null)
+            {
+                trigger.Name = dto.Name ?? trigger.Name;
+                trigger.PopulationCondition = DirectionToText(dto.PopulationDirection);
+                trigger.PopulationValue = dto.PopulationValue;
+                trigger.ShowAlarmMessage = dto.ShowAlarm;
+                trigger.AlarmMessage = dto.AlarmText;
+                trigger.SuppressDuplicateAlarms = dto.SuppressDuplicates;
+                trigger.TriggerRelayB = dto.TriggerRelayB;
+                trigger.ResetAfter = dto.ResetRelayB;
+                trigger.ResetAfterSeconds = dto.ResetRelayBperiod;
+                trigger.Zones = dto.Sources.Select(s => new ZoneItem
+                {
+                    Code = s.Code,
+                    Name = s.Name,
+                    Selected = s.Selected,
+                }).ToList();
+            }
+        }
+        catch
+        {
+            // Leave the form empty; the user can still enter a name.
+        }
     }
 
-    private void OK(EditContext context)
+    private async Task OK(EditContext context)
     {
-        ModalService.Close(ModalResult.Ok());
+        busy = true;
+        status = null;
+        try
+        {
+            var dto = new TriggerSaveDto
+            {
+                Code = Code,
+                Site = SiteId,
+                Name = trigger.Name,
+                TriggerType = TriggerTypeSpaceZone,
+                PopulationDirection = TextToDirection(trigger.PopulationCondition),
+                PopulationValue = trigger.PopulationValue ?? 0,
+                ShowAlarm = trigger.ShowAlarmMessage,
+                AlarmText = trigger.AlarmMessage,
+                SuppressDuplicates = trigger.SuppressDuplicateAlarms,
+                TriggerRelayB = trigger.TriggerRelayB,
+                ResetRelayB = trigger.ResetAfter,
+                ResetRelayBperiod = trigger.ResetAfterSeconds ?? 0,
+                Sources = trigger.Zones.Select(z => new TriggerSourceDto
+                {
+                    Code = z.Code,
+                    Selected = z.Selected,
+                }).ToList(),
+            };
+
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = await client.PostAsJsonAsync("api/TriggersHeader/save", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                ModalService.Close(ModalResult.Ok());
+                return;
+            }
+
+            status = $"Save failed ({(int)response.StatusCode}). {await response.Content.ReadAsStringAsync()}";
+        }
+        catch (Exception ex)
+        {
+            status = $"Save failed: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
     }
+
+    // Legacy PopulationConstants: -1 goes down to, 0 reaches/equals, 1 goes up to.
+    private static string DirectionToText(int direction) => direction switch
+    {
+        -1 => "goes down to",
+        1 => "goes up to",
+        _ => "reaches",
+    };
+
+    private static int TextToDirection(string condition) => condition switch
+    {
+        "goes down to" => -1,
+        "goes up to" => 1,
+        _ => 0,
+    };
 
     private void Cancel()
     {
@@ -217,6 +318,7 @@
 
     public class ZoneItem
     {
+        public int Code { get; set; }
         public bool Selected { get; set; }
         public string? Name { get; set; }
     }

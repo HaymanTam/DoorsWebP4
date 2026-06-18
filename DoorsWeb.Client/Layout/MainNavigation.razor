@@ -401,8 +401,8 @@
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Space Zone")
             .Set(e => e.Load, () => LoadSpaceZoneRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowSpaceZoneEdit(null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneEdit(row))
+            .Set(e => e.OnAdd, () => ShowSpaceZoneEdit(site, null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneEdit(site, row))
             .Set(e => e.OnDelete, DeleteSpaceZone);
 
         await ModalService.ShowAsync($"Space Zones — {site.Name}", component, new ModalOptions
@@ -422,11 +422,14 @@
                    .Select(z => new EntityListRow { Id = z.ZoneNumber.ToString(), Name = z.Name ?? "" }).ToList();
     }
 
-    private async Task ShowSpaceZoneEdit(EntityListRow? row)
+    private async Task ShowSpaceZoneEdit(SiteDto site, EntityListRow? row)
     {
         var title = row is null ? "Space zones - New space zone" : "Space zones - Edit space zone";
-        var seed = row is null ? null : new SpaceZoneModal.SpaceZoneModel { Name = row.Name };
-        var component = new RenderComponent<SpaceZoneModal>().Set(e => e.Zone, seed);
+        // Row Id is the zone number.
+        int? zoneNumber = row is null ? null : int.Parse(row.Id);
+        var component = new RenderComponent<SpaceZoneModal>()
+            .Set(e => e.SiteId, site.Site)
+            .Set(e => e.ZoneNumber, zoneNumber);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -448,8 +451,8 @@
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Anti-Passback Zone")
             .Set(e => e.Load, () => LoadApbZoneRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowApbZoneEdit(null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowApbZoneEdit(row))
+            .Set(e => e.OnAdd, () => ShowApbZoneEdit(site, null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowApbZoneEdit(site, row))
             .Set(e => e.OnDelete, DeleteApbZone);
 
         await ModalService.ShowAsync($"Anti-Passback Zones — {site.Name}", component, new ModalOptions
@@ -469,11 +472,14 @@
                    .Select(z => new EntityListRow { Id = z.Apbnumber.ToString(), Name = z.Name ?? "" }).ToList();
     }
 
-    private async Task ShowApbZoneEdit(EntityListRow? row)
+    private async Task ShowApbZoneEdit(SiteDto site, EntityListRow? row)
     {
         var title = row is null ? "Anti-passback zones - New zone" : "Anti-passback zones - Edit zone";
-        var seed = row is null ? null : new AntiPassbackZoneModal.AntiPassbackZoneModel { Name = row.Name };
-        var component = new RenderComponent<AntiPassbackZoneModal>().Set(e => e.Zone, seed);
+        // Row Id is the apb number.
+        int? apbnumber = row is null ? null : int.Parse(row.Id);
+        var component = new RenderComponent<AntiPassbackZoneModal>()
+            .Set(e => e.SiteId, site.Site)
+            .Set(e => e.Apbnumber, apbnumber);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -495,8 +501,8 @@
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Door Trigger")
             .Set(e => e.Load, () => LoadDoorTriggerRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowDoorTriggerEdit(null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowDoorTriggerEdit(row))
+            .Set(e => e.OnAdd, () => ShowDoorTriggerEdit(site, null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowDoorTriggerEdit(site, row))
             .Set(e => e.OnDelete, DeleteTrigger);
 
         await ModalService.ShowAsync($"Door Triggers — {site.Name}", component, new ModalOptions
@@ -517,11 +523,14 @@
                    .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
     }
 
-    private async Task ShowDoorTriggerEdit(EntityListRow? row)
+    private async Task ShowDoorTriggerEdit(SiteDto site, EntityListRow? row)
     {
         var title = row is null ? "Triggers - New Trigger" : "Triggers - Edit Trigger";
-        var seed = row is null ? null : new TriggerModal.TriggerModel { Name = row.Name };
-        var component = new RenderComponent<TriggerModal>().Set(e => e.Trigger, seed);
+        // Row Id is the trigger code.
+        int? code = row is null ? null : int.Parse(row.Id);
+        var component = new RenderComponent<TriggerModal>()
+            .Set(e => e.SiteId, site.Site)
+            .Set(e => e.Code, code);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -537,8 +546,8 @@
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Space Zone Trigger")
             .Set(e => e.Load, () => LoadSpaceZoneTriggerRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowSpaceZoneTriggerEdit(null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneTriggerEdit(row))
+            .Set(e => e.OnAdd, () => ShowSpaceZoneTriggerEdit(site, null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneTriggerEdit(site, row))
             .Set(e => e.OnDelete, DeleteTrigger);
 
         await ModalService.ShowAsync($"Space Zone Triggers — {site.Name}", component, new ModalOptions
@@ -558,11 +567,14 @@
                    .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
     }
 
-    private async Task ShowSpaceZoneTriggerEdit(EntityListRow? row)
+    private async Task ShowSpaceZoneTriggerEdit(SiteDto site, EntityListRow? row)
     {
         var title = row is null ? "Triggers - New Trigger" : "Triggers - Edit Trigger";
-        var seed = row is null ? null : new SpaceZoneTriggerModal.SpaceZoneTriggerModel { Name = row.Name };
-        var component = new RenderComponent<SpaceZoneTriggerModal>().Set(e => e.Trigger, seed);
+        // Row Id is the trigger code.
+        int? code = row is null ? null : int.Parse(row.Id);
+        var component = new RenderComponent<SpaceZoneTriggerModal>()
+            .Set(e => e.SiteId, site.Site)
+            .Set(e => e.Code, code);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {

@@ -1,4 +1,5 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,10 +33,23 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        // Source picker for the editor. code omitted = new. triggerType 1 = Door, 3 = Space Zone.
+        [HttpGet("edit/{site}/{triggerType}")]
+        public async Task<ActionResult<TriggerSaveDto>> GetForEdit(int site, int triggerType, [FromQuery] int? code)
+        {
+            return Ok(await _service.GetForEdit(site, triggerType, code));
+        }
+
         [HttpPost]
         public async Task<ActionResult<List<TTriggersHeader>>> Create(TTriggersHeader entity)
         {
             return Ok(await _service.Create(entity));
+        }
+
+        [HttpPost("save")]
+        public async Task<ActionResult<TTriggersHeader>> Save(TriggerSaveDto dto)
+        {
+            return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{id}")]

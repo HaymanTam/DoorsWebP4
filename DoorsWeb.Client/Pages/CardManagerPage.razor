@@ -17,7 +17,7 @@
             }
         </CardTitle>
         <CardActions class="ms-auto">
-            <Button BackgroundColor="TablerColor.Primary" Class="me-2" OnClick='() => ShowCardEditModal("New Record", 0)'>
+            <Button BackgroundColor="TablerColor.Success" Class="me-2" OnClick='() => ShowCardEditModal("New Record", 0)'>
                 <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Card
             </Button>
             <Button BackgroundColor="TablerColor.Secondary" OnClick="Refresh">
@@ -33,7 +33,11 @@
         }
         else
         {
-            <Table Item="CardDto" Items="filteredCards" PageSize="pageSize" Hover Responsive>
+            <div class="text-muted small mb-2">
+                <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
+                Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
+            </div>
+            <Table @ref="table" Item="CardDto" Items="filteredCards" PageSize="pageSize" Hover Responsive>
                 @* Access Level filter sits in the table header, next to the built-in search box. *@
                 <HeaderTemplate>
                     <div class="d-flex align-items-center gap-2">
@@ -111,6 +115,9 @@
     private IJSObjectReference? viewportModule;
     private DotNetObjectReference<CardManagerPage>? selfRef;
 
+    // Bound to the table so the Left/Right arrow keys can drive its pager.
+    private Table<CardDto>? table;
+
     protected override async Task OnInitializedAsync()
     {
         client = ClientFactory.CreateClient("WebAPI");
@@ -128,10 +135,22 @@
 
         selfRef = DotNetObjectReference.Create(this);
         await viewportModule.InvokeVoidAsync("registerResize", selfRef);
+        await viewportModule.InvokeVoidAsync("registerPageKeys", selfRef);
     }
 
     [JSInvokable]
     public void OnViewportResized(double height) => ApplyPageSize(height);
+
+    // Left/Right arrow keys turn the table's pages (direction: -1 prev, +1 next).
+    [JSInvokable]
+    public async Task OnPageKey(int direction)
+    {
+        if (table is null) return;
+        if (direction > 0)
+            await table.NextPage();
+        else
+            await table.PreviousPage();
+    }
 
     // Recompute rows-per-page and repaint only when the bucket actually changes.
     private void ApplyPageSize(double viewportHeight)
@@ -273,6 +292,7 @@
             try
             {
                 await viewportModule.InvokeVoidAsync("unregisterResize");
+                await viewportModule.InvokeVoidAsync("unregisterPageKeys");
                 await viewportModule.DisposeAsync();
             }
             catch (JSDisconnectedException) { /* circuit already gone */ }

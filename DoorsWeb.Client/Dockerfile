@@ -1,6 +1,6 @@
 # This stage is used to publish the service project to be copied to the final stage
 
-FROM nginx:alpine as base
+FROM nginx:alpine AS base
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
@@ -20,7 +20,7 @@ RUN dotnet publish "./DoorsWeb.Client.csproj" -c $BUILD_CONFIGURATION -o /app/pu
 
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM base as final
+FROM base AS final
 WORKDIR /usr/share/nginx/html
 # WORKDIR /var/www/web
 COPY --from=publish /app/publish/wwwroot .

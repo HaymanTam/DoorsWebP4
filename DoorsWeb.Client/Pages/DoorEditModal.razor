@@ -25,7 +25,7 @@
                             <CardTitle>Connection</CardTitle>
                             <div class="mb-3">
                                 <label class="form-label">Connector</label>
-                                <InputSelect class="form-select" @bind-Value="connector">
+                                <InputSelect class="form-select" @bind-Value="dDetail.Connector">
                                     <option value=""></option>
                                 </InputSelect>
                             </div>
@@ -43,7 +43,7 @@
                             <CardTitle>Security Random Search</CardTitle>
                             <div class="mb-3">
                                 <label class="form-label">Frequency</label>
-                                <InputNumber class="form-control" @bind-Value="randomSearchFrequency"></InputNumber>
+                                <InputNumber class="form-control" @bind-Value="dDetail.RandomSearchFrequency"></InputNumber>
                             </div>
                         </CardBody>
                     </Card>
@@ -58,16 +58,16 @@
                             <label class="form-label">Feedback</label>
                             <span class="d-flex my-auto gap-2">
                                 <Icon IconType="@TablerIcons.Volume" />
-                                <RangeSlider TValue="byte" @bind-Value="feedbackVolume" Min="0" Max="15" />
-                                <label class="form-label">@feedbackVolume</label>
+                                <RangeSlider TValue="byte" @bind-Value="dDetail.Controller_FeedbackVolume" Min="0" Max="15" />
+                                <label class="form-label">@dDetail.Controller_FeedbackVolume</label>
                             </span>
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label">Alarm</label>
                             <span class="d-flex my-auto gap-2">
                                 <Icon IconType="@TablerIcons.Volume" />
-                                <RangeSlider TValue="byte" @bind-Value="alarmVolume" Min="0" Max="15" />
-                                <label class="form-label">@alarmVolume</label>
+                                <RangeSlider TValue="byte" @bind-Value="dDetail.Controller_AlarmVolume" Min="0" Max="15" />
+                                <label class="form-label">@dDetail.Controller_AlarmVolume</label>
                             </span>
                         </div>
                     </div>
@@ -198,11 +198,11 @@
                     <div class="mb-3 row">
                         <div class="col-lg-6">
                             <label class="form-label">Text Description</label>
-                            <InputText class="form-control" @bind-Value="keypadName"></InputText>
+                            <InputText class="form-control" @bind-Value="dDetail.Keypad_Name"></InputText>
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label">Technology</label>
-                            <InputSelect class="form-select" @bind-Value="keypadTech">
+                            <InputSelect class="form-select" @bind-Value="dDetail.Keypad_TechId">
                                 @foreach (var t in KeypadTechnologies)
                                 {
                                     <option value="@t.Key">@t.Value</option>
@@ -238,7 +238,7 @@
                         </div>
                         <div class="col-lg-4">
                             <label class="form-label">Override Time zone</label>
-                            <InputSelect class="form-select" @bind-Value="mfaOverrideTimeZone">
+                            <InputSelect class="form-select" @bind-Value="dDetail.MFA_OverrideTimeZone">
                                 <option value=""></option>
                             </InputSelect>
                             <small class="text-muted">(Single factor during this time)</small>
@@ -282,7 +282,7 @@
                             </label>
                         </div>
                         <div class="col-lg-5">
-                            <InputSelect class="form-select" @bind-Value="lockOpenTimeZone">
+                            <InputSelect class="form-select" @bind-Value="dDetail.RelayA_OpenTimeZone">
                                 <option value=""></option>
                             </InputSelect>
                         </div>
@@ -317,7 +317,7 @@
                     <div class="mb-3 row">
                         <div class="col-lg-6">
                             <label class="form-label">Time zone</label>
-                            <InputSelect class="form-select" @bind-Value="relayBTimeZone">
+                            <InputSelect class="form-select" @bind-Value="dDetail.RelayB_TimeZone">
                                 <option value=""></option>
                             </InputSelect>
                         </div>
@@ -335,7 +335,7 @@
                     <div class="mb-3 row align-items-center">
                         <div class="col-lg-7">
                             <label class="form-check">
-                                <InputCheckbox class="form-check-input" @bind-Value="failedToCloseEnable"></InputCheckbox>
+                                <InputCheckbox class="form-check-input" @bind-Value="dDetail.PDO_AlarmEnable"></InputCheckbox>
                                 <span class="form-check-label">Sound an alarm if the door is open for</span>
                             </label>
                         </div>
@@ -528,20 +528,10 @@
     [Inject] IHttpClientFactory ClientFactory { get; set; } = null!;
 
     public DoorDetailDto dDetail { get; set; } = new DoorDetailDto();
-    [Parameter] public Guid DoorId { get; set; }
+    [Parameter] public int DoorId { get; set; }
     [CascadingParameter] public bool CascadingParameter { get; set; } = false;
 
-    // ---- Local backing fields for controls not yet present on DoorDetailDto ----
-    private string connector = "";
-    private int randomSearchFrequency = 0;
-    private byte feedbackVolume = 15;
-    private byte alarmVolume = 15;
-    private string keypadName = "Keyboard";
-    private byte keypadTech = 0;
-    private string mfaOverrideTimeZone = "";
-    private string lockOpenTimeZone = "";
-    private string relayBTimeZone = "";
-    private bool failedToCloseEnable = false;
+    // ---- Local backing field for UI-only controls (not persisted) ----
     private string biometricTarget = "Reader A";
 
     // ---- Dropdown option sources ----
@@ -571,7 +561,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (DoorId != Guid.Empty){
+        if (DoorId != 0){
             var client = ClientFactory.CreateClient("WebAPI");
             var result = await client.GetFromJsonAsync<DoorDetailDto?>("api/Door/" + DoorId);
             if(result is not null)
@@ -588,7 +578,7 @@
 
     private async Task Submit(EditContext obj)
     {
-        if (DoorId == Guid.Empty)
+        if (DoorId == 0)
         {
             var client = ClientFactory.CreateClient("WebAPI");
             var result = await client.PostAsJsonAsync<DoorDetailDto>("api/Door/", dDetail);
@@ -608,7 +598,7 @@
         else
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            var result = await client.PutAsJsonAsync<DoorDetailDto>("api/Door/" + dDetail.Id, dDetail);
+            var result = await client.PutAsJsonAsync<DoorDetailDto>("api/Door/" + dDetail.Door, dDetail);
             if (result.IsSuccessStatusCode) ModalService.Close(ModalResult.Ok());
             else
             {

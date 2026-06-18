@@ -4,7 +4,7 @@
 <Table Item="DoorListDto" Items="doorList" PageSize="10"
        ShowCheckboxes MultiSelect Hover Responsive EditMode=TableEditMode.Popup >
     <HeaderTemplate>
-        <Button Class="btn float-end" BackgroundColor="TablerColor.Primary" Size="ButtonSize.Default" @onclick='(() => ShowDoorEditModal("New Door", Guid.Empty))'>Add Door</Button>
+        <Button Class="btn float-end" BackgroundColor="TablerColor.Primary" Size="ButtonSize.Default" @onclick='(() => ShowDoorEditModal("New Door", 0))'>Add Door</Button>
     </HeaderTemplate>
 
     <ChildContent>
@@ -12,9 +12,9 @@
         {
             <Progress Color="TablerColor.Blue" Indeterminate />
         }
-        <Column Item="DoorListDto" Property="e => e.Id" Title="Id" Sortable Visible=false>
+        <Column Item="DoorListDto" Property="e => e.Door" Title="Door" Sortable Visible=false>
             <EditorTemplate>
-                <input type="text" class="form-control" @bind-value="@context.Id" />
+                <input type="text" class="form-control" @bind-value="@context.Door" />
             </EditorTemplate>
         </Column>
         <Column Item="DoorListDto" Property="e => e.Name" Title="Name" Searchable Sortable>
@@ -37,8 +37,8 @@
         <Column Item="DoorListDto" title="" ActionColumn Width="130px">
             <Template>
                 <span class="row-action" >
-                    <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='(() => ShowDoorEditModal("Edit Door", context.Id))' />
-                    <Icon class="icon" IconType="@TablerIcons.Trash" @onclick='(() => ConfirmDeleteDoor(context.Id, context.ControllerId))' />
+                    <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='(() => ShowDoorEditModal("Edit Door", context.Door))' />
+                    <Icon class="icon" IconType="@TablerIcons.Trash" @onclick='(() => ConfirmDeleteDoor(context.Door, context.ControllerId))' />
                 </span> 
             </Template>
         </Column>
@@ -62,7 +62,7 @@
         IsLoaded = true;
     }
 
-    private async Task ShowDoorEditModal(string title, Guid DoorId)
+    private async Task ShowDoorEditModal(string title, int DoorId)
     {
         var component = new RenderComponent<DoorEditModal>().Set(e => e.DoorId, DoorId);
         var result = await ModalService.ShowAsync(title, component, new ModalOptions { 
@@ -76,7 +76,7 @@
         }
     }
 
-    private async Task ConfirmDeleteDoor(Guid DoorId, int CtrlId)
+    private async Task ConfirmDeleteDoor(int DoorId, int CtrlId)
     {
         var result = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
         {

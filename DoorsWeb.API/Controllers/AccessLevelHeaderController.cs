@@ -21,14 +21,14 @@ namespace DoorsWeb.API.Controllers
             return Ok(await _service.GetAll());
         }
 
-        // Composite key: { AccessLevel, Site }
-        [HttpGet("{accessLevel}/{site}")]
-        public async Task<ActionResult<TAccessLevelHeader>> GetById(int accessLevel, int site)
+        // Route key order: { Site, AccessLevel } (EF composite key is { AccessLevel, Site })
+        [HttpGet("{site}/{accessLevel}")]
+        public async Task<ActionResult<TAccessLevelHeader>> GetById(int site, int accessLevel)
         {
-            var result = await _service.GetById(accessLevel, site);
+            var result = await _service.GetById(site, accessLevel);
             if (result is null)
             {
-                return Problem(detail: $"Access Level Header <{accessLevel}/{site}> was not found.", title: "Not Found", statusCode: 404);
+                return Problem(detail: $"Access Level Header <{site}/{accessLevel}> was not found.", title: "Not Found", statusCode: 404);
             }
             return Ok(result);
         }
@@ -39,24 +39,24 @@ namespace DoorsWeb.API.Controllers
             return Ok(await _service.Create(entity));
         }
 
-        [HttpPut("{accessLevel}/{site}")]
-        public async Task<ActionResult<List<TAccessLevelHeader>?>> Update(int accessLevel, int site, TAccessLevelHeader entity)
+        [HttpPut("{site}/{accessLevel}")]
+        public async Task<ActionResult<List<TAccessLevelHeader>?>> Update(int site, int accessLevel, TAccessLevelHeader entity)
         {
-            var result = await _service.Update(accessLevel, site, entity);
+            var result = await _service.Update(site, accessLevel, entity);
             if (result is null)
             {
-                return Problem(detail: $"Update Failed! Access Level Header <{accessLevel}/{site}> was not found.", title: "Not Found", statusCode: 404);
+                return Problem(detail: $"Update Failed! Access Level Header <{site}/{accessLevel}> was not found.", title: "Not Found", statusCode: 404);
             }
             return Ok(result);
         }
 
-        [HttpDelete("{accessLevel}/{site}")]
-        public async Task<ActionResult<List<TAccessLevelHeader>?>> Delete(int accessLevel, int site)
+        [HttpDelete("{site}/{accessLevel}")]
+        public async Task<ActionResult<List<TAccessLevelHeader>?>> Delete(int site, int accessLevel)
         {
-            var result = await _service.Delete(accessLevel, site);
+            var result = await _service.Delete(site, accessLevel);
             if (result is null)
             {
-                return Problem(detail: $"Delete Failed! Access Level Header <{accessLevel}/{site}> was not found.", title: "Not Found", statusCode: 404);
+                return Problem(detail: $"Delete Failed! Access Level Header <{site}/{accessLevel}> was not found.", title: "Not Found", statusCode: 404);
             }
             return Ok(result);
         }

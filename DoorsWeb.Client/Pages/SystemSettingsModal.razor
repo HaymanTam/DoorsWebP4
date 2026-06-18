@@ -1,0 +1,290 @@
+@* System Settings dialog. Shown via ModalService.ShowAsync("System Settings", ...).
+   Manages sites (list / add / remove via the API's SitesController) and the global
+   connector polling settings (SystemSettingsController, stored as application settings).
+   OK saves the connector settings and closes; Cancel closes. Site add/remove persist
+   immediately (each is its own API call), so they are unaffected by Cancel. *@
+
+@using DoorsWeb.Shared.DTO
+@inject IHttpClientFactory ClientFactory
+
+<Card Size="CardSize.Default">
+    <CardBody>
+        <CardTitle>Sites</CardTitle>
+
+        <div class="table-responsive border rounded mb-2" style="max-height: 240px; overflow-y: auto;">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th style="width: 3rem;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (sites is null)
+                    {
+                        <tr><td colspan="2" class="text-muted text-center py-4">Loading…</td></tr>
+                    }
+                    else if (sites.Count == 0)
+                    {
+                        <tr><td colspan="2" class="text-muted text-center py-4">No sites found.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var s in sites)
+                        {
+                            <tr>
+                                <td>@s.Name</td>
+                                <td class="text-end">
+                                    <Icon class="icon text-danger" style="cursor: pointer;" IconType="@TablerIcons.Trash"
+                                          @onclick="() => RemoveSite(s)" />
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <input class="form-control" placeholder="New site name" maxlength="30"
+                       @bind="newSiteName" @bind:event="oninput" disabled="@busy" />
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-primary" @onclick="AddSite"
+                        disabled="@(busy || string.IsNullOrWhiteSpace(newSiteName))">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Site
+                </button>
+            </div>
+        </div>
+    </CardBody>
+</Card>
+
+<Card Size="CardSize.Default">
+    <CardBody>
+        <CardTitle>Connector Settings</CardTitle>
+
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-6 text-end">
+                <label class="form-label mb-0">Ping Controllers every</label>
+            </div>
+            <div class="col-lg-3">
+                <input type="number" class="form-control" min="1" max="3600"
+                       @bind="settings.PingControllersSeconds" disabled="@busy" />
+            </div>
+            <div class="col-lg-3">
+                <span class="form-label mb-0">seconds</span>
+            </div>
+        </div>
+
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-6 text-end">
+                <label class="form-label mb-0">Check for commands every</label>
+            </div>
+            <div class="col-lg-3">
+                <input type="number" class="form-control" min="1" max="3600"
+                       @bind="settings.CheckCommandsSeconds" disabled="@busy" />
+            </div>
+            <div class="col-lg-3">
+                <span class="form-label mb-0">seconds</span>
+            </div>
+        </div>
+
+        <div class="mb-1 row align-items-center">
+            <div class="col-lg-6 text-end">
+                <label class="form-label mb-0">Force a ping after</label>
+            </div>
+            <div class="col-lg-3">
+                <input type="number" class="form-control" min="1" max="100000"
+                       @bind="settings.ForcePingAfterCommands" disabled="@busy" />
+            </div>
+            <div class="col-lg-3">
+                <span class="form-label mb-0">commands</span>
+            </div>
+        </div>
+    </CardBody>
+</Card>
+
+@if (status is not null)
+{
+    <div class="alert @(statusOk ? "alert-success" : "alert-danger") mb-0 mt-3" role="alert">
+        @status
+    </div>
+}
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+    <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+    <button type="button" class="btn btn-primary" @onclick="Save" disabled="@busy">
+        @if (busy) { <span class="spinner-border spinner-border-sm me-2"></span> }
+        OK
+    </button>
+</div>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    private HttpClient client = null!;
+
+    private List<SiteDto>? sites;
+    private string? newSiteName;
+
+    private ConnectorSettingsDto settings = new();
+
+    private bool busy;
+    private string? status;
+    private bool statusOk;
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        await LoadSites();
+        await LoadSettings();
+    }
+
+    private async Task LoadSites()
+    {
+        try
+        {
+            sites = await client.GetFromJsonAsync<List<SiteDto>>("api/Sites") ?? new();
+        }
+        catch (Exception ex)
+        {
+            sites = new();
+            SetStatus(false, $"Could not load sites: {ex.Message}");
+        }
+    }
+
+    private async Task LoadSettings()
+    {
+        try
+        {
+            settings = await client.GetFromJsonAsync<ConnectorSettingsDto>("api/SystemSettings/connector") ?? new();
+        }
+        catch (Exception ex)
+        {
+            settings = new();
+            SetStatus(false, $"Could not load connector settings: {ex.Message}");
+        }
+    }
+
+    private async Task AddSite()
+    {
+        var name = newSiteName?.Trim();
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        busy = true;
+        status = null;
+        try
+        {
+            var response = await client.PostAsJsonAsync("api/Sites", new SiteDto { Name = name });
+            if (response.IsSuccessStatusCode)
+            {
+                newSiteName = null;
+                await LoadSites();
+            }
+            else
+            {
+                SetStatus(false, await ReadError(response));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(false, $"Add site failed: {ex.Message}");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task RemoveSite(SiteDto site)
+    {
+        var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Delete site \"{site.Name}\"?",
+            SubText = "This action cannot be undone!",
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+        if (!confirmed) return;
+
+        busy = true;
+        status = null;
+        try
+        {
+            var response = await client.DeleteAsync($"api/Sites/{site.Site}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadSites();
+            }
+            else
+            {
+                SetStatus(false, await ReadError(response));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(false, $"Delete site failed: {ex.Message}");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task Save()
+    {
+        busy = true;
+        status = null;
+        try
+        {
+            var response = await client.PutAsJsonAsync("api/SystemSettings/connector", settings);
+            if (response.IsSuccessStatusCode)
+            {
+                ModalService.Close(ModalResult.Ok());
+            }
+            else
+            {
+                SetStatus(false, await ReadError(response));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(false, $"Save failed: {ex.Message}");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        ModalService.Close(ModalResult.Cancel());
+    }
+
+    private static async Task<string> ReadError(HttpResponseMessage response)
+    {
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+            if (!string.IsNullOrWhiteSpace(problem?.Detail)) return problem!.Detail!;
+        }
+        catch { /* fall through */ }
+        return $"Request failed ({(int)response.StatusCode}).";
+    }
+
+    private void SetStatus(bool ok, string message)
+    {
+        statusOk = ok;
+        status = message;
+    }
+
+    private class ProblemDetails
+    {
+        public string? Title { get; set; }
+        public string? Detail { get; set; }
+        public int? Status { get; set; }
+    }
+}

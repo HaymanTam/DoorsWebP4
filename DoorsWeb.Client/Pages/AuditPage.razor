@@ -1,0 +1,63 @@
+@page "/audit"
+@inject IHttpClientFactory ClientFactory
+
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.Search" />Audit Log Viewer
+        </CardTitle>
+        <CardActions>
+            <Button Color="TablerColor.Primary" OnClick="Refresh">
+                <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
+            </Button>
+        </CardActions>
+    </CardHeader>
+    <CardBody>
+        @if (!IsLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+
+        <Table Item="AuditLogDto" Items="auditList" PageSize="15" Hover Responsive>
+            <ChildContent>
+                <Column Item="AuditLogDto" Property="a => a.CardId" Title="Card ID" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.SaveDate" Title="Date Saved" Sortable />
+                <Column Item="AuditLogDto" Property="a => a.SavedBy" Title="Saved By" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.FirstName" Title="First Name" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.LastName" Title="Last Name" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.Enabled" Title="Enabled" Sortable>
+                    <Template>
+                        @if (context.Enabled)
+                        {
+                            <Icon class="icon" IconType="@TablerIcons.Check" />
+                        }
+                        else
+                        {
+                            <Icon class="icon" IconType="@TablerIcons.X" />
+                        }
+                    </Template>
+                </Column>
+                <Column Item="AuditLogDto" Property="a => a.AccessLevels" Title="Access Levels" Searchable Sortable />
+            </ChildContent>
+        </Table>
+    </CardBody>
+</Card>
+
+@code {
+    private bool IsLoaded = false;
+    private HttpClient client = new HttpClient();
+    private List<AuditLogDto> auditList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        IsLoaded = false;
+        auditList = await client.GetFromJsonAsync<List<AuditLogDto>>("api/Audit") ?? [];
+        IsLoaded = true;
+    }
+}

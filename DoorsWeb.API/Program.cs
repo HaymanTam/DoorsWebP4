@@ -78,6 +78,12 @@ builder.Services.AddScoped<IPwHashService, PwHashService>();
 // Alarms (read-only list for the Alarms page)
 builder.Services.AddScoped<IAlarmService, AlarmService>();
 
+// Events (read-only list for the Events page)
+builder.Services.AddScoped<IEventService, EventService>();
+
+// Doors (list + editor, mapped to T_Doors)
+builder.Services.AddScoped<IDoorService, DoorService>();
+
 // Header CRUD services (legacy DoorsEnterprise entities)
 builder.Services.AddScoped<IAccessLevelHeaderService, AccessLevelHeaderService>();
 builder.Services.AddScoped<IApbzoneHeaderService, ApbzoneHeaderService>();
@@ -94,6 +100,10 @@ builder.Services.AddScoped<ITriggersHeaderService, TriggersHeaderService>();
 
 // Database backup / restore
 builder.Services.AddScoped<IBackupService, BackupService>();
+
+// System Settings dialog: sites (legacy T_Sites) and global connector polling settings.
+builder.Services.AddScoped<ISiteService, SiteService>();
+builder.Services.AddSingleton<IConnectorSettingsService, ConnectorSettingsService>();
 
 // User photo storage. Resolved once so DI and the static-file provider agree on the path.
 var userPhotoDirectory = PhotoStorageService.ResolveDirectory(builder.Configuration);

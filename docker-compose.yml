@@ -25,12 +25,14 @@ services:
       # Container-internal storage paths (constant). The host side is chosen below.
       - Backup__Directory=/data/backups
       - Storage__UserPhotoDirectory=/data/user-photo
+      - Storage__SettingsDirectory=/data/settings
     volumes:
       # Hybrid storage: a Docker-managed named volume is used by default.
       # Set BACKUP_PATH / USER_PHOTO_PATH in .env to a host folder to bind-mount
       # a real directory instead (e.g. /srv/doorsweb/backups or D:/DoorsData).
       - ${BACKUP_PATH:-backups}:/data/backups
       - ${USER_PHOTO_PATH:-user-photo}:/data/user-photo
+      - ${SETTINGS_PATH:-settings}:/data/settings
     depends_on:
       mssql:
         condition: service_healthy
@@ -67,6 +69,8 @@ volumes:
   backups:
     driver: local
   user-photo:
+    driver: local
+  settings:
     driver: local
   mssql-data:
     driver: local

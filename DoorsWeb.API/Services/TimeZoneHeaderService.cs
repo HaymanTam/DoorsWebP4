@@ -16,9 +16,9 @@ namespace DoorsWeb.API.Services
             return await _context.TTimeZoneHeader.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TTimeZoneHeader?> GetById(int timeZone, int site)
+        public async Task<TTimeZoneHeader?> GetById(int site, int timeZone)
         {
-            // Composite key order: { TimeZone, Site }
+            // EF composite key order is { TimeZone, Site } — keep FindAsync args in that order.
             return await _context.TTimeZoneHeader.FindAsync(timeZone, site);
         }
 
@@ -29,7 +29,7 @@ namespace DoorsWeb.API.Services
             return await _context.TTimeZoneHeader.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TTimeZoneHeader>?> Update(int timeZone, int site, TTimeZoneHeader entity)
+        public async Task<List<TTimeZoneHeader>?> Update(int site, int timeZone, TTimeZoneHeader entity)
         {
             var result = await _context.TTimeZoneHeader.FindAsync(timeZone, site);
             if (result is null) return null;
@@ -40,7 +40,7 @@ namespace DoorsWeb.API.Services
             return await _context.TTimeZoneHeader.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TTimeZoneHeader>?> Delete(int timeZone, int site)
+        public async Task<List<TTimeZoneHeader>?> Delete(int site, int timeZone)
         {
             var result = await _context.TTimeZoneHeader.FindAsync(timeZone, site);
             if (result is null) return null;

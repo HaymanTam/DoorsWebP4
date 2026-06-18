@@ -16,9 +16,9 @@ namespace DoorsWeb.API.Services
             return await _context.TAccessLevelHeader.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TAccessLevelHeader?> GetById(int accessLevel, int site)
+        public async Task<TAccessLevelHeader?> GetById(int site, int accessLevel)
         {
-            // Composite key order: { AccessLevel, Site }
+            // EF composite key order is { AccessLevel, Site } — keep FindAsync args in that order.
             return await _context.TAccessLevelHeader.FindAsync(accessLevel, site);
         }
 
@@ -29,7 +29,7 @@ namespace DoorsWeb.API.Services
             return await _context.TAccessLevelHeader.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TAccessLevelHeader>?> Update(int accessLevel, int site, TAccessLevelHeader entity)
+        public async Task<List<TAccessLevelHeader>?> Update(int site, int accessLevel, TAccessLevelHeader entity)
         {
             var result = await _context.TAccessLevelHeader.FindAsync(accessLevel, site);
             if (result is null) return null;
@@ -40,7 +40,7 @@ namespace DoorsWeb.API.Services
             return await _context.TAccessLevelHeader.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TAccessLevelHeader>?> Delete(int accessLevel, int site)
+        public async Task<List<TAccessLevelHeader>?> Delete(int site, int accessLevel)
         {
             var result = await _context.TAccessLevelHeader.FindAsync(accessLevel, site);
             if (result is null) return null;

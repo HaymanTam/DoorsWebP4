@@ -1,11 +1,11 @@
-﻿@page "/events"
-@using DoorsWeb.Shared.Models
+@page "/events"
+@using DoorsWeb.Shared.DTO
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IHttpClientFactory ClientFactory
 
 
-<Table Item="EventListDto" Items="eventList" PageSize="10"
-       Hover Responsive EditMode=TableEditMode.Inline>
+<Table Item="EventDto" Items="eventList" PageSize="10"
+       Hover Responsive>
     <HeaderTemplate>
 
     </HeaderTemplate>
@@ -15,19 +15,19 @@
         {
             <Progress Color="TablerColor.Blue" Indeterminate />
         }
-        <Column Item="EventListDto" Property="e => e.Id" Title="Event Id" Width="50px" Sortable Visible="false">
+        <Column Item="EventDto" Property="e => e.EventId" Title="Event Id" Width="50px" Sortable Visible="false">
         </Column>
-        <Column Item="EventListDto" Property="e => e.UserName" Title="User" Searchable Sortable>
+        <Column Item="EventDto" Property="e => e.CardHolder" Title="User" Searchable Sortable>
         </Column>
-        <Column Item="EventListDto" Property="e => e.CardNumber" Title="Card#"  Searchable Sortable>
+        <Column Item="EventDto" Property="e => e.CardNumber" Title="Card#" Searchable Sortable>
         </Column>
-        <Column Item="EventListDto" Property="e => e.DoorName" Title="Door"  Searchable Sortable>
+        <Column Item="EventDto" Property="e => e.DoorName" Title="Door" Searchable Sortable>
         </Column>
-        <Column Item="EventListDto" Property="e => e.ReaderName" Title="Reader" Searchable Sortable>
+        <Column Item="EventDto" Property="e => e.ReaderId" Title="Reader" Searchable Sortable>
         </Column>
-        <Column Item="EventListDto" Property="e => e.EventName" Title="Event" Searchable Sortable>
+        <Column Item="EventDto" Property="e => e.EventName" Title="Event" Searchable Sortable>
         </Column>
-        <Column Item="EventListDto" Property="e => e.TimeStamp" Title="Time" Searchable Sortable>
+        <Column Item="EventDto" Property="e => e.EventDate" Title="Time" Searchable Sortable>
         </Column>
     </ChildContent>
 </Table>
@@ -40,16 +40,16 @@
     private HubConnection? hubConnection;
     private bool IsLoaded = false;
     private HttpClient client = new HttpClient();
-    private List<EventListDto> eventList = new List<EventListDto>();
+    private List<EventDto> eventList = new List<EventDto>();
 
     protected override async Task OnInitializedAsync()
     {
         client = ClientFactory.CreateClient("WebAPI"); //this is where base setting locate
-        eventList = await client.GetFromJsonAsync<List<EventListDto>>("api/Event") ?? [];
+        eventList = await client.GetFromJsonAsync<List<EventDto>>("api/Event") ?? [];
         IsLoaded = true;
 
         hubConnection = new HubConnectionBuilder().WithUrl("https://localhost:60879/eventHub").WithAutomaticReconnect().Build();
-        hubConnection.On<EventListDto>("NewEvent", (EvtDto) =>
+        hubConnection.On<EventDto>("NewEvent", (EvtDto) =>
         {
             eventList.Add(EvtDto);
             InvokeAsync(StateHasChanged);

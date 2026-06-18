@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 24 24" fill="none" role="img" aria-label="Fingerprint">
+  <defs>
+    <!-- Tabler red (#d63939) carried into a modern light->deep gradient for subtle depth -->
+    <linearGradient id="fpRed" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff6b6b"/>
+      <stop offset="0.55" stop-color="#d63939"/>
+      <stop offset="1" stop-color="#a51f1f"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#fpRed)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18.9 7a8 8 0 0 1 1.1 5v1a6 6 0 0 0 .8 3"/>
+    <path d="M8 11a4 4 0 0 1 8 0v1a10 10 0 0 0 2 6"/>
+    <path d="M12 11v2a14 14 0 0 0 2.5 8"/>
+    <path d="M8 15a18 18 0 0 0 1.8 6"/>
+    <path d="M4.9 19a22 22 0 0 1 -.9 -7v-1a8 8 0 0 1 12 -6.95"/>
+  </g>
+</svg>

@@ -5,9 +5,9 @@ namespace DoorsWeb.API.Services.Interfaces
     public interface IAccessLevelHeaderService
     {
         Task<List<TAccessLevelHeader>> GetAll();
-        Task<TAccessLevelHeader?> GetById(int accessLevel, int site);
+        Task<TAccessLevelHeader?> GetById(int site, int accessLevel);
         Task<List<TAccessLevelHeader>> Create(TAccessLevelHeader entity);
-        Task<List<TAccessLevelHeader>?> Update(int accessLevel, int site, TAccessLevelHeader entity);
-        Task<List<TAccessLevelHeader>?> Delete(int accessLevel, int site);
+        Task<List<TAccessLevelHeader>?> Update(int site, int accessLevel, TAccessLevelHeader entity);
+        Task<List<TAccessLevelHeader>?> Delete(int site, int accessLevel);
     }
 }

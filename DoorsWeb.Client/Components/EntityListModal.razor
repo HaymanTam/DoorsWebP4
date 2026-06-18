@@ -1,0 +1,120 @@
+@* Shared list modal: a name-only Tabler table with an "Add" button and hover edit/delete
+   actions (modeled on DoorsPage). Reusable for any entity  the caller supplies delegates
+   for loading, add, edit and delete, and the modal refreshes itself after each action.
+
+   Open via:
+     var c = new RenderComponent<EntityListModal>()
+         .Set(e => e.ItemNoun, "Access Level")
+         .Set(e => e.Load,     () => LoadRows())
+         .Set(e => e.OnAdd,    () => ShowEditModal(null))
+         .Set(e => e.OnEdit,   row => ShowEditModal(row))
+         .Set(e => e.OnDelete, row => DeleteRow(row));
+     await ModalService.ShowAsync("Access Levels", c, new ModalOptions { Size = ModalSize.Large });
+*@
+
+@inject TabBlazor.Services.IModalService ModalService
+
+<Table Item="EntityListRow" Items="rows" PageSize="10" Hover Responsive>
+    <HeaderTemplate>
+        @if (OnAdd is not null)
+        {
+            <Button Class="btn float-end" BackgroundColor="TablerColor.Primary" Size="ButtonSize.Default" @onclick="AddClicked">
+                <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add @ItemNoun
+            </Button>
+        }
+    </HeaderTemplate>
+
+    <ChildContent>
+        @if (!loaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        <Column Item="EntityListRow" Property="e => e.Name" Title="Name" Searchable Sortable />
+        <Column Item="EntityListRow" title="" ActionColumn Width="110px">
+            <Template>
+                <span class="row-action">
+                    @if (OnEdit is not null)
+                    {
+                        <Icon class="icon" IconType="@TablerIcons.Edit" @onclick="() => EditClicked(context)" />
+                    }
+                    @if (OnDelete is not null)
+                    {
+                        <Icon class="icon" IconType="@TablerIcons.Trash" @onclick="() => DeleteClicked(context)" />
+                    }
+                </span>
+            </Template>
+        </Column>
+    </ChildContent>
+</Table>
+
+@if (loaded && rows.Count == 0)
+{
+    <div class="text-muted text-center py-4">No @(ItemNoun.ToLower())s found.</div>
+}
+
+<div class="d-flex justify-content-end mt-3">
+    <button type="button" class="btn btn-secondary" @onclick="Close">Close</button>
+</div>
+
+@code {
+    /// <summary>Singular noun shown on the Add button and delete confirmation, e.g. "Access Level".</summary>
+    [Parameter, EditorRequired] public string ItemNoun { get; set; } = "Item";
+
+    /// <summary>Loads (and reloads) the rows to display.</summary>
+    [Parameter, EditorRequired] public Func<Task<List<EntityListRow>>> Load { get; set; } = null!;
+
+    /// <summary>Invoked when "Add" is clicked (typically opens the entity's edit modal for a new item).</summary>
+    [Parameter] public Func<Task>? OnAdd { get; set; }
+
+    /// <summary>Invoked when a row's edit icon is clicked.</summary>
+    [Parameter] public Func<EntityListRow, Task>? OnEdit { get; set; }
+
+    /// <summary>Invoked (after a confirm dialog) when a row's delete icon is clicked. Should perform the delete.</summary>
+    [Parameter] public Func<EntityListRow, Task>? OnDelete { get; set; }
+
+    private List<EntityListRow> rows = new();
+    private bool loaded;
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        loaded = false;
+        try { rows = await Load() ?? new(); }
+        catch { rows = new(); }
+        loaded = true;
+    }
+
+    private async Task AddClicked()
+    {
+        if (OnAdd is null) return;
+        await OnAdd();
+        await Reload();
+    }
+
+    private async Task EditClicked(EntityListRow row)
+    {
+        if (OnEdit is null) return;
+        await OnEdit(row);
+        await Reload();
+    }
+
+    private async Task DeleteClicked(EntityListRow row)
+    {
+        if (OnDelete is null) return;
+
+        var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Delete {ItemNoun.ToLower()} \"{row.Name}\"?",
+            SubText = "This action cannot be undone!",
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+        if (!confirmed) return;
+
+        await OnDelete(row);
+        await Reload();
+    }
+
+    private void Close() => ModalService.Close(ModalResult.Ok());
+}

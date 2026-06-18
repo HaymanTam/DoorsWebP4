@@ -21,14 +21,14 @@ namespace DoorsWeb.API.Controllers
             return Ok(await _service.GetAll());
         }
 
-        // Composite key: { TimeZone, Site }
-        [HttpGet("{timeZone}/{site}")]
-        public async Task<ActionResult<TTimeZoneHeader>> GetById(int timeZone, int site)
+        // Route key order: { Site, TimeZone } (EF composite key is { TimeZone, Site })
+        [HttpGet("{site}/{timeZone}")]
+        public async Task<ActionResult<TTimeZoneHeader>> GetById(int site, int timeZone)
         {
-            var result = await _service.GetById(timeZone, site);
+            var result = await _service.GetById(site, timeZone);
             if (result is null)
             {
-                return Problem(detail: $"Time Zone Header <{timeZone}/{site}> was not found.", title: "Not Found", statusCode: 404);
+                return Problem(detail: $"Time Zone Header <{site}/{timeZone}> was not found.", title: "Not Found", statusCode: 404);
             }
             return Ok(result);
         }
@@ -39,24 +39,24 @@ namespace DoorsWeb.API.Controllers
             return Ok(await _service.Create(entity));
         }
 
-        [HttpPut("{timeZone}/{site}")]
-        public async Task<ActionResult<List<TTimeZoneHeader>?>> Update(int timeZone, int site, TTimeZoneHeader entity)
+        [HttpPut("{site}/{timeZone}")]
+        public async Task<ActionResult<List<TTimeZoneHeader>?>> Update(int site, int timeZone, TTimeZoneHeader entity)
         {
-            var result = await _service.Update(timeZone, site, entity);
+            var result = await _service.Update(site, timeZone, entity);
             if (result is null)
             {
-                return Problem(detail: $"Update Failed! Time Zone Header <{timeZone}/{site}> was not found.", title: "Not Found", statusCode: 404);
+                return Problem(detail: $"Update Failed! Time Zone Header <{site}/{timeZone}> was not found.", title: "Not Found", statusCode: 404);
             }
             return Ok(result);
         }
 
-        [HttpDelete("{timeZone}/{site}")]
-        public async Task<ActionResult<List<TTimeZoneHeader>?>> Delete(int timeZone, int site)
+        [HttpDelete("{site}/{timeZone}")]
+        public async Task<ActionResult<List<TTimeZoneHeader>?>> Delete(int site, int timeZone)
         {
-            var result = await _service.Delete(timeZone, site);
+            var result = await _service.Delete(site, timeZone);
             if (result is null)
             {
-                return Problem(detail: $"Delete Failed! Time Zone Header <{timeZone}/{site}> was not found.", title: "Not Found", statusCode: 404);
+                return Problem(detail: $"Delete Failed! Time Zone Header <{site}/{timeZone}> was not found.", title: "Not Found", statusCode: 404);
             }
             return Ok(result);
         }

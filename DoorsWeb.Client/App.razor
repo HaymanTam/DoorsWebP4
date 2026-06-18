@@ -13,14 +13,32 @@
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <h3>Not found</h3>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <div class="d-flex justify-content-center align-items-center">
-                <Icon class="icon" IconType="@TablerIcons.NotFound404"  />
-                <h1>404</h1>
-                <h3>Sorry, there's nothing2see at this address.</h3>
-            </div>
-        </LayoutView>
+        @* Unknown URL: send anonymous visitors to sign-in; show the 404 only to authenticated users. *@
+        <AuthorizeView>
+            <Authorized>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <div class="empty">
+                        <div class="empty-img">
+                            <img src="img/404.svg" alt="404 — page not found" style="width: 420px; max-width: 100%; height: auto;" />
+                        </div>
+                        <p class="empty-title h1">Page not found</p>
+                        <p class="empty-subtitle text-secondary">
+                            Sorry, we couldn't find the page you were looking for.
+                            It may have been moved, renamed, or never existed.
+                        </p>
+                        <div class="empty-action">
+                            <a href="/" class="btn btn-primary">
+                                <Icon class="icon me-1" IconType="@TablerIcons.Home" />
+                                Back to home
+                            </a>
+                        </div>
+                    </div>
+                </LayoutView>
+            </Authorized>
+            <NotAuthorized>
+                <RedirectToLogin />
+            </NotAuthorized>
+        </AuthorizeView>
     </NotFound>
 </Router>
 

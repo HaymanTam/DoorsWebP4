@@ -1,0 +1,51 @@
+@page "/cardmanager"
+@using DoorsWeb.Shared.Entities
+@inject IHttpClientFactory ClientFactory
+
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.Users" />Card Manager
+        </CardTitle>
+        <CardActions class="ms-auto">
+            <Button Color="TablerColor.Primary" OnClick="Refresh">
+                <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
+            </Button>
+        </CardActions>
+    </CardHeader>
+    <CardBody>
+        @if (!IsLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        else
+        {
+            <Table Item="TNameHeader" Items="Cards" PageSize="20" Hover Responsive>
+                <ChildContent>
+                    <Column Item="TNameHeader" Property="c => c.CardNumber" Title="Card Number" Searchable Sortable />
+                    <Column Item="TNameHeader" Property="c => c.Surname" Title="Last Name" Searchable Sortable />
+                    <Column Item="TNameHeader" Property="c => c.Forname" Title="First Name" Searchable Sortable />
+                </ChildContent>
+            </Table>
+        }
+    </CardBody>
+</Card>
+
+@code {
+    private bool IsLoaded = false;
+    private HttpClient client = new HttpClient();
+    private List<TNameHeader> Cards = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        IsLoaded = false;
+        Cards = await client.GetFromJsonAsync<List<TNameHeader>>("api/NameHeader") ?? [];
+        IsLoaded = true;
+    }
+}

@@ -35,24 +35,36 @@
 
 .nav-item {
     font-size: 0.9rem;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
 }
 
+    /* Breathing room only at the very top/bottom of the whole menu. The .ms-4
+       resets below stop these from firing inside each submenu group — that
+       in-group firing is what produced the uneven gaps. */
     .nav-item:first-of-type {
-        padding-top: 1rem;
+        padding-top: 0.75rem;
     }
 
     .nav-item:last-of-type {
-        padding-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .ms-4 .nav-item:first-of-type {
+        padding-top: 0;
+    }
+
+    .ms-4 .nav-item:last-of-type {
+        padding-bottom: 0.25rem;
     }
 
     .nav-item ::deep a {
         color: #d7d7d7;
         border-radius: 4px;
-        height: 3rem;
+        min-height: 2.75rem;
         display: flex;
         align-items: center;
-        line-height: 3rem;
+        line-height: 1.3;
+        padding: 0.25rem 0.5rem;
     }
 
 .nav-item ::deep a.active {

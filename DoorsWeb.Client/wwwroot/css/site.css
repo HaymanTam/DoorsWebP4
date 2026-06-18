@@ -37,33 +37,48 @@ input[type=number] {
     -moz-appearance: textfield;
 }
 
-/* Initial Loading screen Spinner */
-
-/* Darkens the background slightly and centers the spinner */
+/* Initial loading splash (shown until the Blazor WASM app boots) */
 #wasm-loadpage {
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    gap: 7px;
-    height: 100vh; /* Adjust based on where you put it */
+    gap: 1.5rem;
+    height: 100vh;
+    background: radial-gradient(circle at 50% 38%, #1b2130 0%, #0b0e14 72%);
+    color: #f5f6f8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+#wasm-loadpage h3 {
+    margin: 0;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: .02em;
+}
+
+#wasm-loadpage .wasm-kicker {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: .62rem;
+    font-weight: 600;
+    color: #8b94a7;
+    margin-bottom: .25rem;
 }
 
 #spinner {
-    width: 80px;
-    height: 80px;
-    border: 8px solid #f3f3f3; /* Light grey base */
-    border-top: 8px solid #3498db; /* Blue spinning part */
+    width: 52px;
+    height: 52px;
+    border: 5px solid rgba(255, 255, 255, 0.12);
+    border-top-color: #d63939; /* brand red */
     border-radius: 50%;
-    animation: spin .5s linear infinite;
+    animation: spin .7s linear infinite;
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
+    to {
         transform: rotate(360deg);
     }
 }

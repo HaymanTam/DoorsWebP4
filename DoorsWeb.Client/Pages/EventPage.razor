@@ -2,41 +2,42 @@
 @using DoorsWeb.Shared.DTO
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IHttpClientFactory ClientFactory
+@implements IAsyncDisposable
 
-
-<Table Item="EventDto" Items="eventList" PageSize="10"
-       Hover Responsive>
-    <HeaderTemplate>
-
-    </HeaderTemplate>
-
-    <ChildContent>
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.Search" />Events
+        </CardTitle>
+        <CardActions class="ms-auto">
+            <Button Color="TablerColor.Primary" OnClick="Refresh">
+                <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
+            </Button>
+        </CardActions>
+    </CardHeader>
+    <CardBody>
         @if (!IsLoaded)
         {
             <Progress Color="TablerColor.Blue" Indeterminate />
         }
-        <Column Item="EventDto" Property="e => e.EventId" Title="Event Id" Width="50px" Sortable Visible="false">
-        </Column>
-        <Column Item="EventDto" Property="e => e.CardHolder" Title="User" Searchable Sortable>
-        </Column>
-        <Column Item="EventDto" Property="e => e.CardNumber" Title="Card#" Searchable Sortable>
-        </Column>
-        <Column Item="EventDto" Property="e => e.DoorName" Title="Door" Searchable Sortable>
-        </Column>
-        <Column Item="EventDto" Property="e => e.ReaderId" Title="Reader" Searchable Sortable>
-        </Column>
-        <Column Item="EventDto" Property="e => e.EventName" Title="Event" Searchable Sortable>
-        </Column>
-        <Column Item="EventDto" Property="e => e.EventDate" Title="Time" Searchable Sortable>
-        </Column>
-    </ChildContent>
-</Table>
-
-
+        else
+        {
+            <Table Item="EventDto" Items="eventList" PageSize="10" Hover Responsive>
+                <ChildContent>
+                    <Column Item="EventDto" Property="e => e.EventId" Title="Event Id" Width="50px" Sortable Visible="false" />
+                    <Column Item="EventDto" Property="e => e.CardHolder" Title="User" Searchable Sortable />
+                    <Column Item="EventDto" Property="e => e.CardNumber" Title="Card#" Searchable Sortable />
+                    <Column Item="EventDto" Property="e => e.DoorName" Title="Door" Searchable Sortable />
+                    <Column Item="EventDto" Property="e => e.ReaderId" Title="Reader" Searchable Sortable />
+                    <Column Item="EventDto" Property="e => e.EventName" Title="Event" Searchable Sortable />
+                    <Column Item="EventDto" Property="e => e.EventDate" Title="Time" Searchable Sortable />
+                </ChildContent>
+            </Table>
+        }
+    </CardBody>
+</Card>
 
 @code {
-    [Inject] TabBlazor.Services.TablerService TablerService { get; set; } = null!;
-    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
     private HubConnection? hubConnection;
     private bool IsLoaded = false;
     private HttpClient client = new HttpClient();
@@ -45,17 +46,30 @@
     protected override async Task OnInitializedAsync()
     {
         client = ClientFactory.CreateClient("WebAPI"); //this is where base setting locate
-        eventList = await client.GetFromJsonAsync<List<EventDto>>("api/Event") ?? [];
-        IsLoaded = true;
+        await Refresh();
 
         hubConnection = new HubConnectionBuilder().WithUrl("https://localhost:60879/eventHub").WithAutomaticReconnect().Build();
         hubConnection.On<EventDto>("NewEvent", (EvtDto) =>
         {
-            eventList.Add(EvtDto);
+            eventList.Insert(0, EvtDto);
             InvokeAsync(StateHasChanged);
         });
 
         await hubConnection.StartAsync(); // Last thing in line
     }
 
+    private async Task Refresh()
+    {
+        IsLoaded = false;
+        eventList = await client.GetFromJsonAsync<List<EventDto>>("api/Event") ?? [];
+        IsLoaded = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
 }

@@ -1,12 +1,22 @@
-﻿@page "/"
+@page "/"
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
-<PagePretitle>
-    TabBlazor
-    <Icon class="align-text-top" IconType="@TablerIcons.Heart"
-          TextColor="TablerColor.Red" Size="12" />
-</PagePretitle>
-<PageMainTitle>
-    Home
-</PageMainTitle>
+@* Landing route. Anonymous users are already sent to /login by the global [Authorize]
+   (_Imports.razor) + <RedirectToLogin/> in App.razor, so this page only renders for
+   authenticated users — forward them to the Events page. The auth check below is kept
+   defensive so the route resolves correctly either way. replace:true keeps "/" out of
+   browser history so Back doesn't bounce here. *@
 
-<SampleComponents />
+<div class="d-flex justify-content-center align-items-center" style="height:50vh">
+    <Progress Color="TablerColor.Blue" Indeterminate />
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var loggedIn = state.User.Identity?.IsAuthenticated == true;
+        Navigation.NavigateTo(loggedIn ? "events" : "login", replace: true);
+    }
+}

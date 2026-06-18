@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="240" viewBox="0 0 520 240" fill="none" role="img" aria-label="404 - page not found">
+  <defs>
+    <!-- Same Tabler-red gradient used by the brand fingerprint logo -->
+    <linearGradient id="nf404Red" x1="0" y1="0" x2="0" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff6b6b"/>
+      <stop offset="0.55" stop-color="#d63939"/>
+      <stop offset="1" stop-color="#a51f1f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- The two 4s -->
+  <text x="100" y="172" text-anchor="middle"
+        font-family="Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="210" font-weight="800" fill="url(#nf404Red)">4</text>
+  <text x="420" y="172" text-anchor="middle"
+        font-family="Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="210" font-weight="800" fill="url(#nf404Red)">4</text>
+
+  <!-- The middle 0: a fingerprint scanner ring -->
+  <g transform="translate(260,120)">
+    <!-- subtle outer "scanning" ring -->
+    <circle r="86" fill="none" stroke="url(#nf404Red)" stroke-width="6"
+            stroke-opacity="0.2" stroke-dasharray="5 11" stroke-linecap="round"/>
+    <!-- solid ring forming the 0 -->
+    <circle r="72" fill="none" stroke="url(#nf404Red)" stroke-width="11"/>
+    <!-- brand fingerprint, scaled up and centred inside the ring -->
+    <g transform="scale(5) translate(-12,-12)"
+       stroke="url(#nf404Red)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18.9 7a8 8 0 0 1 1.1 5v1a6 6 0 0 0 .8 3"/>
+      <path d="M8 11a4 4 0 0 1 8 0v1a10 10 0 0 0 2 6"/>
+      <path d="M12 11v2a14 14 0 0 0 2.5 8"/>
+      <path d="M8 15a18 18 0 0 0 1.8 6"/>
+      <path d="M4.9 19a22 22 0 0 1 -.9 -7v-1a8 8 0 0 1 12 -6.95"/>
+    </g>
+  </g>
+</svg>

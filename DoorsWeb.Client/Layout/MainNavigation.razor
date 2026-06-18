@@ -2,6 +2,7 @@
 @using DoorsWeb.Client.Components
 @using DoorsWeb.Client.Pages
 @using DoorsWeb.Shared.DTO
+@using DoorsWeb.Shared.Entities
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject JwtAuthStateProvider AuthStateProvider
@@ -29,6 +30,11 @@
                         <Icon class="icon" IconType="@TablerIcons.Search" />
                     </MenuItemIcon>
                 </NavbarMenuItem>
+                <NavbarMenuItem Href="alarms" Text="Alarms">
+                    <MenuItemIcon>
+                        <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
+                    </MenuItemIcon>
+                </NavbarMenuItem>
                 <NavbarMenuItem Href="cardmanager" Text="Card Manager">
                     <MenuItemIcon>
                         <Icon class="icon" IconType="@TablerIcons.Users" />
@@ -50,56 +56,62 @@
                 @if (tempOpen)
                 {
                     <div class="ms-4">
-                        <NavbarMenuItem Href="doors" Text="Doors">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Door" /></MenuItemIcon>
-                        </NavbarMenuItem>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="doors">
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Door" /></span>
+                                <span class="nav-link-title">Doors</span>
+                            </NavLink>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" @onclick="ShowAccessLevelsModal" @onclick:preventDefault>
-                                <span class="nav-link-icon">
-                                    <Icon class="icon" IconType="@TablerIcons.Key" />
-                                </span>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Key" /></span>
                                 <span class="nav-link-title">Access Levels</span>
                             </a>
                         </li>
-                        <NavbarMenuItem Href="timezone" Text="Time Zones">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Clock" /></MenuItemIcon>
-                        </NavbarMenuItem>
-                        <NavbarMenuItem Href="calendar" Text="Calendars">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Calendar_clock" /></MenuItemIcon>
-                        </NavbarMenuItem>
-                        <NavbarMenuItem Href="spacezones" Text="Space Zones">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.World" /></MenuItemIcon>
-                        </NavbarMenuItem>
-                        <NavbarMenuItem Href="apbzones" Text="Anti-Passback Zones">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Hand_stop" /></MenuItemIcon>
-                        </NavbarMenuItem>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @onclick="ShowTimeZonesModal" @onclick:preventDefault>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Clock" /></span>
+                                <span class="nav-link-title">Time Zones</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @onclick="ShowCalendarsModal" @onclick:preventDefault>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Calendar_clock" /></span>
+                                <span class="nav-link-title">Calendars</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @onclick="ShowSpaceZonesModal" @onclick:preventDefault>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.World" /></span>
+                                <span class="nav-link-title">Space Zones</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" @onclick="ShowApbZonesModal" @onclick:preventDefault>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Hand_stop" /></span>
+                                <span class="nav-link-title">Anti-Passback Zones</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" @onclick="ShowDoorTriggerModal" @onclick:preventDefault>
-                                <span class="nav-link-icon">
-                                    <Icon class="icon" IconType="@TablerIcons.Door" />
-                                </span>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Flag_bolt" /></span>
                                 <span class="nav-link-title">Door Triggers</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" @onclick="ShowSpaceZoneTriggerModal" @onclick:preventDefault>
-                                <span class="nav-link-icon">
-                                    <Icon class="icon" IconType="@TablerIcons.World" />
-                                </span>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Flag_pin" /></span>
                                 <span class="nav-link-title">Space Zone Triggers</span>
                             </a>
                         </li>
-                        <NavbarMenuItem Href="floorplans" Text="Floor Plans">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Home" /></MenuItemIcon>
-                        </NavbarMenuItem>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="floorplans">
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Home" /></span>
+                                <span class="nav-link-title">Floor Plans</span>
+                            </NavLink>
+                        </li>
                     </div>
                 }
-
-                <NavbarMenuItem Href="alarms" Text="Alarms">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
 
                 @* ---- Control Panel (click to expand) ---- *@
                 <li class="nav-item">
@@ -116,25 +128,27 @@
                 @if (controlPanelOpen)
                 {
                     <div class="ms-4">
-                        <NavbarMenuItem Href="updatehardware" Text="Update Hardware">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Refresh" /></MenuItemIcon>
-                        </NavbarMenuItem>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="updatehardware">
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Refresh" /></span>
+                                <span class="nav-link-title">Update Hardware</span>
+                            </NavLink>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" @onclick="ShowBackupRestoreModal" @onclick:preventDefault>
-                                <span class="nav-link-icon">
-                                    <Icon class="icon" IconType="@TablerIcons.Database" />
-                                </span>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Database" /></span>
                                 <span class="nav-link-title">Backup and Restore</span>
                             </a>
                         </li>
-                        <NavbarMenuItem Href="userspasswords" Text="Users and Passwords">
-                            <MenuItemIcon><Icon class="icon" IconType="@TablerIcons.Users" /></MenuItemIcon>
-                        </NavbarMenuItem>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="userspasswords">
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.User_star" /></span>
+                                <span class="nav-link-title">Users and Passwords</span>
+                            </NavLink>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#" @onclick="ShowSystemSettingsModal" @onclick:preventDefault>
-                                <span class="nav-link-icon">
-                                    <Icon class="icon" IconType="@TablerIcons.Adjustments" />
-                                </span>
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Adjustments" /></span>
                                 <span class="nav-link-title">System Settings</span>
                             </a>
                         </li>
@@ -168,8 +182,18 @@
     private bool tempOpen = true;
     private bool controlPanelOpen = false;
 
-    private void ToggleTemp() => tempOpen = !tempOpen;
-    private void ToggleControlPanel() => controlPanelOpen = !controlPanelOpen;
+    // Accordion behaviour: opening one section collapses the other so only one is expanded at a time.
+    private void ToggleTemp()
+    {
+        tempOpen = !tempOpen;
+        if (tempOpen) controlPanelOpen = false;
+    }
+
+    private void ToggleControlPanel()
+    {
+        controlPanelOpen = !controlPanelOpen;
+        if (controlPanelOpen) tempOpen = false;
+    }
 
     // ---- Access Levels: shared name-only list modal (replaces the /accesslevels page link) ----
     private async Task ShowAccessLevelsModal()
@@ -216,10 +240,17 @@
         await client.DeleteAsync("api/AccessLevel/" + row.Id);
     }
 
-    private async Task ShowDoorTriggerModal()
+    // ---- Time Zones: name-only list modal (api/TimeZoneHeader, key { Site, TimeZone }) ----
+    private async Task ShowTimeZonesModal()
     {
-        var component = new RenderComponent<TriggerModal>();
-        await ModalService.ShowAsync("Triggers - New Trigger", component, new ModalOptions
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Time Zone")
+            .Set(e => e.Load, LoadTimeZoneRows)
+            .Set(e => e.OnAdd, () => ShowTimeZoneEdit(null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowTimeZoneEdit(row))
+            .Set(e => e.OnDelete, DeleteTimeZone);
+
+        await ModalService.ShowAsync("Time Zones", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
@@ -227,15 +258,254 @@
         });
     }
 
-    private async Task ShowSpaceZoneTriggerModal()
+    private async Task<List<EntityListRow>> LoadTimeZoneRows()
     {
-        var component = new RenderComponent<SpaceZoneTriggerModal>();
-        await ModalService.ShowAsync("Triggers - New Trigger", component, new ModalOptions
+        var client = ClientFactory.CreateClient("WebAPI");
+        var list = await client.GetFromJsonAsync<List<TTimeZoneHeader>>("api/TimeZoneHeader") ?? new();
+        // Delete route is api/TimeZoneHeader/{site}/{timeZone}, so encode both into the row Id.
+        return list.Select(t => new EntityListRow { Id = $"{t.Site}/{t.TimeZone}", Name = t.Name ?? "" }).ToList();
+    }
+
+    private async Task ShowTimeZoneEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Time zones - New time zone" : "Time zones - Edit time zone";
+        var seed = row is null ? null : new TimeZoneModal.TimeZoneModel { Name = row.Name };
+        var component = new RenderComponent<TimeZoneModal>().Set(e => e.TimeZone, seed);
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,
             Scrollable = true,
         });
+    }
+
+    private async Task DeleteTimeZone(EntityListRow row)
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        await client.DeleteAsync("api/TimeZoneHeader/" + row.Id);
+    }
+
+    // ---- Calendars: name-only list modal (api/CalendarHeader, key Code) ----
+    private async Task ShowCalendarsModal()
+    {
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Calendar")
+            .Set(e => e.Load, LoadCalendarRows)
+            .Set(e => e.OnAdd, () => ShowCalendarEdit(null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowCalendarEdit(row))
+            .Set(e => e.OnDelete, DeleteCalendar);
+
+        await ModalService.ShowAsync("Calendars", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task<List<EntityListRow>> LoadCalendarRows()
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        var list = await client.GetFromJsonAsync<List<TCalendarHeader>>("api/CalendarHeader") ?? new();
+        return list.Select(c => new EntityListRow { Id = c.Code.ToString(), Name = c.Description ?? "" }).ToList();
+    }
+
+    private async Task ShowCalendarEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Calendars - New calendar" : "Calendars - Edit calendar";
+        var seed = row is null ? null : new CalendarModal.CalendarModel { Name = row.Name };
+        var component = new RenderComponent<CalendarModal>().Set(e => e.Calendar, seed);
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task DeleteCalendar(EntityListRow row)
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        await client.DeleteAsync("api/CalendarHeader/" + row.Id);
+    }
+
+    // ---- Space Zones: name-only list modal (api/SpaceZoneHeader, key ZoneNumber) ----
+    private async Task ShowSpaceZonesModal()
+    {
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Space Zone")
+            .Set(e => e.Load, LoadSpaceZoneRows)
+            .Set(e => e.OnAdd, () => ShowSpaceZoneEdit(null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneEdit(row))
+            .Set(e => e.OnDelete, DeleteSpaceZone);
+
+        await ModalService.ShowAsync("Space Zones", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task<List<EntityListRow>> LoadSpaceZoneRows()
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        var list = await client.GetFromJsonAsync<List<TSpaceZoneHeader>>("api/SpaceZoneHeader") ?? new();
+        return list.Select(z => new EntityListRow { Id = z.ZoneNumber.ToString(), Name = z.Name ?? "" }).ToList();
+    }
+
+    private async Task ShowSpaceZoneEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Space zones - New space zone" : "Space zones - Edit space zone";
+        var seed = row is null ? null : new SpaceZoneModal.SpaceZoneModel { Name = row.Name };
+        var component = new RenderComponent<SpaceZoneModal>().Set(e => e.Zone, seed);
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task DeleteSpaceZone(EntityListRow row)
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        await client.DeleteAsync("api/SpaceZoneHeader/" + row.Id);
+    }
+
+    // ---- Anti-Passback Zones: name-only list modal (api/ApbzoneHeader, key Apbnumber) ----
+    private async Task ShowApbZonesModal()
+    {
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Anti-Passback Zone")
+            .Set(e => e.Load, LoadApbZoneRows)
+            .Set(e => e.OnAdd, () => ShowApbZoneEdit(null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowApbZoneEdit(row))
+            .Set(e => e.OnDelete, DeleteApbZone);
+
+        await ModalService.ShowAsync("Anti-Passback Zones", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task<List<EntityListRow>> LoadApbZoneRows()
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        var list = await client.GetFromJsonAsync<List<TApbzoneHeader>>("api/ApbzoneHeader") ?? new();
+        return list.Select(z => new EntityListRow { Id = z.Apbnumber.ToString(), Name = z.Name ?? "" }).ToList();
+    }
+
+    private async Task ShowApbZoneEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Anti-passback zones - New zone" : "Anti-passback zones - Edit zone";
+        var seed = row is null ? null : new AntiPassbackZoneModal.AntiPassbackZoneModel { Name = row.Name };
+        var component = new RenderComponent<AntiPassbackZoneModal>().Set(e => e.Zone, seed);
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task DeleteApbZone(EntityListRow row)
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        await client.DeleteAsync("api/ApbzoneHeader/" + row.Id);
+    }
+
+    // ---- Door Triggers: name-only list modal (api/TriggersHeader where TriggerType == 1) ----
+    private async Task ShowDoorTriggerModal()
+    {
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Door Trigger")
+            .Set(e => e.Load, LoadDoorTriggerRows)
+            .Set(e => e.OnAdd, () => ShowDoorTriggerEdit(null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowDoorTriggerEdit(row))
+            .Set(e => e.OnDelete, DeleteTrigger);
+
+        await ModalService.ShowAsync("Door Triggers", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task<List<EntityListRow>> LoadDoorTriggerRows()
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        var list = await client.GetFromJsonAsync<List<TTriggersHeader>>("api/TriggersHeader") ?? new();
+        // TriggerType: 1 = Door, 3 = SpaceZone (legacy TriggerTypeConstants).
+        return list.Where(t => t.TriggerType == 1)
+                   .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
+    }
+
+    private async Task ShowDoorTriggerEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Triggers - New Trigger" : "Triggers - Edit Trigger";
+        var seed = row is null ? null : new TriggerModal.TriggerModel { Name = row.Name };
+        var component = new RenderComponent<TriggerModal>().Set(e => e.Trigger, seed);
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    // ---- Space Zone Triggers: name-only list modal (api/TriggersHeader where TriggerType == 3) ----
+    private async Task ShowSpaceZoneTriggerModal()
+    {
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Space Zone Trigger")
+            .Set(e => e.Load, LoadSpaceZoneTriggerRows)
+            .Set(e => e.OnAdd, () => ShowSpaceZoneTriggerEdit(null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneTriggerEdit(row))
+            .Set(e => e.OnDelete, DeleteTrigger);
+
+        await ModalService.ShowAsync("Space Zone Triggers", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task<List<EntityListRow>> LoadSpaceZoneTriggerRows()
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        var list = await client.GetFromJsonAsync<List<TTriggersHeader>>("api/TriggersHeader") ?? new();
+        return list.Where(t => t.TriggerType == 3)
+                   .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
+    }
+
+    private async Task ShowSpaceZoneTriggerEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Triggers - New Trigger" : "Triggers - Edit Trigger";
+        var seed = row is null ? null : new SpaceZoneTriggerModal.SpaceZoneTriggerModel { Name = row.Name };
+        var component = new RenderComponent<SpaceZoneTriggerModal>().Set(e => e.Trigger, seed);
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task DeleteTrigger(EntityListRow row)
+    {
+        var client = ClientFactory.CreateClient("WebAPI");
+        await client.DeleteAsync("api/TriggersHeader/" + row.Id);
     }
 
     private async Task ShowBackupRestoreModal()

@@ -27,6 +27,10 @@
                     <Column Item="TNameHeader" Property="c => c.Forname" Title="First Name" Searchable Sortable />
                 </ChildContent>
             </Table>
+            @if (Cards.Count == 0)
+            {
+                <div class="text-muted text-center py-4">No cards found.</div>
+            }
         }
     </CardBody>
 </Card>

@@ -33,6 +33,10 @@
                     <Column Item="EventDto" Property="e => e.EventDate" Title="Time" Searchable Sortable />
                 </ChildContent>
             </Table>
+            @if (eventList.Count == 0)
+            {
+                <div class="text-muted text-center py-4">No events found.</div>
+            }
         }
     </CardBody>
 </Card>

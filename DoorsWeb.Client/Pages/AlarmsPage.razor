@@ -27,6 +27,10 @@
                         <Column Item="AlarmListDto" Property="a => a.Date" Title="Date" Sortable />
                     </ChildContent>
                 </Table>
+                @if (IsLoaded && ActiveAlarms.Count == 0)
+                {
+                    <div class="text-muted text-center py-4">No active alarms found.</div>
+                }
             </Tab>
 
             <Tab Title="Actioned">
@@ -40,6 +44,10 @@
                         <Column Item="AlarmListDto" Property="a => a.Turnaround" Title="Turnaround" Sortable />
                     </ChildContent>
                 </Table>
+                @if (IsLoaded && ActionedAlarms.Count == 0)
+                {
+                    <div class="text-muted text-center py-4">No actioned alarms found.</div>
+                }
             </Tab>
         </Tabs>
     </CardBody>

@@ -101,6 +101,9 @@ builder.Services.AddScoped<ITriggersHeaderService, TriggersHeaderService>();
 // Database backup / restore
 builder.Services.AddScoped<IBackupService, BackupService>();
 
+// Legacy DoorsClient backup restore (password-protected ZIP of .sql/.rs table dumps)
+builder.Services.AddScoped<ILegacyBackupService, LegacyBackupService>();
+
 // System Settings dialog: sites (legacy T_Sites) and global connector polling settings.
 builder.Services.AddScoped<ISiteService, SiteService>();
 builder.Services.AddSingleton<IConnectorSettingsService, ConnectorSettingsService>();

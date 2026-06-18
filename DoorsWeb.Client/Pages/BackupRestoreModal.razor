@@ -2,6 +2,7 @@
    Calls the API's BackupController (native T-SQL BACKUP/RESTORE run server-side). *@
 
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components.Forms
 @implements IAsyncDisposable
 @inject IHttpClientFactory ClientFactory
 
@@ -90,15 +91,75 @@
     </CardBody>
 </Card>
 
+<Card Size="CardSize.Default">
+    <CardBody>
+        <CardTitle>Restore Legacy Backup (.zip)</CardTitle>
+        <p class="text-muted small mt-1 mb-2">
+            Import an old DoorsClient backup (a password-protected ZIP of <code>.sql</code>/<code>.rs</code>
+            table dumps). The matching tables are cleared and reloaded. This overwrites the current data
+            and cannot be undone.
+        </p>
+
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-3 text-end">
+                <label class="form-label mb-0">Backup file</label>
+            </div>
+            <div class="col-lg-9">
+                <InputFile class="form-control" accept=".zip" OnChange="OnLegacyFileSelected" disabled="@busy" />
+                @if (legacyFile is not null)
+                {
+                    <div class="form-text">@legacyFile.Name (@FormatSize(legacyFile.Size))</div>
+                }
+            </div>
+        </div>
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-3 text-end">
+                <label class="form-label mb-0">Password</label>
+            </div>
+            <div class="col-lg-9">
+                <input type="password" class="form-control" placeholder="(leave blank if not encrypted)"
+                       @bind="legacyPassword" disabled="@busy" autocomplete="off" />
+            </div>
+        </div>
+        <div>
+            <button type="button" class="btn btn-danger" @onclick="RestoreLegacy" disabled="@(busy || legacyFile is null)">
+                @if (busy && busyAction == "legacy") { <span class="spinner-border spinner-border-sm me-2"></span> }
+                Restore Legacy Backup
+            </button>
+        </div>
+
+        @if (legacyResult is not null && legacyResult.Tables.Count > 0)
+        {
+            <div class="table-responsive border rounded mt-3" style="max-height: 220px; overflow-y: auto;">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr><th>Table</th><th class="text-end">Rows loaded</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in legacyResult.Tables)
+                        {
+                            <tr><td>@t.Table</td><td class="text-end">@t.Rows.ToString("N0")</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (legacyResult.Skipped.Count > 0)
+            {
+                <p class="text-muted small mt-2 mb-0">Skipped (no matching table): @string.Join(", ", legacyResult.Skipped)</p>
+            }
+        }
+    </CardBody>
+</Card>
+
 @if (busy)
 {
     <div class="mt-3">
         <div class="d-flex justify-content-between small text-muted mb-1">
-            <span>@(busyAction == "restore" ? "Restoring database" : "Creating backup")</span>
+            <span>@busyLabel</span>
             <span>@(progressPercent.HasValue ? $"{progressPercent}%" : "working")</span>
         </div>
         <div class="progress" style="height: 1.25rem;">
-            <div class="progress-bar progress-bar-striped progress-bar-animated @(busyAction == "restore" ? "bg-danger" : null)"
+            <div class="progress-bar progress-bar-striped progress-bar-animated @(busyAction is "restore" or "legacy" ? "bg-danger" : null)"
                  role="progressbar"
                  style="width: @(progressPercent ?? 100)%;"
                  aria-valuenow="@(progressPercent ?? 0)" aria-valuemin="0" aria-valuemax="100">
@@ -130,8 +191,19 @@
     private string? newFileName;
     private bool compress = true;
 
+    private IBrowserFile? legacyFile;
+    private string? legacyPassword;
+    private LegacyRestoreResult? legacyResult;
+
     private bool busy;
     private string? busyAction;
+
+    private string busyLabel => busyAction switch
+    {
+        "restore" => "Restoring database",
+        "legacy" => "Restoring legacy backup",
+        _ => "Creating backup"
+    };
 
     private string? status;
     private bool statusOk;
@@ -154,6 +226,7 @@
 
             hubConnection.On<int>("BackupProgress", p => UpdateProgress(p));
             hubConnection.On<int>("RestoreProgress", p => UpdateProgress(p));
+            hubConnection.On<int>("LegacyRestoreProgress", p => UpdateProgress(p));
 
             await hubConnection.StartAsync();
         }
@@ -266,6 +339,70 @@
         catch (Exception ex)
         {
             SetStatus(false, $"Restore failed: {ex.Message}");
+        }
+        finally
+        {
+            busy = false;
+            busyAction = null;
+            progressPercent = null;
+        }
+    }
+
+    private void OnLegacyFileSelected(InputFileChangeEventArgs e)
+    {
+        legacyFile = e.File;
+        legacyResult = null;
+        status = null;
+    }
+
+    private async Task RestoreLegacy()
+    {
+        if (legacyFile is null) return;
+
+        var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Restore from legacy backup {legacyFile.Name}?",
+            SubText = "Matching tables will be cleared and reloaded from the backup. This overwrites the current data and cannot be undone!",
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+        if (!confirmed) return;
+
+        busy = true;
+        busyAction = "legacy";
+        status = null;
+        legacyResult = null;
+        progressPercent = HubReady ? 0 : null;
+        try
+        {
+            // 2 GB cap: the T_Events recordset alone is ~100 MB uncompressed.
+            const long maxUpload = 2L * 1024 * 1024 * 1024;
+
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(legacyFile.OpenReadStream(maxUpload));
+            content.Add(fileContent, "file", legacyFile.Name);
+            content.Add(new StringContent(legacyPassword ?? ""), "password");
+            if (HubReady)
+            {
+                content.Add(new StringContent(hubConnection!.ConnectionId!), "connectionId");
+            }
+
+            var response = await client.PostAsync("api/Backup/restore-legacy", content);
+            if (response.IsSuccessStatusCode)
+            {
+                legacyResult = await response.Content.ReadFromJsonAsync<LegacyRestoreResult>();
+                SetStatus(true, legacyResult?.Message ?? "Legacy restore completed.");
+                legacyFile = null;
+                legacyPassword = null;
+            }
+            else
+            {
+                SetStatus(false, await ReadError(response));
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus(false, $"Legacy restore failed: {ex.Message}");
         }
         finally
         {

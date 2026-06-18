@@ -13,9 +13,11 @@
 *@
 
 @inject TabBlazor.Services.IModalService ModalService
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <div class="entity-list">
-<Table Item="EntityListRow" Items="rows" PageSize="10" Hover Responsive>
+<Table @ref="table" Item="EntityListRow" Items="rows" PageSize="10" Hover Responsive>
     <HeaderTemplate>
         @if (OnAdd is not null)
         {
@@ -62,10 +64,16 @@
     <div class="text-muted text-center py-4">No @(ItemNoun.ToLower())s found.</div>
 }
 
-<div class="d-flex justify-content-end align-items-center gap-3 mt-3">
-    @* Hint: this modal is opened with ModalOptions.CloseOnEsc = true. *@
-    <span class="text-muted small">Press <kbd>Esc</kbd> to close</span>
-    <button type="button" class="btn btn-secondary" @onclick="Close">Close</button>
+<div class="d-flex justify-content-between align-items-center gap-3 mt-3">
+    <span class="text-muted small">
+        <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
+        Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
+    </span>
+    <div class="d-flex align-items-center gap-3">
+        @* Hint: this modal is opened with ModalOptions.CloseOnEsc = true. *@
+        <span class="text-muted small">Press <kbd>Esc</kbd> to close</span>
+        <button type="button" class="btn btn-secondary" @onclick="Close">Close</button>
+    </div>
 </div>
 
 @code {
@@ -87,7 +95,33 @@
     private List<EntityListRow> rows = new();
     private bool loaded;
 
+    // Bound to the table so the Left/Right arrow keys can drive its pager.
+    private Table<EntityListRow>? table;
+    private IJSObjectReference? viewportModule;
+    private DotNetObjectReference<EntityListModal>? selfRef;
+
     protected override async Task OnInitializedAsync() => await Reload();
+
+    // Register Left/Right arrow-key paging once the modal has rendered.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        viewportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+        selfRef = DotNetObjectReference.Create(this);
+        await viewportModule.InvokeVoidAsync("registerPageKeys", selfRef);
+    }
+
+    // Left/Right arrow keys turn the table's pages (direction: -1 prev, +1 next).
+    [JSInvokable]
+    public async Task OnPageKey(int direction)
+    {
+        if (table is null) return;
+        if (direction > 0)
+            await table.NextPage();
+        else
+            await table.PreviousPage();
+    }
 
     private async Task Reload()
     {
@@ -129,4 +163,18 @@
     }
 
     private void Close() => ModalService.Close(ModalResult.Ok());
+
+    public async ValueTask DisposeAsync()
+    {
+        if (viewportModule is not null)
+        {
+            try
+            {
+                await viewportModule.InvokeVoidAsync("unregisterPageKeys");
+                await viewportModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { /* circuit already gone */ }
+        }
+        selfRef?.Dispose();
+    }
 }

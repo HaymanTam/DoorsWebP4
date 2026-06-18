@@ -33,10 +33,6 @@
         }
         else
         {
-            <div class="text-muted small mb-2">
-                <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
-                Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
-            </div>
             <Table @ref="table" Item="CardDto" Items="filteredCards" PageSize="pageSize" Hover Responsive>
                 @* Access Level filter sits in the table header, next to the built-in search box. *@
                 <HeaderTemplate>
@@ -85,6 +81,10 @@
             {
                 <div class="text-muted text-center py-4">No cards found.</div>
             }
+            <div class="text-muted small mt-2">
+                <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
+                Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
+            </div>
         }
     </CardBody>
 </Card>

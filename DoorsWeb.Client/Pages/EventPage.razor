@@ -45,17 +45,14 @@
         }
         else
         {
-            @if (eventList.Count >= MaxRows)
+            @if (forceShowCapNotice || eventList.Count >= MaxRows)
             {
-                <div class="alert alert-info py-2 px-3 small mb-2" role="alert">
+                <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
                     <Icon class="icon me-1" IconType="@TablerIcons.Info_circle" />
-                    Showing the most recent @MaxRows.ToString("N0") events. Narrow the From / To range to reach older ones.
+                    Heads up — only the most recent <strong>@MaxRows.ToString("N0")</strong> events are loaded (the maximum shown at once).
+                    To see older events, please filter by a <strong>From / To</strong> date range above.
                 </div>
             }
-            <div class="text-muted small mb-2">
-                <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
-                Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
-            </div>
             <Table @ref="table" Item="EventDto" Items="filteredEvents" PageSize="pageSize" Hover Responsive>
                 @* Event Type filter sits in the table header, next to the built-in search box. *@
                 <HeaderTemplate>
@@ -85,6 +82,10 @@
             {
                 <div class="text-muted text-center py-4">No events found.</div>
             }
+            <div class="text-muted small mt-2">
+                <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
+                Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
+            </div>
         }
     </CardBody>
 </Card>
@@ -116,6 +117,10 @@
     // Mirrors EventService.MaxRows: when the load returns this many rows the result was
     // capped, so we surface a hint telling the user to narrow the date range for older events.
     private const int MaxRows = 10000;
+
+    // TEMP (for visual inspection): force the cap notice to show regardless of row count.
+    // Set back to false to restore normal behaviour — notice only appears once MaxRows is hit.
+    private bool forceShowCapNotice = true;
 
     // Rows per page, sized to the viewport height (see ComputePageSize). Bucketed so the
     // table doesn't reflow on every pixel of a window drag.

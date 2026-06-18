@@ -21,10 +21,6 @@
         }
         else
         {
-            <div class="text-muted small mb-2">
-                <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
-                Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
-            </div>
             <Table @ref="table" Item="DoorListDto" Items="doorList" PageSize="pageSize"
                    Hover Responsive EditMode=TableEditMode.Popup>
                 <ChildContent>
@@ -67,6 +63,10 @@
             {
                 <div class="text-muted text-center py-4">No doors found.</div>
             }
+            <div class="text-muted small mt-2">
+                <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
+                Tip: use the <kbd>←</kbd> / <kbd>→</kbd> arrow keys to change pages.
+            </div>
         }
     </CardBody>
 </Card>

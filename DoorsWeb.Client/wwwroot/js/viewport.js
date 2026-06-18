@@ -36,12 +36,19 @@ export function unregisterResize() {
 // (OnPageKey) with -1 for previous and +1 for next. Key presses are ignored
 // while the user is typing in a form control so search / date / dropdown
 // inputs keep their normal arrow-key behaviour.
-let keyRef = null;
-let keyHandler = null;
+//
+// Registrations form a stack so a modal (e.g. EntityListModal) can take over
+// paging while it's open and hand it back to the page underneath when it
+// closes. Only the topmost registrant receives the keys, and a single shared
+// window listener serves them all.
+let pageKeyRefs = [];
+let pageKeyHandler = null;
 
 export function registerPageKeys(helper) {
-    keyRef = helper;
-    keyHandler = (e) => {
+    pageKeyRefs.push(helper);
+    if (pageKeyHandler) return;
+
+    pageKeyHandler = (e) => {
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
         if (e.ctrlKey || e.altKey || e.metaKey) return;
 
@@ -51,15 +58,17 @@ export function registerPageKeys(helper) {
             if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) return;
         }
 
-        keyRef?.invokeMethodAsync("OnPageKey", e.key === "ArrowRight" ? 1 : -1);
+        // Only the topmost (most recently registered) consumer gets the keys.
+        const active = pageKeyRefs[pageKeyRefs.length - 1];
+        active?.invokeMethodAsync("OnPageKey", e.key === "ArrowRight" ? 1 : -1);
     };
-    window.addEventListener("keydown", keyHandler);
+    window.addEventListener("keydown", pageKeyHandler);
 }
 
 export function unregisterPageKeys() {
-    if (keyHandler) {
-        window.removeEventListener("keydown", keyHandler);
-        keyHandler = null;
+    pageKeyRefs.pop();
+    if (pageKeyRefs.length === 0 && pageKeyHandler) {
+        window.removeEventListener("keydown", pageKeyHandler);
+        pageKeyHandler = null;
     }
-    keyRef = null;
 }

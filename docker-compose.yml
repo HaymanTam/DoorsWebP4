@@ -5,6 +5,8 @@ services:
       context: .
       dockerfile: DoorsWeb.Client/Dockerfile
     container_name: doorsweb.client
+    # Static-file/Blazor host; keeps a small footprint.
+    mem_limit: 512m
     ports:
       - "60880:443"
     depends_on:
@@ -18,6 +20,8 @@ services:
       context: .
       dockerfile: DoorsWeb.API/Dockerfile
     container_name: doorsweb.api
+    # .NET API; 1 GB is plenty for dev workloads (raise if large legacy restores OOM).
+    mem_limit: 1g
     ports:
       - "60878:8080"
       - "60879:8081"
@@ -45,9 +49,16 @@ services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: doorsweb.mssql
+    # SQL Server grows its buffer pool to consume ALL available RAM by default and
+    # never releases it (looks like a leak, but is by design). MSSQL_MEMORY_LIMIT_MB
+    # caps SQL Server's own "max server memory"; mem_limit is the hard container
+    # ceiling and is kept ~1 GB above the buffer-pool cap to leave headroom for
+    # SQL's non-buffer-pool memory (avoids Docker OOM-killing the container).
+    mem_limit: 2560m
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
+      - MSSQL_MEMORY_LIMIT_MB=1536
     ports:
       # Host port is overridable via MSSQL_HOST_PORT in .env (defaults to 1433).
       # The container port stays 1433, so in-network clients still use doorsweb.mssql:1433.

@@ -279,8 +279,9 @@
         // Row Id is "{site}/{accessLevel}"; the second segment is the level number.
         int? accessLevelId = row is null ? null : int.Parse(row.Id.Split('/')[1]);
         var component = new RenderComponent<AccessLevelModal>()
-            .Set(e => e.SiteId, site.Site)
-            .Set(e => e.AccessLevelId, accessLevelId);
+            .Set(e => e.SiteId, site.Site);
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (accessLevelId is int id) component.Set(e => e.AccessLevelId, id);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -330,8 +331,9 @@
         // Row Id is "{site}/{timeZone}"; the second segment is the time-zone number.
         int? timeZoneId = row is null ? null : int.Parse(row.Id.Split('/')[1]);
         var component = new RenderComponent<TimeZoneModal>()
-            .Set(e => e.SiteId, site.Site)
-            .Set(e => e.TimeZoneId, timeZoneId);
+            .Set(e => e.SiteId, site.Site);
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (timeZoneId is int id) component.Set(e => e.TimeZoneId, id);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -378,8 +380,9 @@
     {
         var title = row is null ? "Calendars - New calendar" : "Calendars - Edit calendar";
         var component = new RenderComponent<CalendarModal>()
-            .Set(e => e.SiteId, site.Site)
-            .Set(e => e.Code, row is null ? null : int.Parse(row.Id));
+            .Set(e => e.SiteId, site.Site);
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (row is not null) component.Set(e => e.Code, int.Parse(row.Id));
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -428,8 +431,9 @@
         // Row Id is the zone number.
         int? zoneNumber = row is null ? null : int.Parse(row.Id);
         var component = new RenderComponent<SpaceZoneModal>()
-            .Set(e => e.SiteId, site.Site)
-            .Set(e => e.ZoneNumber, zoneNumber);
+            .Set(e => e.SiteId, site.Site);
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (zoneNumber is int zn) component.Set(e => e.ZoneNumber, zn);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -478,8 +482,9 @@
         // Row Id is the apb number.
         int? apbnumber = row is null ? null : int.Parse(row.Id);
         var component = new RenderComponent<AntiPassbackZoneModal>()
-            .Set(e => e.SiteId, site.Site)
-            .Set(e => e.Apbnumber, apbnumber);
+            .Set(e => e.SiteId, site.Site);
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (apbnumber is int apb) component.Set(e => e.Apbnumber, apb);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -529,8 +534,9 @@
         // Row Id is the trigger code.
         int? code = row is null ? null : int.Parse(row.Id);
         var component = new RenderComponent<TriggerModal>()
-            .Set(e => e.SiteId, site.Site)
-            .Set(e => e.Code, code);
+            .Set(e => e.SiteId, site.Site);
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (code is int c) component.Set(e => e.Code, c);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -573,8 +579,9 @@
         // Row Id is the trigger code.
         int? code = row is null ? null : int.Parse(row.Id);
         var component = new RenderComponent<SpaceZoneTriggerModal>()
-            .Set(e => e.SiteId, site.Site)
-            .Set(e => e.Code, code);
+            .Set(e => e.SiteId, site.Site);
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (code is int c) component.Set(e => e.Code, c);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {

@@ -2,6 +2,8 @@
    Shown via ModalService.ShowAsync("Access levels - New access level", ...).
    OK + Cancel only (Apply ignored). The green "Auto-update is ON" banner is intentionally omitted. *@
 
+@using DoorsWeb.Shared.Entities
+
 <TablerForm Model="@level" OnValidSubmit="OK">
     <Card Size="CardSize.Default">
         <CardBody>
@@ -41,7 +43,7 @@
         <CardBody>
             <CardTitle>Doors</CardTitle>
             <p class="mb-1">Select the doors you want to include in this access level.</p>
-            <p class="mb-2">Double-click a door to set an individual time zone.</p>
+            <p class="mb-2">Pick a Time Zone per door, or leave it on “(level default)” to follow the access level above.</p>
 
             <div class="table-responsive border rounded mb-2" style="max-height: 320px; overflow-y: auto;">
                 <table class="table table-sm table-hover mb-0">
@@ -67,7 +69,23 @@
                                             <span class="form-check-label">@door.Name</span>
                                         </label>
                                     </td>
-                                    <td>@door.TimeZoneDisplay</td>
+                                    <td>
+                                        <select class="form-select form-select-sm" style="width: auto;"
+                                                value="@(door.LevelDefault ? "default" : door.DoorTimeZone?.ToString())"
+                                                @onchange="e => OnDoorTimeZoneChanged(door, e)"
+                                                disabled="@(!door.Selected)">
+                                            <option value="default">(level default)</option>
+                                            @foreach (var tz in timeZones)
+                                            {
+                                                <option value="@tz.TimeZone">@tz.Name</option>
+                                            }
+                                            @* Keep the door's current value selectable even if it isn't a named site time zone (e.g. legacy id 0). *@
+                                            @if (!door.LevelDefault && door.DoorTimeZone is int dtz && timeZones.All(t => t.TimeZone != dtz))
+                                            {
+                                                <option value="@dtz">Time zone @dtz</option>
+                                            }
+                                        </select>
+                                    </td>
                                 </tr>
                             }
                         }
@@ -111,6 +129,9 @@
     // Header TimeZone (FK) carried through unchanged; the dropdown above is cosmetic for now.
     private int? timeZoneValue;
 
+    // Time zones defined for this site, used to populate the per-door Time Zone dropdowns.
+    private List<TTimeZoneHeader> timeZones = new();
+
     private List<DoorRow> VisibleDoors =>
         level.ShowSelectedOnly ? level.Doors.Where(d => d.Selected).ToList() : level.Doors;
 
@@ -120,6 +141,12 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
+
+            // Populate the per-door Time Zone dropdowns from the site's defined time zones.
+            var tzList = await client.GetFromJsonAsync<List<TTimeZoneHeader>>("api/TimeZoneHeader");
+            if (tzList is not null)
+                timeZones = tzList.Where(t => t.Site == SiteId).OrderBy(t => t.Name).ToList();
+
             var url = $"api/AccessLevelHeader/{SiteId}/doors";
             if (AccessLevelId is int id) url += $"?accessLevel={id}";
 
@@ -195,6 +222,23 @@
         // Placeholder: open the time-zone editor (no dialog wired yet).
     }
 
+    // The per-door Time Zone dropdown carries two pieces of state: whether the door follows the
+    // level default, and (if not) which individual time zone. "default" maps back to LevelDefault.
+    private void OnDoorTimeZoneChanged(DoorRow door, ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrEmpty(value) || value == "default")
+        {
+            door.LevelDefault = true;
+            door.DoorTimeZone = null;
+        }
+        else if (int.TryParse(value, out var tz))
+        {
+            door.LevelDefault = false;
+            door.DoorTimeZone = tz;
+        }
+    }
+
     public class AccessLevelModel
     {
         public string? Name { get; set; }
@@ -210,8 +254,5 @@
         public string? Name { get; set; }
         public int? DoorTimeZone { get; set; }
         public bool LevelDefault { get; set; } = true;
-
-        public string TimeZoneDisplay =>
-            LevelDefault || DoorTimeZone is null ? "(level default)" : DoorTimeZone.Value.ToString();
     }
 }

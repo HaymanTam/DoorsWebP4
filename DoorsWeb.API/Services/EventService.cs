@@ -5,6 +5,11 @@ namespace DoorsWeb.API.Services
 {
     public class EventService : IEventService
     {
+        // Cap on how many recent events are loaded/streamed into the client. The client
+        // paints the first batch immediately and streams the remainder in the background,
+        // so this is bounded by browser memory rather than perceived load time.
+        private const int MaxRows = 10000;
+
         private readonly DoorsEnterpriseContext _context;
 
         public EventService(DoorsEnterpriseContext context)
@@ -12,12 +17,11 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<EventDto>> GetAll()
+        public IAsyncEnumerable<EventDto> GetAll(DateTime? from = null, DateTime? to = null)
         {
-            return await _context.TEvents
-                .AsNoTracking()
+            return Filter(_context.TEvents.AsNoTracking(), from, to)
                 .OrderByDescending(e => e.EventDate)
-                .Take(2000)
+                .Take(MaxRows)
                 .Select(e => new EventDto
                 {
                     EventId = e.EventId,
@@ -33,7 +37,22 @@ namespace DoorsWeb.API.Services
                     EventName = e.EventTypeNavigation != null ? e.EventTypeNavigation.Description : null,
                     ActualCardId = e.ActualCardId
                 })
-                .ToListAsync();
+                .AsAsyncEnumerable();
+        }
+
+        public async Task<int> GetCount(DateTime? from = null, DateTime? to = null)
+        {
+            return Math.Min(await Filter(_context.TEvents, from, to).CountAsync(), MaxRows);
+        }
+
+        // Applies the optional date-range bounds shared by GetAll and GetCount.
+        private static IQueryable<TEvents> Filter(IQueryable<TEvents> query, DateTime? from, DateTime? to)
+        {
+            if (from.HasValue)
+                query = query.Where(e => e.EventDate >= from.Value);
+            if (to.HasValue)
+                query = query.Where(e => e.EventDate <= to.Value);
+            return query;
         }
     }
 }

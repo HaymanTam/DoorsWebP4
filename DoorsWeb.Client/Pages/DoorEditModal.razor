@@ -350,19 +350,26 @@
                reflects the relay state (static placeholder until live status is wired). *@
             <div class="row">
                 <div class="col-lg-6">
-                    <Alert BackgroundColor="relayAStatus" Title="Relay A">
-                        <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-secondary">Open</button>
-                            <button type="button" class="btn btn-outline-secondary">Close</button>
-                            <button type="button" class="btn btn-outline-secondary">Release</button>
+                    <Alert BackgroundColor="relayAStatus">
+                        @* Title on its own row, buttons stacked on the next row. *@
+                        <div>
+                            <div class="alert-title mb-2">Relay A</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-secondary">Open</button>
+                                <button type="button" class="btn btn-outline-secondary">Close</button>
+                                <button type="button" class="btn btn-outline-secondary">Release</button>
+                            </div>
                         </div>
                     </Alert>
                 </div>
                 <div class="col-lg-6">
-                    <Alert BackgroundColor="relayBStatus" Title="Relay B">
-                        <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-secondary">Open</button>
-                            <button type="button" class="btn btn-outline-secondary">Close</button>
+                    <Alert BackgroundColor="relayBStatus">
+                        <div>
+                            <div class="alert-title mb-2">Relay B</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-secondary">Open</button>
+                                <button type="button" class="btn btn-outline-secondary">Close</button>
+                            </div>
                         </div>
                     </Alert>
                 </div>
@@ -371,18 +378,19 @@
             <Card Size="CardSize.Default">
                 <CardBody>
                     <CardTitle>Status</CardTitle>
-                    <div class="row">
+                    @* gx-5 widens the gutter so the left column's indicator isn't crowding the right column's label. *@
+                    <div class="row gx-5">
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Door Monitor</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Request to Exit</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Interlock Input</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                     </div>
                 </CardBody>
@@ -394,30 +402,30 @@
                         <CardTitle class="mb-0">Alarms</CardTitle>
                         <button type="button" class="btn btn-outline-secondary">Reset</button>
                     </div>
-                    <div class="row">
+                    <div class="row gx-5">
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Door Forced</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Duress</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Hacker</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Fire</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Intruder</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Door Failed to Close</span>
-                            <span class="status-light"></span>
+                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
                         </div>
                     </div>
                 </CardBody>
@@ -455,9 +463,10 @@
                         <div class="col-lg-6">
                             <button type="button" class="btn btn-outline-secondary w-100">Clear Biometric data</button>
                         </div>
-                        <div class="col-lg-3">
-                            <label class="form-label">Target</label>
-                            <InputSelect class="form-select" @bind-Value="biometricTarget">
+                        @* Target label + dropdown inline, aligned to the right of the row. *@
+                        <div class="col-lg-6 d-flex align-items-center justify-content-end gap-2">
+                            <label class="form-label mb-0">Target</label>
+                            <InputSelect class="form-select" style="width: auto;" @bind-Value="biometricTarget">
                                 <option value="Reader A">Reader A</option>
                                 <option value="Reader B">Reader B</option>
                             </InputSelect>
@@ -485,18 +494,6 @@
 }
 <Button class="float-end" BackgroundColor="TablerColor.Primary" Type="ButtonType.Submit" Text="Submit"></Button>
 </TablerForm>
-
-<style>
-    .status-light {
-        display: inline-block;
-        width: 70px;
-        height: 22px;
-        border: 1px solid #888;
-        border-radius: 3px;
-        background-color: #d63939; /* red - static for now */
-        vertical-align: middle;
-    }
-</style>
 
 @code {
 

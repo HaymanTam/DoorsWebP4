@@ -75,6 +75,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPwHashService, PwHashService>();
 
+// Users & Passwords page CRUD (legacy T_Users)
+builder.Services.AddScoped<IUsersService, UsersService>();
+
 // Alarms (read-only list for the Alarms page)
 builder.Services.AddScoped<IAlarmService, AlarmService>();
 

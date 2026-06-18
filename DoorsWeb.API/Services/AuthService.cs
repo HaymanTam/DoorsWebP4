@@ -108,14 +108,24 @@ namespace DoorsWeb.API.Services
         // Legacy T_Users may still hold plaintext passwords; bcrypt hashes start
         // with "$2". Verify against whichever format is stored.
         private bool VerifyPassword(string entered, string stored) =>
-            stored.StartsWith("$2") ? _pwHash.Verify(entered, stored) : entered == stored;
+            IsBcryptHash(stored) ? _pwHash.Verify(entered, stored) : entered == stored;
 
         private bool StoredIsDefault(string stored) =>
-            stored.StartsWith("$2") ? _pwHash.Verify(DefaultPassword, stored) : stored == DefaultPassword;
+            IsBcryptHash(stored) ? _pwHash.Verify(DefaultPassword, stored) : stored == DefaultPassword;
+
+        private static bool IsBcryptHash(string stored) =>
+            stored.StartsWith("$2", StringComparison.Ordinal);
+
+        // Force a password reset on first sign-in when the stored secret is still the seeded
+        // default, OR is not a bcrypt hash — i.e. a legacy plaintext password carried over from a
+        // restored DoorsClient database. Once the user sets a new password it is bcrypt-hashed, so
+        // this returns false on subsequent logins.
+        private bool RequiresPasswordReset(string stored) =>
+            !IsBcryptHash(stored) || StoredIsDefault(stored);
 
         private JwtPair GenerateJwtPair(TUsers user)
         {
-            var mustChangePassword = StoredIsDefault(user.Password);
+            var mustChangePassword = RequiresPasswordReset(user.Password);
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

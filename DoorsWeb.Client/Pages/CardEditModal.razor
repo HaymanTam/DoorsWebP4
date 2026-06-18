@@ -21,19 +21,19 @@
                 <div class="mb-2 row align-items-center">
                     <label class="col-4 col-form-label text-end">Card Number</label>
                     <div class="col-8">
-                        <input type="number" class="form-control" @bind="card.CardNumber" disabled="@(!isNew || busy)" />
-                        @if (isNew)
-                        {
-                            <small class="text-muted">System id for this card (next free number suggested).</small>
-                        }
+                        <input class="form-control" maxlength="8" placeholder="Printed card number"
+                               @bind="card.CardId" disabled="@busy" />
                     </div>
                 </div>
 
                 <div class="mb-2 row align-items-center">
                     <label class="col-4 col-form-label text-end">Card ID</label>
                     <div class="col-8">
-                        <input class="form-control" maxlength="8" placeholder="Printed card number"
-                               @bind="card.CardId" disabled="@busy" />
+                        <input type="number" class="form-control" @bind="card.CardNumber" disabled="@(!isNew || busy)" />
+                        @if (isNew)
+                        {
+                            <small class="text-muted">System id for this card (next free number suggested).</small>
+                        }
                     </div>
                 </div>
 

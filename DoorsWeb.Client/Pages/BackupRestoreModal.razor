@@ -122,8 +122,16 @@
                 <label class="form-label mb-0">Password</label>
             </div>
             <div class="col-lg-9">
-                <input type="password" class="form-control" placeholder="(leave blank if not encrypted)"
-                       @bind="legacyPassword" disabled="@busy" autocomplete="off" />
+                <div class="input-group input-group-flat">
+                    <input type="@(showLegacyPwd ? "text" : "password")" class="form-control" placeholder="(leave blank if not encrypted)"
+                           @bind="legacyPassword" disabled="@busy" autocomplete="off" />
+                    <span class="input-group-text">
+                        <a href="#" class="link-secondary" tabindex="-1" title="Show password"
+                           @onclick="() => showLegacyPwd = !showLegacyPwd" @onclick:preventDefault="true">
+                            <Icon class="icon" IconType="@(showLegacyPwd ? TablerIcons.Eye_off : TablerIcons.Eye)" />
+                        </a>
+                    </span>
+                </div>
             </div>
         </div>
         <div>
@@ -205,6 +213,7 @@
 
     private IBrowserFile? legacyFile;
     private string? legacyPassword;
+    private bool showLegacyPwd;
     private LegacyRestoreResult? legacyResult;
 
     private bool _busy;

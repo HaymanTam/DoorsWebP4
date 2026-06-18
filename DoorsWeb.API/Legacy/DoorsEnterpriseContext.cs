@@ -1272,9 +1272,12 @@ public partial class DoorsEnterpriseContext : DbContext
 
         modelBuilder.Entity<TUsers>(entity =>
         {
-            entity
-                .HasNoKey()
-                .ToTable("T_Users");
+            // T_Users has a real identity PK (PK_T_Users on Code); keep the model keyed so the
+            // entity can be tracked for insert/update/delete (the Users & Passwords page CRUD and
+            // AuthService.ChangePasswordAsync both rely on this).
+            entity.HasKey(e => e.Code).HasName("PK_T_Users");
+
+            entity.ToTable("T_Users");
 
             entity.Property(e => e.Code).ValueGeneratedOnAdd();
             entity.Property(e => e.Description)

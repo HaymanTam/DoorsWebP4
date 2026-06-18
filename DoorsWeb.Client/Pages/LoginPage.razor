@@ -32,7 +32,15 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <InputText type="password" class="form-control" @bind-Value="loginDto.Password" placeholder="Password" />
+                        <div class="input-group input-group-flat">
+                            <InputText type="@(showLoginPwd ? "text" : "password")" class="form-control" @bind-Value="loginDto.Password" placeholder="Password" />
+                            <span class="input-group-text">
+                                <a href="#" class="link-secondary" tabindex="-1" title="Show password"
+                                   @onclick="() => showLoginPwd = !showLoginPwd" @onclick:preventDefault="true">
+                                    <Icon class="icon" IconType="@(showLoginPwd ? TablerIcons.Eye_off : TablerIcons.Eye)" />
+                                </a>
+                            </span>
+                        </div>
                         <ValidationMessage For="@(() => loginDto.Password)" />
                     </div>
                     @if (passwordHint is not null)
@@ -59,17 +67,33 @@
             else
             {
                 <h2 class="h2 text-center mb-4">Choose a new password</h2>
-                <p class="text-secondary mb-4">Your account is using the default password. Set a new password to continue.</p>
+                <p class="text-secondary mb-4">Your password needs to be reset before you can continue. Set a new password to continue.</p>
                 <EditForm Model="changeModel" OnValidSubmit="HandleChangePassword">
                     <DataAnnotationsValidator />
                     <div class="mb-3">
                         <label class="form-label">New password</label>
-                        <InputText type="password" class="form-control" @bind-Value="changeModel.NewPassword" placeholder="New password" />
+                        <div class="input-group input-group-flat">
+                            <InputText type="@(showNewPwd ? "text" : "password")" class="form-control" @bind-Value="changeModel.NewPassword" placeholder="New password" />
+                            <span class="input-group-text">
+                                <a href="#" class="link-secondary" tabindex="-1" title="Show password"
+                                   @onclick="() => showNewPwd = !showNewPwd" @onclick:preventDefault="true">
+                                    <Icon class="icon" IconType="@(showNewPwd ? TablerIcons.Eye_off : TablerIcons.Eye)" />
+                                </a>
+                            </span>
+                        </div>
                         <ValidationMessage For="@(() => changeModel.NewPassword)" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Confirm new password</label>
-                        <InputText type="password" class="form-control" @bind-Value="changeModel.ConfirmPassword" placeholder="Re-enter new password" />
+                        <div class="input-group input-group-flat">
+                            <InputText type="@(showConfirmPwd ? "text" : "password")" class="form-control" @bind-Value="changeModel.ConfirmPassword" placeholder="Re-enter new password" />
+                            <span class="input-group-text">
+                                <a href="#" class="link-secondary" tabindex="-1" title="Show password"
+                                   @onclick="() => showConfirmPwd = !showConfirmPwd" @onclick:preventDefault="true">
+                                    <Icon class="icon" IconType="@(showConfirmPwd ? TablerIcons.Eye_off : TablerIcons.Eye)" />
+                                </a>
+                            </span>
+                        </div>
                         <ValidationMessage For="@(() => changeModel.ConfirmPassword)" />
                     </div>
                     @if (errorMessage is not null)
@@ -105,6 +129,9 @@
     private string? passwordHint;
     private bool isLoading;
     private bool requirePasswordChange;
+    private bool showLoginPwd;
+    private bool showNewPwd;
+    private bool showConfirmPwd;
 
     private string RedirectTarget => string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl;
 

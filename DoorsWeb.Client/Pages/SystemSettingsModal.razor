@@ -15,7 +15,7 @@
             <table class="table table-sm table-hover mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th>Name</th>
+                        <th class="ps-4">Name</th>
                         <th style="width: 5rem;"></th>
                     </tr>
                 </thead>
@@ -33,7 +33,7 @@
                         @foreach (var s in sites)
                         {
                             <tr>
-                                <td>
+                                <td class="ps-4">
                                     @if (editingSite == s.Site)
                                     {
                                         <input class="form-control form-control-sm" maxlength="30"
@@ -103,7 +103,7 @@
                 <label class="form-label mb-0">Ping Controllers every</label>
             </div>
             <div class="col-lg-3">
-                <input type="number" class="form-control" style="width: 30%;" min="1" max="3600"
+                <input type="number" class="form-control" style="width: 5rem;" min="1" max="3600"
                        @bind="settings.PingControllersSeconds" disabled="@busy" />
             </div>
             <div class="col-lg-3">
@@ -116,7 +116,7 @@
                 <label class="form-label mb-0">Check for commands every</label>
             </div>
             <div class="col-lg-3">
-                <input type="number" class="form-control" style="width: 30%;" min="1" max="3600"
+                <input type="number" class="form-control" style="width: 5rem;" min="1" max="3600"
                        @bind="settings.CheckCommandsSeconds" disabled="@busy" />
             </div>
             <div class="col-lg-3">
@@ -129,7 +129,7 @@
                 <label class="form-label mb-0">Force a ping after</label>
             </div>
             <div class="col-lg-3">
-                <input type="number" class="form-control" style="width: 30%;" min="1" max="100000"
+                <input type="number" class="form-control" style="width: 5rem;" min="1" max="100000"
                        @bind="settings.ForcePingAfterCommands" disabled="@busy" />
             </div>
             <div class="col-lg-3">

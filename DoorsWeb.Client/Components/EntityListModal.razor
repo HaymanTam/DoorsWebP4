@@ -9,16 +9,17 @@
          .Set(e => e.OnAdd,    () => ShowEditModal(null))
          .Set(e => e.OnEdit,   row => ShowEditModal(row))
          .Set(e => e.OnDelete, row => DeleteRow(row));
-     await ModalService.ShowAsync("Access Levels", c, new ModalOptions { Size = ModalSize.Large });
+     await ModalService.ShowAsync("Access Levels", c, new ModalOptions { Size = ModalSize.Large, CloseOnEsc = true });
 *@
 
 @inject TabBlazor.Services.IModalService ModalService
 
+<div class="entity-list">
 <Table Item="EntityListRow" Items="rows" PageSize="10" Hover Responsive>
     <HeaderTemplate>
         @if (OnAdd is not null)
         {
-            <Button Class="btn float-end" Color="TablerColor.Success" Size="ButtonSize.Default" @onclick="AddClicked">
+            <Button Color="TablerColor.Success" @onclick="AddClicked">
                 <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add @ItemNoun
             </Button>
         }
@@ -46,13 +47,24 @@
         </Column>
     </ChildContent>
 </Table>
+</div>
+
+@* Pad the left of the Name column (header + cells) so it isn't flush against the modal edge. *@
+<style>
+    .entity-list table thead th:first-child,
+    .entity-list table tbody td:first-child {
+        padding-left: 1.5rem;
+    }
+</style>
 
 @if (loaded && rows.Count == 0)
 {
     <div class="text-muted text-center py-4">No @(ItemNoun.ToLower())s found.</div>
 }
 
-<div class="d-flex justify-content-end mt-3">
+<div class="d-flex justify-content-end align-items-center gap-3 mt-3">
+    @* Hint: this modal is opened with ModalOptions.CloseOnEsc = true. *@
+    <span class="text-muted small">Press <kbd>Esc</kbd> to close</span>
     <button type="button" class="btn btn-secondary" @onclick="Close">Close</button>
 </div>
 

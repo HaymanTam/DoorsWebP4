@@ -1,4 +1,5 @@
 @page "/events"
+@using System.Text.Json
 @using DoorsWeb.Shared.DTO
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IHttpClientFactory ClientFactory
@@ -8,8 +9,28 @@
     <CardHeader>
         <CardTitle>
             <Icon class="icon me-2" IconType="@TablerIcons.Search" />Events
+            @if (isLoadingMore)
+            {
+                <span class="ms-3 text-muted small fw-normal d-inline-flex align-items-center">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>Loading more… (@eventList.Count)
+                </span>
+            }
         </CardTitle>
-        <CardActions class="ms-auto">
+        <CardActions class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+            @* Date range (server-side query) sits up top next to Clear/Refresh. *@
+            <div class="d-flex align-items-center gap-2">
+                <label class="form-label mb-0">From</label>
+                <input type="datetime-local" class="form-control form-control-sm" style="width: auto;"
+                       value="@fromDate?.ToString("yyyy-MM-ddTHH:mm")" @onchange="OnFromChanged" />
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label class="form-label mb-0">To</label>
+                <input type="datetime-local" class="form-control form-control-sm" style="width: auto;"
+                       value="@toDate?.ToString("yyyy-MM-ddTHH:mm")" @onchange="OnToChanged" />
+            </div>
+            <Button Color="TablerColor.Secondary" OnClick="ClearFilters">
+                <Icon class="icon me-1" IconType="@TablerIcons.X" />Clear
+            </Button>
             <Button Color="TablerColor.Primary" OnClick="Refresh">
                 <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
             </Button>
@@ -18,11 +39,26 @@
     <CardBody>
         @if (!IsLoaded)
         {
+            @* Shown only until the first batch arrives; then the table renders and the rest streams in behind the header chip. *@
             <Progress Color="TablerColor.Blue" Indeterminate />
         }
         else
         {
-            <Table Item="EventDto" Items="eventList" PageSize="10" Hover Responsive>
+            <Table Item="EventDto" Items="filteredEvents" PageSize="10" Hover Responsive>
+                @* Event Type filter sits in the table header, next to the built-in search box. *@
+                <HeaderTemplate>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0">Event Type</label>
+                        <select class="form-select form-select-sm" style="width: auto;"
+                                @bind="selectedEventType" @bind:after="ApplyFilters">
+                            <option value="">All</option>
+                            @foreach (var et in eventTypeOptions)
+                            {
+                                <option value="@et">@et</option>
+                            }
+                        </select>
+                    </div>
+                </HeaderTemplate>
                 <ChildContent>
                     <Column Item="EventDto" Property="e => e.EventId" Title="Event Id" Width="50px" Sortable Visible="false" />
                     <Column Item="EventDto" Property="e => e.CardHolder" Title="User" Searchable Sortable />
@@ -33,7 +69,7 @@
                     <Column Item="EventDto" Property="e => e.EventDate" Title="Time" Searchable Sortable />
                 </ChildContent>
             </Table>
-            @if (eventList.Count == 0)
+            @if (filteredEvents.Count == 0)
             {
                 <div class="text-muted text-center py-4">No events found.</div>
             }
@@ -45,7 +81,23 @@
     private HubConnection? hubConnection;
     private bool IsLoaded = false;
     private HttpClient client = new HttpClient();
-    private List<EventDto> eventList = new List<EventDto>();
+
+    private List<EventDto> eventList = new();        // full set from the API (max 10000, recent first)
+    private List<EventDto> filteredEvents = new();   // what the table shows after the filters below
+
+    private List<string> eventTypeOptions = new();   // distinct EventName values for the dropdown
+    private string? selectedEventType;               // null / "" = all event types
+    private DateTime? fromDate;
+    private DateTime? toDate;
+
+    // True while rows are still streaming in after the first batch has painted (drives the header chip).
+    private bool isLoadingMore;
+    private static readonly JsonSerializerOptions JsonWebOptions = new(JsonSerializerDefaults.Web);
+
+    // Paint the newest FirstPaintRows as soon as they arrive, then append the remainder,
+    // repainting every RepaintEvery rows so the UI stays responsive during the background load.
+    private const int FirstPaintRows = 1000;
+    private const int RepaintEvery = 250;
 
     protected override async Task OnInitializedAsync()
     {
@@ -56,17 +108,132 @@
         hubConnection.On<EventDto>("NewEvent", (EvtDto) =>
         {
             eventList.Insert(0, EvtDto);
+            RebuildEventTypeOptions();
+            ApplyFilters();
             InvokeAsync(StateHasChanged);
         });
 
         await hubConnection.StartAsync(); // Last thing in line
     }
 
-    private async Task Refresh()
+    // Reload using whatever filter is currently active (Refresh button / initial load).
+    private Task Refresh() => LoadEvents();
+
+    // Streams events from the API, painting the newest FirstPaintRows as soon as they
+    // arrive so the table is usable almost immediately, then appending the remainder in
+    // the background (isLoadingMore drives the header chip). Newest-first, so the first
+    // batch shown is the most recent events.
+    private async Task LoadEvents()
     {
         IsLoaded = false;
-        eventList = await client.GetFromJsonAsync<List<EventDto>>("api/Event") ?? [];
+        isLoadingMore = true;
+        StateHasChanged();
+
+        var query = BuildDateQuery();
+        var loaded = new List<EventDto>();
+        try
+        {
+            using var response = await client.GetAsync($"api/Event{query}", HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+            using var stream = await response.Content.ReadAsStreamAsync();
+
+            await foreach (var evt in JsonSerializer.DeserializeAsyncEnumerable<EventDto>(stream, JsonWebOptions))
+            {
+                if (evt is null) continue;
+                loaded.Add(evt);
+
+                if (!IsLoaded && loaded.Count >= FirstPaintRows)
+                {
+                    // First batch is in: bind it and reveal the table.
+                    eventList = loaded;
+                    RebuildEventTypeOptions();
+                    ApplyFilters();
+                    IsLoaded = true;
+                    StateHasChanged();
+                    await Task.Yield();
+                }
+                else if (IsLoaded && loaded.Count % RepaintEvery == 0)
+                {
+                    // Subsequent rows: refresh the visible set periodically without blocking.
+                    RebuildEventTypeOptions();
+                    ApplyFilters();
+                    StateHasChanged();
+                    await Task.Yield();
+                }
+            }
+        }
+        catch
+        {
+            // Fall through with whatever streamed in; the table still renders.
+        }
+
+        eventList = loaded;
+        RebuildEventTypeOptions();
+        ApplyFilters();
         IsLoaded = true;
+        isLoadingMore = false;
+    }
+
+    // Builds the "?from=...&to=..." query string from the active date range (ISO, sortable).
+    private string BuildDateQuery()
+    {
+        var parts = new List<string>();
+        if (fromDate.HasValue)
+            parts.Add($"from={Uri.EscapeDataString(fromDate.Value.ToString("s"))}");
+        if (toDate.HasValue)
+            parts.Add($"to={Uri.EscapeDataString(toDate.Value.ToString("s"))}");
+        return parts.Count > 0 ? "?" + string.Join("&", parts) : string.Empty;
+    }
+
+    // Build the Event Type dropdown options from the distinct event names currently loaded.
+    private void RebuildEventTypeOptions()
+    {
+        eventTypeOptions = eventList
+            .Select(e => e.EventName)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+    }
+
+    // Apply the Event Type + date-range filters to produce the table's item list.
+    private void ApplyFilters()
+    {
+        IEnumerable<EventDto> q = eventList;
+
+        if (!string.IsNullOrEmpty(selectedEventType))
+            q = q.Where(e => e.EventName == selectedEventType);
+        if (fromDate.HasValue)
+            q = q.Where(e => e.EventDate >= fromDate.Value);
+        if (toDate.HasValue)
+            q = q.Where(e => e.EventDate <= toDate.Value);
+
+        filteredEvents = q.ToList();
+    }
+
+    // Date range is applied server-side, so a change triggers a fresh streaming reload.
+    private async Task OnFromChanged(ChangeEventArgs e)
+    {
+        fromDate = ParseLocal(e.Value?.ToString());
+        await LoadEvents();
+    }
+
+    private async Task OnToChanged(ChangeEventArgs e)
+    {
+        toDate = ParseLocal(e.Value?.ToString());
+        await LoadEvents();
+    }
+
+    private static DateTime? ParseLocal(string? value)
+        => DateTime.TryParse(value, out var dt) ? dt : null;
+
+    private async Task ClearFilters()
+    {
+        selectedEventType = null;
+        fromDate = null;
+        toDate = null;
+        await LoadEvents();   // reload from scratch with filters cleared
     }
 
     public async ValueTask DisposeAsync()

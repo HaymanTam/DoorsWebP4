@@ -1,4 +1,5 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -33,10 +34,27 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{site}/{timeZone}/full")]
+        public async Task<ActionResult<TimeZoneSaveDto>> GetWithElements(int site, int timeZone)
+        {
+            var result = await _service.GetWithElements(site, timeZone);
+            if (result is null)
+            {
+                return Problem(detail: $"Time Zone Header <{site}/{timeZone}> was not found.", title: "Not Found", statusCode: 404);
+            }
+            return Ok(result);
+        }
+
         [HttpPost]
         public async Task<ActionResult<List<TTimeZoneHeader>>> Create(TTimeZoneHeader entity)
         {
             return Ok(await _service.Create(entity));
+        }
+
+        [HttpPost("save")]
+        public async Task<ActionResult<TTimeZoneHeader>> Save(TimeZoneSaveDto dto)
+        {
+            return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{site}/{timeZone}")]

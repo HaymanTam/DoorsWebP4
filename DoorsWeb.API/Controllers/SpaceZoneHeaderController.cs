@@ -1,4 +1,5 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,10 +33,23 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        // Door picker for the editor. zone omitted = new (all doors unincluded).
+        [HttpGet("{site}/doors")]
+        public async Task<ActionResult<SpaceZoneSaveDto>> GetForEdit(int site, [FromQuery] int? zone)
+        {
+            return Ok(await _service.GetForEdit(site, zone));
+        }
+
         [HttpPost]
         public async Task<ActionResult<List<TSpaceZoneHeader>>> Create(TSpaceZoneHeader entity)
         {
             return Ok(await _service.Create(entity));
+        }
+
+        [HttpPost("save")]
+        public async Task<ActionResult<TSpaceZoneHeader>> Save(SpaceZoneSaveDto dto)
+        {
+            return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{id}")]

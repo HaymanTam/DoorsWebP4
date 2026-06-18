@@ -1,5 +1,7 @@
 ﻿@page "/doors"
 @inject IHttpClientFactory ClientFactory
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <Card>
     <CardHeader>
@@ -7,7 +9,7 @@
             <Icon class="icon me-2" IconType="@TablerIcons.Door" />Doors
         </CardTitle>
         <CardActions class="ms-auto">
-            <Button Color="TablerColor.Success" @onclick='(() => ShowDoorEditModal("New Door", 0))'>
+            <Button BackgroundColor="TablerColor.Primary" @onclick='(() => ShowDoorEditModal("New Door", 0))'>
                 <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Door
             </Button>
         </CardActions>
@@ -19,7 +21,7 @@
         }
         else
         {
-            <Table Item="DoorListDto" Items="doorList" PageSize="10"
+            <Table Item="DoorListDto" Items="doorList" PageSize="pageSize"
                    Hover Responsive EditMode=TableEditMode.Popup>
                 <ChildContent>
                     <Column Item="DoorListDto" Property="e => e.Door" Title="Door" Sortable Visible=false>
@@ -75,12 +77,53 @@
     private HttpClient client = new HttpClient();
     private List<DoorListDto> doorList = new List<DoorListDto>();
 
+    // Rows per page, sized to the viewport height (see ComputePageSize). Bucketed so the
+    // table doesn't reflow on every pixel of a window drag.
+    private int pageSize = 10;
+    private IJSObjectReference? viewportModule;
+    private DotNetObjectReference<DoorsPage>? selfRef;
+
     protected override async Task OnInitializedAsync()
     {
         client = ClientFactory.CreateClient("WebAPI");
         doorList = await client.GetFromJsonAsync<List<DoorListDto>>("api/Door") ?? [];
         IsLoaded = true;
     }
+
+    // Size the page to the window on first render, then track resizes via JS interop.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        viewportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+        var height = await viewportModule.InvokeAsync<double>("getInnerHeight");
+        ApplyPageSize(height);
+
+        selfRef = DotNetObjectReference.Create(this);
+        await viewportModule.InvokeVoidAsync("registerResize", selfRef);
+    }
+
+    [JSInvokable]
+    public void OnViewportResized(double height) => ApplyPageSize(height);
+
+    // Recompute rows-per-page and repaint only when the bucket actually changes.
+    private void ApplyPageSize(double viewportHeight)
+    {
+        var next = ComputePageSize(viewportHeight);
+        if (next == pageSize) return;
+        pageSize = next;
+        StateHasChanged();
+    }
+
+    // Bucket the viewport height into a few row counts. Bounds are rough: the page chrome
+    // (app header, card header, search/pager) eats ~320px and each table row is ~40px.
+    private static int ComputePageSize(double viewportHeight) => viewportHeight switch
+    {
+        < 700 => 5,
+        < 900 => 10,
+        < 1100 => 20,
+        _ => 35
+    };
 
     private async Task ShowDoorEditModal(string title, int DoorId)
     {
@@ -120,6 +163,20 @@
             IconType = TablerIcons.Info_circle,
             MainText = title
         });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (viewportModule is not null)
+        {
+            try
+            {
+                await viewportModule.InvokeVoidAsync("unregisterResize");
+                await viewportModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { /* circuit already gone */ }
+        }
+        selfRef?.Dispose();
     }
 
 }

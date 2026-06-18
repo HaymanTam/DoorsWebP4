@@ -1,4 +1,5 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,10 +33,27 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{id}/full")]
+        public async Task<ActionResult<CalendarSaveDto>> GetWithHolidays(int id)
+        {
+            var result = await _service.GetWithHolidays(id);
+            if (result is null)
+            {
+                return Problem(detail: $"Calendar Header <{id}> was not found.", title: "Not Found", statusCode: 404);
+            }
+            return Ok(result);
+        }
+
         [HttpPost]
         public async Task<ActionResult<List<TCalendarHeader>>> Create(TCalendarHeader entity)
         {
             return Ok(await _service.Create(entity));
+        }
+
+        [HttpPost("save")]
+        public async Task<ActionResult<TCalendarHeader>> Save(CalendarSaveDto dto)
+        {
+            return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{id}")]

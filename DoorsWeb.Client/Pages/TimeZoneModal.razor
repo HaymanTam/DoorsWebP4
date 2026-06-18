@@ -87,30 +87,86 @@
         </CardBody>
     </Card>
 
+    @if (status is not null)
+    {
+        <div class="alert alert-danger py-2 px-3 small mt-3 mb-0" role="alert">@status</div>
+    }
+
     <div class="d-flex justify-content-end gap-2 mt-3">
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary">OK</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+        <button type="submit" class="btn btn-primary" disabled="@busy">OK</button>
     </div>
 </TablerForm>
 
 @code {
 
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+    [Inject] IHttpClientFactory ClientFactory { get; set; } = null!;
 
-    /// <summary>Optional starting values (e.g. when editing an existing time zone).</summary>
-    [Parameter] public TimeZoneModel? TimeZone { get; set; }
+    /// <summary>Existing time zone's number; null when creating a new one.</summary>
+    [Parameter] public int? TimeZoneId { get; set; }
+
+    /// <summary>Owning site (required when creating).</summary>
+    [Parameter] public int SiteId { get; set; }
 
     private TimeZoneModel timeZone = new();
     private TimeZoneElement? selected;
+    private bool busy;
+    private string? status;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        if (TimeZone is not null) timeZone = TimeZone;
+        if (TimeZoneId is not int tz) return;
+
+        // Editing: pull the header name and element rows to seed the form.
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var dto = await client.GetFromJsonAsync<TimeZoneSaveDto>($"api/TimeZoneHeader/{SiteId}/{tz}/full");
+            if (dto is not null)
+            {
+                timeZone.Name = dto.Name;
+                timeZone.Elements = dto.Elements.Select(FromDto).ToList();
+            }
+        }
+        catch
+        {
+            // Leave the form empty; the user can still re-enter values.
+        }
     }
 
-    private void OK(EditContext context)
+    private async Task OK(EditContext context)
     {
-        ModalService.Close(ModalResult.Ok());
+        busy = true;
+        status = null;
+        try
+        {
+            var dto = new TimeZoneSaveDto
+            {
+                TimeZone = TimeZoneId,
+                Site = SiteId,
+                Name = timeZone.Name,
+                Elements = timeZone.Elements.Select(ToDto).ToList(),
+            };
+
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = await client.PostAsJsonAsync("api/TimeZoneHeader/save", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                ModalService.Close(ModalResult.Ok());
+                return;
+            }
+
+            status = $"Save failed ({(int)response.StatusCode}). {await response.Content.ReadAsStringAsync()}";
+        }
+        catch (Exception ex)
+        {
+            status = $"Save failed: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private void Cancel()
@@ -123,9 +179,15 @@
         // Placeholder: open the calendar editor (no dialog wired yet).
     }
 
-    private void AddElement()
+    private async Task AddElement()
     {
-        // Placeholder: open the element editor to create a new element.
+        var result = await ShowElementEditor(new TimeZoneElementModal.TimeZoneElementModel());
+        if (result is not null)
+        {
+            var el = FromEditor(result);
+            timeZone.Elements.Add(el);
+            selected = el;
+        }
     }
 
     private void RemoveElement()
@@ -137,10 +199,103 @@
         }
     }
 
-    private void ChangeElement()
+    private async Task ChangeElement()
     {
-        // Placeholder: open the element editor for the selected element.
+        if (selected is null) return;
+
+        var result = await ShowElementEditor(ToEditor(selected));
+        if (result is not null)
+        {
+            ApplyEditor(selected, result);
+        }
     }
+
+    private async Task<TimeZoneElementModal.TimeZoneElementModel?> ShowElementEditor(TimeZoneElementModal.TimeZoneElementModel seed)
+    {
+        var component = new RenderComponent<TimeZoneElementModal>().Set(e => e.Element, seed);
+        var result = await ModalService.ShowAsync("Time Zone Element", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+        return result.Cancelled ? null : result.Data as TimeZoneElementModal.TimeZoneElementModel;
+    }
+
+    // ---- Mapping between the editor view-model, the table row, and the wire DTO ----
+
+    private static TimeZoneElement FromEditor(TimeZoneElementModal.TimeZoneElementModel m) => new()
+    {
+        Start = m.From.ToString("HH:mm"),
+        End = m.To.ToString("HH:mm"),
+        Mon = m.Monday,
+        Tues = m.Tuesday,
+        Wed = m.Wednesday,
+        Thu = m.Thursday,
+        Fri = m.Friday,
+        Sat = m.Saturday,
+        Sun = m.Sunday,
+        Calendar = m.ExcludingDays,
+    };
+
+    private static void ApplyEditor(TimeZoneElement el, TimeZoneElementModal.TimeZoneElementModel m)
+    {
+        el.Start = m.From.ToString("HH:mm");
+        el.End = m.To.ToString("HH:mm");
+        el.Mon = m.Monday;
+        el.Tues = m.Tuesday;
+        el.Wed = m.Wednesday;
+        el.Thu = m.Thursday;
+        el.Fri = m.Friday;
+        el.Sat = m.Saturday;
+        el.Sun = m.Sunday;
+        el.Calendar = m.ExcludingDays;
+    }
+
+    private static TimeZoneElementModal.TimeZoneElementModel ToEditor(TimeZoneElement el) => new()
+    {
+        From = ParseTime(el.Start, new TimeOnly(9, 0)),
+        To = ParseTime(el.End, new TimeOnly(17, 0)),
+        ExcludingDays = string.IsNullOrEmpty(el.Calendar) ? "Level default" : el.Calendar,
+        Monday = el.Mon,
+        Tuesday = el.Tues,
+        Wednesday = el.Wed,
+        Thursday = el.Thu,
+        Friday = el.Fri,
+        Saturday = el.Sat,
+        Sunday = el.Sun,
+    };
+
+    private static TimeZoneElementDto ToDto(TimeZoneElement el) => new()
+    {
+        StartTime = el.Start,
+        EndTime = el.End,
+        Mon = el.Mon,
+        Tue = el.Tues,
+        Wed = el.Wed,
+        Thu = el.Thu,
+        Fri = el.Fri,
+        Sat = el.Sat,
+        Sun = el.Sun,
+        DefaultCalendar = el.Calendar == "Level default",
+    };
+
+    private static TimeZoneElement FromDto(TimeZoneElementDto d) => new()
+    {
+        Start = d.StartTime,
+        End = d.EndTime,
+        Mon = d.Mon,
+        Tues = d.Tue,
+        Wed = d.Wed,
+        Thu = d.Thu,
+        Fri = d.Fri,
+        Sat = d.Sat,
+        Sun = d.Sun,
+        Calendar = d.DefaultCalendar ? "Level default" : "(none)",
+    };
+
+    private static TimeOnly ParseTime(string? value, TimeOnly fallback)
+        => TimeOnly.TryParse(value, out var t) ? t : fallback;
 
     public class TimeZoneModel
     {

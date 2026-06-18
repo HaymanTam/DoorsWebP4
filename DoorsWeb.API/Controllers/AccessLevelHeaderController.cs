@@ -1,4 +1,5 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
 using Microsoft.AspNetCore.Mvc;
 
@@ -33,10 +34,23 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        // Door picker for the editor. accessLevel omitted = new (all doors unselected).
+        [HttpGet("{site}/doors")]
+        public async Task<ActionResult<AccessLevelSaveDto>> GetForEdit(int site, [FromQuery] int? accessLevel)
+        {
+            return Ok(await _service.GetForEdit(site, accessLevel));
+        }
+
         [HttpPost]
         public async Task<ActionResult<List<TAccessLevelHeader>>> Create(TAccessLevelHeader entity)
         {
             return Ok(await _service.Create(entity));
+        }
+
+        [HttpPost("save")]
+        public async Task<ActionResult<TAccessLevelHeader>> Save(AccessLevelSaveDto dto)
+        {
+            return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{site}/{accessLevel}")]

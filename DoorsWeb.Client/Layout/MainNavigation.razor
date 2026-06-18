@@ -251,8 +251,8 @@
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Access Level")
             .Set(e => e.Load, () => LoadAccessLevelRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowAccessLevelEdit(null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowAccessLevelEdit(row))
+            .Set(e => e.OnAdd, () => ShowAccessLevelEdit(site, null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowAccessLevelEdit(site, row))
             .Set(e => e.OnDelete, DeleteAccessLevel);
 
         await ModalService.ShowAsync($"Access Levels — {site.Name}", component, new ModalOptions
@@ -273,11 +273,14 @@
                    .Select(a => new EntityListRow { Id = $"{a.Site}/{a.AccessLevel}", Name = a.Name ?? "" }).ToList();
     }
 
-    private async Task ShowAccessLevelEdit(EntityListRow? row)
+    private async Task ShowAccessLevelEdit(SiteDto site, EntityListRow? row)
     {
         var title = row is null ? "Access levels - New access level" : "Access levels - Edit access level";
-        var seed = row is null ? null : new AccessLevelModal.AccessLevelModel { Name = row.Name };
-        var component = new RenderComponent<AccessLevelModal>().Set(e => e.Level, seed);
+        // Row Id is "{site}/{accessLevel}"; the second segment is the level number.
+        int? accessLevelId = row is null ? null : int.Parse(row.Id.Split('/')[1]);
+        var component = new RenderComponent<AccessLevelModal>()
+            .Set(e => e.SiteId, site.Site)
+            .Set(e => e.AccessLevelId, accessLevelId);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -299,8 +302,8 @@
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Time Zone")
             .Set(e => e.Load, () => LoadTimeZoneRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowTimeZoneEdit(null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowTimeZoneEdit(row))
+            .Set(e => e.OnAdd, () => ShowTimeZoneEdit(site, null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowTimeZoneEdit(site, row))
             .Set(e => e.OnDelete, DeleteTimeZone);
 
         await ModalService.ShowAsync($"Time Zones — {site.Name}", component, new ModalOptions
@@ -321,11 +324,14 @@
                    .Select(t => new EntityListRow { Id = $"{t.Site}/{t.TimeZone}", Name = t.Name ?? "" }).ToList();
     }
 
-    private async Task ShowTimeZoneEdit(EntityListRow? row)
+    private async Task ShowTimeZoneEdit(SiteDto site, EntityListRow? row)
     {
         var title = row is null ? "Time zones - New time zone" : "Time zones - Edit time zone";
-        var seed = row is null ? null : new TimeZoneModal.TimeZoneModel { Name = row.Name };
-        var component = new RenderComponent<TimeZoneModal>().Set(e => e.TimeZone, seed);
+        // Row Id is "{site}/{timeZone}"; the second segment is the time-zone number.
+        int? timeZoneId = row is null ? null : int.Parse(row.Id.Split('/')[1]);
+        var component = new RenderComponent<TimeZoneModal>()
+            .Set(e => e.SiteId, site.Site)
+            .Set(e => e.TimeZoneId, timeZoneId);
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {
@@ -347,8 +353,8 @@
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Calendar")
             .Set(e => e.Load, () => LoadCalendarRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowCalendarEdit(null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowCalendarEdit(row))
+            .Set(e => e.OnAdd, () => ShowCalendarEdit(site, null))
+            .Set(e => e.OnEdit, (EntityListRow row) => ShowCalendarEdit(site, row))
             .Set(e => e.OnDelete, DeleteCalendar);
 
         await ModalService.ShowAsync($"Calendars — {site.Name}", component, new ModalOptions
@@ -368,11 +374,12 @@
                    .Select(c => new EntityListRow { Id = c.Code.ToString(), Name = c.Description ?? "" }).ToList();
     }
 
-    private async Task ShowCalendarEdit(EntityListRow? row)
+    private async Task ShowCalendarEdit(SiteDto site, EntityListRow? row)
     {
         var title = row is null ? "Calendars - New calendar" : "Calendars - Edit calendar";
-        var seed = row is null ? null : new CalendarModal.CalendarModel { Name = row.Name };
-        var component = new RenderComponent<CalendarModal>().Set(e => e.Calendar, seed);
+        var component = new RenderComponent<CalendarModal>()
+            .Set(e => e.SiteId, site.Site)
+            .Set(e => e.Code, row is null ? null : int.Parse(row.Id));
 
         await ModalService.ShowAsync(title, component, new ModalOptions
         {

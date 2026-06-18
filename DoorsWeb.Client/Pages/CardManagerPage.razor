@@ -1,17 +1,26 @@
 @page "/cardmanager"
-@using DoorsWeb.Shared.Entities
+@using System.Text.Json
+@using DoorsWeb.Shared.DTO
 @inject IHttpClientFactory ClientFactory
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <Card>
     <CardHeader>
         <CardTitle>
             <Icon class="icon me-2" IconType="@TablerIcons.Users" />Card Manager
+            @if (isLoadingMore)
+            {
+                <span class="ms-3 text-muted small fw-normal d-inline-flex align-items-center">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>Loading more… (@cards.Count)
+                </span>
+            }
         </CardTitle>
         <CardActions class="ms-auto">
-            <Button Color="TablerColor.Success" Class="me-2" OnClick='() => ShowCardEditModal("New Record", 0)'>
+            <Button BackgroundColor="TablerColor.Primary" Class="me-2" OnClick='() => ShowCardEditModal("New Record", 0)'>
                 <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Card
             </Button>
-            <Button Color="TablerColor.Secondary" OnClick="Refresh">
+            <Button BackgroundColor="TablerColor.Secondary" OnClick="Refresh">
                 <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
             </Button>
         </CardActions>
@@ -19,16 +28,46 @@
     <CardBody>
         @if (!IsLoaded)
         {
+            @* Shown only until the first batch arrives; then the table renders and the rest streams in behind the header chip. *@
             <Progress Color="TablerColor.Blue" Indeterminate />
         }
         else
         {
-            <Table Item="TNameHeader" Items="Cards" PageSize="20" Hover Responsive>
+            <Table Item="CardDto" Items="filteredCards" PageSize="pageSize" Hover Responsive>
+                @* Access Level filter sits in the table header, next to the built-in search box. *@
+                <HeaderTemplate>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0">Access Level</label>
+                        <select class="form-select form-select-sm" style="width: auto;"
+                                @bind="selectedAccessLevel" @bind:after="ApplyFilters">
+                            <option value="">All</option>
+                            @foreach (var al in accessLevelOptions)
+                            {
+                                <option value="@al">@al</option>
+                            }
+                        </select>
+                    </div>
+                </HeaderTemplate>
                 <ChildContent>
-                    <Column Item="TNameHeader" Property="c => c.CardId" Title="Card Number" Searchable Sortable />
-                    <Column Item="TNameHeader" Property="c => c.Surname" Title="Last Name" Searchable Sortable />
-                    <Column Item="TNameHeader" Property="c => c.Forname" Title="First Name" Searchable Sortable />
-                    <Column Item="TNameHeader" title="" ActionColumn Width="130px">
+                    <Column Item="CardDto" Property="c => c.CardId" Title="Card Number" Searchable Sortable />
+                    <Column Item="CardDto" Property="c => c.Surname" Title="Last Name" Searchable Sortable />
+                    <Column Item="CardDto" Property="c => c.Forname" Title="First Name" Searchable Sortable />
+                    <Column Item="CardDto" Title="Access Levels">
+                        <Template>
+                            @if (context.AccessLevels.Count == 0)
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else
+                            {
+                                @foreach (var level in context.AccessLevels)
+                                {
+                                    <span class="badge bg-azure-lt me-1 mb-1">@level</span>
+                                }
+                            }
+                        </Template>
+                    </Column>
+                    <Column Item="CardDto" title="" ActionColumn Width="130px">
                         <Template>
                             <span class="row-action">
                                 <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='() => ShowCardEditModal("Card Record", context.CardNumber)' />
@@ -38,7 +77,7 @@
                     </Column>
                 </ChildContent>
             </Table>
-            @if (Cards.Count == 0)
+            @if (filteredCards.Count == 0)
             {
                 <div class="text-muted text-center py-4">No cards found.</div>
             }
@@ -51,7 +90,26 @@
 
     private bool IsLoaded = false;
     private HttpClient client = new HttpClient();
-    private List<TNameHeader> Cards = new();
+    private List<CardDto> cards = new();              // full set streamed from the API
+    private List<CardDto> filteredCards = new();      // what the table shows after the Access Level filter
+
+    private List<string> accessLevelOptions = new();  // distinct access-level names for the dropdown
+    private string? selectedAccessLevel;              // null / "" = all access levels
+
+    // True while rows are still streaming in after the first batch has painted (drives the header chip).
+    private bool isLoadingMore;
+    private static readonly JsonSerializerOptions JsonWebOptions = new(JsonSerializerDefaults.Web);
+
+    // Paint the first FirstPaintRows as soon as they arrive, then append the remainder,
+    // repainting every RepaintEvery rows so the UI stays responsive during the background load.
+    private const int FirstPaintRows = 200;
+    private const int RepaintEvery = 100;
+
+    // Rows per page, sized to the viewport height (see ComputePageSize). Bucketed so the
+    // table doesn't reflow on every pixel of a window drag.
+    private int pageSize = 10;
+    private IJSObjectReference? viewportModule;
+    private DotNetObjectReference<CardManagerPage>? selfRef;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,17 +117,121 @@
         await Refresh();
     }
 
-    private async Task Refresh()
+    // Size the page to the window on first render, then track resizes via JS interop.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        viewportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+        var height = await viewportModule.InvokeAsync<double>("getInnerHeight");
+        ApplyPageSize(height);
+
+        selfRef = DotNetObjectReference.Create(this);
+        await viewportModule.InvokeVoidAsync("registerResize", selfRef);
+    }
+
+    [JSInvokable]
+    public void OnViewportResized(double height) => ApplyPageSize(height);
+
+    // Recompute rows-per-page and repaint only when the bucket actually changes.
+    private void ApplyPageSize(double viewportHeight)
+    {
+        var next = ComputePageSize(viewportHeight);
+        if (next == pageSize) return;
+        pageSize = next;
+        StateHasChanged();
+    }
+
+    // Bucket the viewport height into a few row counts. Bounds are rough: the page chrome
+    // (app header, card header, search/pager) eats ~320px and each table row is ~40px.
+    private static int ComputePageSize(double viewportHeight) => viewportHeight switch
+    {
+        < 700 => 5,
+        < 900 => 10,
+        < 1100 => 20,
+        _ => 35
+    };
+
+    private Task Refresh() => LoadCards();
+
+    // Streams cards from the API, painting the first FirstPaintRows as soon as they arrive
+    // so the table is usable almost immediately, then appending the remainder in the
+    // background (isLoadingMore drives the header chip).
+    private async Task LoadCards()
     {
         IsLoaded = false;
-        Cards = await client.GetFromJsonAsync<List<TNameHeader>>("api/NameHeader") ?? [];
+        isLoadingMore = true;
+        StateHasChanged();
+
+        var loaded = new List<CardDto>();
+        try
+        {
+            using var response = await client.GetAsync("api/NameHeader/cards", HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+            using var stream = await response.Content.ReadAsStreamAsync();
+
+            await foreach (var card in JsonSerializer.DeserializeAsyncEnumerable<CardDto>(stream, JsonWebOptions))
+            {
+                if (card is null) continue;
+                loaded.Add(card);
+
+                if (!IsLoaded && loaded.Count >= FirstPaintRows)
+                {
+                    // First batch is in: bind it and reveal the table.
+                    cards = loaded;
+                    RebuildAccessLevelOptions();
+                    ApplyFilters();
+                    IsLoaded = true;
+                    StateHasChanged();
+                    await Task.Yield();
+                }
+                else if (IsLoaded && loaded.Count % RepaintEvery == 0)
+                {
+                    // Subsequent rows: refresh the visible set periodically without blocking.
+                    cards = loaded;
+                    RebuildAccessLevelOptions();
+                    ApplyFilters();
+                    StateHasChanged();
+                    await Task.Yield();
+                }
+            }
+        }
+        catch
+        {
+            // Fall through with whatever streamed in; the table still renders.
+        }
+
+        cards = loaded;
+        RebuildAccessLevelOptions();
+        ApplyFilters();
         IsLoaded = true;
+        isLoadingMore = false;
+    }
+
+    // Build the Access Level dropdown options from the distinct access-level names currently loaded.
+    private void RebuildAccessLevelOptions()
+    {
+        accessLevelOptions = cards
+            .SelectMany(c => c.AccessLevels)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
+    }
+
+    // Access Level is a client-side refinement: show only cards tied to the selected level.
+    private void ApplyFilters()
+    {
+        IEnumerable<CardDto> q = cards;
+        if (!string.IsNullOrEmpty(selectedAccessLevel))
+            q = q.Where(c => c.AccessLevels.Contains(selectedAccessLevel));
+        filteredCards = q.ToList();
     }
 
     private async Task ShowCardEditModal(string title, int cardNumber)
     {
         // T_Name_Header.CardNumber is assigned by us (ValueGeneratedNever), so suggest the next free id.
-        var next = Cards.Count == 0 ? 1 : Cards.Max(c => c.CardNumber) + 1;
+        var next = cards.Count == 0 ? 1 : cards.Max(c => c.CardNumber) + 1;
 
         var component = new RenderComponent<CardEditModal>()
             .Set(e => e.CardNumber, cardNumber)
@@ -102,5 +264,19 @@
 
         await client.DeleteAsync($"api/NameHeader/{cardNumber}");
         await Refresh();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (viewportModule is not null)
+        {
+            try
+            {
+                await viewportModule.InvokeVoidAsync("unregisterResize");
+                await viewportModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { /* circuit already gone */ }
+        }
+        selfRef?.Dispose();
     }
 }

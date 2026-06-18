@@ -99,10 +99,14 @@
             table dumps). The matching tables are cleared and reloaded. This overwrites the current data
             and cannot be undone.
         </p>
+        @* .alert is a flexbox in Tabler, so keep the icon as one flex child and all the
+           text in a single sibling element - otherwise each text node becomes its own column. *@
         <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
-            <Icon class="icon me-1" IconType="@TablerIcons.Alert_triangle" />
-            Connectors are deprecated — this system is <strong>IP only</strong>. On import, all UDP
-            connectors are merged into a single connector and every door is repointed to it.
+            <Icon class="icon flex-shrink-0 me-2" IconType="@TablerIcons.Alert_triangle" />
+            <div>
+                Connectors are deprecated — this system is <strong>IP only</strong>.<br />
+                On import, all UDP connectors are merged into a single connector and every door is repointed to it.
+            </div>
         </div>
 
         <div class="mb-2 row align-items-center">

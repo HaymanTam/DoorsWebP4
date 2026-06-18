@@ -3,6 +3,7 @@
 @using DoorsWeb.Shared.DTO
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IHttpClientFactory ClientFactory
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <Card>
@@ -17,22 +18,22 @@
             }
         </CardTitle>
         <CardActions class="ms-auto d-flex align-items-center gap-2 flex-wrap">
-            @* Date range (server-side query) sits up top next to Clear/Refresh. *@
+            @* Date range is staged in pendingFrom/pendingTo and only hits the server on Apply. *@
             <div class="d-flex align-items-center gap-2">
                 <label class="form-label mb-0">From</label>
                 <input type="datetime-local" class="form-control form-control-sm" style="width: auto;"
-                       value="@fromDate?.ToString("yyyy-MM-ddTHH:mm")" @onchange="OnFromChanged" />
+                       value="@pendingFrom?.ToString("yyyy-MM-ddTHH:mm")" @onchange="OnFromChanged" />
             </div>
             <div class="d-flex align-items-center gap-2">
                 <label class="form-label mb-0">To</label>
                 <input type="datetime-local" class="form-control form-control-sm" style="width: auto;"
-                       value="@toDate?.ToString("yyyy-MM-ddTHH:mm")" @onchange="OnToChanged" />
+                       value="@pendingTo?.ToString("yyyy-MM-ddTHH:mm")" @onchange="OnToChanged" />
             </div>
-            <Button Color="TablerColor.Secondary" OnClick="ClearFilters">
+            <Button BackgroundColor="TablerColor.Secondary" OnClick="ClearFilters">
                 <Icon class="icon me-1" IconType="@TablerIcons.X" />Clear
             </Button>
-            <Button Color="TablerColor.Primary" OnClick="Refresh">
-                <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
+            <Button BackgroundColor="TablerColor.Primary" OnClick="ApplyDateRange">
+                <Icon class="icon me-1" IconType="@TablerIcons.Check" />Apply
             </Button>
         </CardActions>
     </CardHeader>
@@ -44,7 +45,14 @@
         }
         else
         {
-            <Table Item="EventDto" Items="filteredEvents" PageSize="10" Hover Responsive>
+            @if (eventList.Count >= MaxRows)
+            {
+                <div class="alert alert-info py-2 px-3 small mb-2" role="alert">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Info_circle" />
+                    Showing the most recent @MaxRows.ToString("N0") events. Narrow the From / To range to reach older ones.
+                </div>
+            }
+            <Table Item="EventDto" Items="filteredEvents" PageSize="pageSize" Hover Responsive>
                 @* Event Type filter sits in the table header, next to the built-in search box. *@
                 <HeaderTemplate>
                     <div class="d-flex align-items-center gap-2">
@@ -87,8 +95,10 @@
 
     private List<string> eventTypeOptions = new();   // distinct EventName values for the dropdown
     private string? selectedEventType;               // null / "" = all event types
-    private DateTime? fromDate;
+    private DateTime? fromDate;                       // applied range (drives the server query)
     private DateTime? toDate;
+    private DateTime? pendingFrom;                    // staged in the inputs until Apply is clicked
+    private DateTime? pendingTo;
 
     // True while rows are still streaming in after the first batch has painted (drives the header chip).
     private bool isLoadingMore;
@@ -99,6 +109,16 @@
     private const int FirstPaintRows = 1000;
     private const int RepaintEvery = 250;
 
+    // Mirrors EventService.MaxRows: when the load returns this many rows the result was
+    // capped, so we surface a hint telling the user to narrow the date range for older events.
+    private const int MaxRows = 10000;
+
+    // Rows per page, sized to the viewport height (see ComputePageSize). Bucketed so the
+    // table doesn't reflow on every pixel of a window drag.
+    private int pageSize = 10;
+    private IJSObjectReference? viewportModule;
+    private DotNetObjectReference<EventPage>? selfRef;
+
     protected override async Task OnInitializedAsync()
     {
         client = ClientFactory.CreateClient("WebAPI"); //this is where base setting locate
@@ -107,6 +127,12 @@
         hubConnection = new HubConnectionBuilder().WithUrl("https://localhost:60879/eventHub").WithAutomaticReconnect().Build();
         hubConnection.On<EventDto>("NewEvent", (EvtDto) =>
         {
+            // The bulk list is range-bounded by the server query; keep the pushed live
+            // stream consistent by dropping events outside the currently applied range.
+            if ((fromDate.HasValue && EvtDto.EventDate < fromDate.Value) ||
+                (toDate.HasValue && EvtDto.EventDate > toDate.Value))
+                return;
+
             eventList.Insert(0, EvtDto);
             RebuildEventTypeOptions();
             ApplyFilters();
@@ -115,6 +141,41 @@
 
         await hubConnection.StartAsync(); // Last thing in line
     }
+
+    // Size the page to the window on first render, then track resizes via JS interop.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        viewportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+        var height = await viewportModule.InvokeAsync<double>("getInnerHeight");
+        ApplyPageSize(height);
+
+        selfRef = DotNetObjectReference.Create(this);
+        await viewportModule.InvokeVoidAsync("registerResize", selfRef);
+    }
+
+    [JSInvokable]
+    public void OnViewportResized(double height) => ApplyPageSize(height);
+
+    // Recompute rows-per-page and repaint only when the bucket actually changes.
+    private void ApplyPageSize(double viewportHeight)
+    {
+        var next = ComputePageSize(viewportHeight);
+        if (next == pageSize) return;
+        pageSize = next;
+        StateHasChanged();
+    }
+
+    // Bucket the viewport height into a few row counts. Bounds are rough: the page chrome
+    // (app header, card header, search/pager) eats ~320px and each table row is ~40px.
+    private static int ComputePageSize(double viewportHeight) => viewportHeight switch
+    {
+        < 700 => 5,
+        < 900 => 10,
+        < 1100 => 20,
+        _ => 35
+    };
 
     // Reload using whatever filter is currently active (Refresh button / initial load).
     private Task Refresh() => LoadEvents();
@@ -197,47 +258,57 @@
             .ToList();
     }
 
-    // Apply the Event Type + date-range filters to produce the table's item list.
+    // Event Type is the only client-side refinement. The date range is enforced
+    // server-side by BuildDateQuery, so eventList already holds only in-range rows.
     private void ApplyFilters()
     {
         IEnumerable<EventDto> q = eventList;
 
         if (!string.IsNullOrEmpty(selectedEventType))
             q = q.Where(e => e.EventName == selectedEventType);
-        if (fromDate.HasValue)
-            q = q.Where(e => e.EventDate >= fromDate.Value);
-        if (toDate.HasValue)
-            q = q.Where(e => e.EventDate <= toDate.Value);
 
         filteredEvents = q.ToList();
     }
 
-    // Date range is applied server-side, so a change triggers a fresh streaming reload.
-    private async Task OnFromChanged(ChangeEventArgs e)
-    {
-        fromDate = ParseLocal(e.Value?.ToString());
-        await LoadEvents();
-    }
+    // Editing the inputs only stages the value; nothing hits the server until Apply.
+    private void OnFromChanged(ChangeEventArgs e) => pendingFrom = ParseLocal(e.Value?.ToString());
 
-    private async Task OnToChanged(ChangeEventArgs e)
-    {
-        toDate = ParseLocal(e.Value?.ToString());
-        await LoadEvents();
-    }
+    private void OnToChanged(ChangeEventArgs e) => pendingTo = ParseLocal(e.Value?.ToString());
 
     private static DateTime? ParseLocal(string? value)
         => DateTime.TryParse(value, out var dt) ? dt : null;
+
+    // Commit the staged range and run the server-side query.
+    private async Task ApplyDateRange()
+    {
+        fromDate = pendingFrom;
+        toDate = pendingTo;
+        await LoadEvents();
+    }
 
     private async Task ClearFilters()
     {
         selectedEventType = null;
         fromDate = null;
         toDate = null;
+        pendingFrom = null;
+        pendingTo = null;
         await LoadEvents();   // reload from scratch with filters cleared
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (viewportModule is not null)
+        {
+            try
+            {
+                await viewportModule.InvokeVoidAsync("unregisterResize");
+                await viewportModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { /* circuit already gone */ }
+        }
+        selfRef?.Dispose();
+
         if (hubConnection is not null)
         {
             await hubConnection.DisposeAsync();

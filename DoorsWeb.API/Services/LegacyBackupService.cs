@@ -3,7 +3,8 @@ using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
 using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.Data.SqlClient;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace DoorsWeb.API.Services
 {
@@ -15,10 +16,12 @@ namespace DoorsWeb.API.Services
     /// original DoorsEnterprise DDL and are ignored — the target tables already exist in this
     /// database. The <c>.rs</c> files are ADO ADTG persisted recordsets holding the row data; each is
     /// parsed with <see cref="AdtgRecordsetReader"/> (a managed, Linux-friendly parser) and streamed
-    /// into the matching table via <c>SqlBulkCopy</c>, preserving identity values.
+    /// into the matching table via PostgreSQL's binary <c>COPY</c> protocol, preserving identity values.
     ///
-    /// Foreign-key constraints are disabled for the duration so tables can be cleared and reloaded in
-    /// any order, then re-enabled afterwards. Progress is pushed to the initiating client over
+    /// Referential-integrity triggers are disabled for the duration (<c>session_replication_role =
+    /// replica</c>) so tables can be cleared and reloaded in any order, then re-enabled afterwards.
+    /// Because explicit identity values are loaded, each table's identity sequence is bumped past its
+    /// new maximum at the end. Progress is pushed to the initiating client over
     /// <see cref="BackupHub"/> (method <c>LegacyRestoreProgress</c>).
     /// </summary>
     public class LegacyBackupService : ILegacyBackupService
@@ -77,15 +80,17 @@ namespace DoorsWeb.API.Services
                     };
                 }
 
-                await using var connection = new SqlConnection(_connectionString);
+                await using var connection = new NpgsqlConnection(_connectionString);
                 await connection.OpenAsync(cancellationToken);
 
                 // 2. Match backup tables against tables that actually exist here; skip the rest.
+                //    PostgreSQL identifiers are case-sensitive, so resolve each backup table to the
+                //    real on-disk name (the .rs file name may differ in case).
                 var existingTables = await GetExistingTables(connection, cancellationToken);
                 var toLoad = new List<(string table, string tempPath, long size)>();
                 foreach (var e in entries)
                 {
-                    if (existingTables.Contains(e.table)) toLoad.Add(e);
+                    if (existingTables.TryGetValue(e.table, out var actual)) toLoad.Add((actual, e.tempPath, e.size));
                     else result.Skipped.Add(e.table);
                 }
 
@@ -102,8 +107,8 @@ namespace DoorsWeb.API.Services
                 long totalBytes = Math.Max(1, toLoad.Sum(t => t.size));
                 long bytesDone = 0;
 
-                // 3. Disable FK constraints so tables can be cleared/loaded in any order.
-                await SetAllConstraints(connection, enable: false, cancellationToken);
+                // 3. Disable FK/trigger enforcement so tables can be cleared/loaded in any order.
+                await SetReplicationRole(connection, replica: true, cancellationToken);
                 try
                 {
                     foreach (var (table, tempPath, size) in toLoad)
@@ -123,16 +128,20 @@ namespace DoorsWeb.API.Services
                     }
 
                     // Post-load cleanup: the new system is IP-only, so collapse any duplicate UDP
-                    // connectors into one and repoint every door at the survivor. Done while FK
-                    // constraints are still disabled so the orphan deletes can't trip a reference.
+                    // connectors into one and repoint every door at the survivor. Done while trigger
+                    // enforcement is still disabled so the orphan deletes can't trip a reference.
                     result.UdpConnectorsMerged =
                         await ConsolidateUdpConnectors(connection, cancellationToken);
+
+                    // Explicit identity values were just loaded; advance each identity sequence past
+                    // its new maximum so future inserts don't collide.
+                    await ResetIdentitySequences(connection, cancellationToken);
                 }
                 finally
                 {
-                    // 4. Re-enable FK constraints (best-effort) regardless of outcome.
-                    try { await SetAllConstraints(connection, enable: true, cancellationToken); }
-                    catch (Exception ex) { _logger.LogWarning(ex, "Failed to re-enable constraints after legacy restore."); }
+                    // 4. Re-enable FK/trigger enforcement (best-effort) regardless of outcome.
+                    try { await SetReplicationRole(connection, replica: false, cancellationToken); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Failed to re-enable trigger enforcement after legacy restore."); }
                 }
 
                 ReportComplete(connectionId);
@@ -169,138 +178,200 @@ namespace DoorsWeb.API.Services
             }
         }
 
-        private static async Task<HashSet<string>> GetExistingTables(SqlConnection connection, CancellationToken ct)
+        // Maps each base table in the public schema by a case-insensitive key to its real name.
+        private static async Task<Dictionary<string, string>> GetExistingTables(NpgsqlConnection connection, CancellationToken ct)
         {
-            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            await using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';";
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            await using var cmd = new NpgsqlCommand(
+                "SELECT table_name FROM information_schema.tables " +
+                "WHERE table_schema = 'public' AND table_type = 'BASE TABLE';", connection);
             await using var reader = await cmd.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct)) set.Add(reader.GetString(0));
-            return set;
+            while (await reader.ReadAsync(ct))
+            {
+                var name = reader.GetString(0);
+                map[name] = name;
+            }
+            return map;
         }
 
-        // Enable/disable every foreign-key constraint in the database.
-        private static async Task SetAllConstraints(SqlConnection connection, bool enable, CancellationToken ct)
+        // Maps each column of a table by a case-insensitive key to its real name.
+        private static async Task<Dictionary<string, string>> GetTableColumns(
+            NpgsqlConnection connection, string table, CancellationToken ct)
         {
-            var verb = enable ? "WITH CHECK CHECK CONSTRAINT ALL" : "NOCHECK CONSTRAINT ALL";
-            await using var cmd = connection.CreateCommand();
-            cmd.CommandText =
-                "DECLARE @sql NVARCHAR(MAX) = N'';" +
-                "SELECT @sql += N'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(schema_id)) + N'.' + QUOTENAME(name) + " +
-                $"N' {verb};' FROM sys.tables WHERE is_ms_shipped = 0;" +
-                "EXEC sp_executesql @sql;";
-            cmd.CommandTimeout = 0;
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            await using var cmd = new NpgsqlCommand(
+                "SELECT column_name FROM information_schema.columns " +
+                "WHERE table_schema = 'public' AND table_name = @t;", connection);
+            cmd.Parameters.AddWithValue("t", table);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                var name = reader.GetString(0);
+                map[name] = name;
+            }
+            return map;
+        }
+
+        // Toggle session-level referential-integrity enforcement. 'replica' suppresses user and
+        // FK triggers for this connection so bulk loads can run in any order; DEFAULT restores them.
+        private static async Task SetReplicationRole(NpgsqlConnection connection, bool replica, CancellationToken ct)
+        {
+            await using var cmd = new NpgsqlCommand(
+                replica ? "SET session_replication_role = replica;" : "SET session_replication_role = DEFAULT;",
+                connection);
+            await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        private static async Task ClearTable(NpgsqlConnection connection, string table, CancellationToken ct)
+        {
+            var quoted = QualifiedTable(table);
+            await using var cmd = new NpgsqlCommand($"TRUNCATE TABLE {quoted};", connection) { CommandTimeout = 0 };
             try
             {
                 await cmd.ExecuteNonQueryAsync(ct);
             }
-            catch when (enable)
+            catch (PostgresException)
             {
-                // Re-enabling WITH CHECK can fail if loaded data violates a constraint (e.g. a missing
-                // parent in the backup). Fall back to re-enabling enforcement without validating
-                // existing rows, so constraints still apply to future writes.
-                await using var fallback = connection.CreateCommand();
-                fallback.CommandTimeout = 0;
-                fallback.CommandText =
-                    "DECLARE @sql NVARCHAR(MAX) = N'';" +
-                    "SELECT @sql += N'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(schema_id)) + N'.' + QUOTENAME(name) + " +
-                    "N' CHECK CONSTRAINT ALL;' FROM sys.tables WHERE is_ms_shipped = 0;" +
-                    "EXEC sp_executesql @sql;";
+                // TRUNCATE is rejected when the table is referenced by a foreign key from a table that
+                // isn't also being truncated; fall back to a plain DELETE.
+                await using var fallback = new NpgsqlCommand($"DELETE FROM {quoted};", connection) { CommandTimeout = 0 };
                 await fallback.ExecuteNonQueryAsync(ct);
-            }
-        }
-
-        private static async Task ClearTable(SqlConnection connection, string table, CancellationToken ct)
-        {
-            var quoted = $"[dbo].[{table.Replace("]", "]]")}]";
-            await using var cmd = connection.CreateCommand();
-            cmd.CommandTimeout = 0;
-            try
-            {
-                cmd.CommandText = $"TRUNCATE TABLE {quoted};";
-                await cmd.ExecuteNonQueryAsync(ct);
-            }
-            catch (SqlException)
-            {
-                // TRUNCATE is rejected when the table is referenced by a foreign key (even a disabled
-                // one); fall back to a logged DELETE.
-                cmd.CommandText = $"DELETE FROM {quoted};";
-                await cmd.ExecuteNonQueryAsync(ct);
             }
         }
 
         // Collapses every UDP (Lan/UDP) connector into a single survivor and repoints all doors at it.
         // UDP connectors are T_Connectors rows with ConnType = 3 (legacy mdlConnector.bas gcUDP).
         // Returns the number of duplicate connectors removed (0 if there were 0 or 1 to begin with).
-        private static async Task<int> ConsolidateUdpConnectors(SqlConnection connection, CancellationToken ct)
+        private static async Task<int> ConsolidateUdpConnectors(NpgsqlConnection connection, CancellationToken ct)
         {
             const int udpConnType = 3;
-            await using var cmd = connection.CreateCommand();
-            cmd.CommandTimeout = 0;
-            cmd.CommandText = @"
-SET NOCOUNT ON;
-DECLARE @merged INT = 0;
-DECLARE @survivor INT = (SELECT MIN([Connector]) FROM [dbo].[T_Connectors] WHERE [ConnType] = @udp);
-IF @survivor IS NOT NULL
+
+            await using var survivorCmd = new NpgsqlCommand(
+                "SELECT MIN(\"Connector\") FROM \"public\".\"T_Connectors\" WHERE \"ConnType\" = @udp;", connection)
+            { CommandTimeout = 0 };
+            survivorCmd.Parameters.AddWithValue("udp", udpConnType);
+
+            var survivorObj = await survivorCmd.ExecuteScalarAsync(ct);
+            if (survivorObj is null || survivorObj is DBNull) return 0;
+            int survivor = Convert.ToInt32(survivorObj);
+
+            // Repoint doors that point at a soon-to-be-removed UDP connector.
+            await using (var update = new NpgsqlCommand(
+                "UPDATE \"public\".\"T_Doors\" SET \"Connector\" = @survivor " +
+                "WHERE \"Connector\" IN (SELECT \"Connector\" FROM \"public\".\"T_Connectors\" WHERE \"ConnType\" = @udp) " +
+                "AND \"Connector\" <> @survivor;", connection)
+            { CommandTimeout = 0 })
+            {
+                update.Parameters.AddWithValue("survivor", survivor);
+                update.Parameters.AddWithValue("udp", udpConnType);
+                await update.ExecuteNonQueryAsync(ct);
+            }
+
+            // Drop the now-orphaned duplicate UDP connectors; the affected-row count is the merge total.
+            await using var delete = new NpgsqlCommand(
+                "DELETE FROM \"public\".\"T_Connectors\" WHERE \"ConnType\" = @udp AND \"Connector\" <> @survivor;", connection)
+            { CommandTimeout = 0 };
+            delete.Parameters.AddWithValue("udp", udpConnType);
+            delete.Parameters.AddWithValue("survivor", survivor);
+            return await delete.ExecuteNonQueryAsync(ct);
+        }
+
+        // Bumps every identity sequence in the public schema past the current max value of its column,
+        // so inserts after a KeepIdentity-style load don't collide with loaded values.
+        private static async Task ResetIdentitySequences(NpgsqlConnection connection, CancellationToken ct)
+        {
+            const string sql = @"
+DO $$
+DECLARE r record; seq text; maxid bigint;
 BEGIN
-    -- Repoint doors that point at a soon-to-be-removed UDP connector.
-    UPDATE [dbo].[T_Doors]
-        SET [Connector] = @survivor
-    WHERE [Connector] IN (SELECT [Connector] FROM [dbo].[T_Connectors] WHERE [ConnType] = @udp)
-      AND [Connector] <> @survivor;
-
-    -- Drop the now-orphaned duplicate UDP connectors.
-    DELETE FROM [dbo].[T_Connectors] WHERE [ConnType] = @udp AND [Connector] <> @survivor;
-    SET @merged = @@ROWCOUNT;
-END
-SELECT @merged;";
-            var p = cmd.CreateParameter();
-            p.ParameterName = "@udp";
-            p.Value = udpConnType;
-            cmd.Parameters.Add(p);
-
-            var scalar = await cmd.ExecuteScalarAsync(ct);
-            return scalar is int n ? n : Convert.ToInt32(scalar);
+    FOR r IN
+        SELECT table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND is_identity = 'YES'
+    LOOP
+        seq := pg_get_serial_sequence(format('public.%I', r.table_name), r.column_name);
+        IF seq IS NOT NULL THEN
+            EXECUTE format('SELECT COALESCE(MAX(%I), 0) FROM public.%I', r.column_name, r.table_name) INTO maxid;
+            PERFORM setval(seq, GREATEST(maxid, 1), maxid > 0);
+        END IF;
+    END LOOP;
+END $$;";
+            await using var cmd = new NpgsqlCommand(sql, connection) { CommandTimeout = 0 };
+            await cmd.ExecuteNonQueryAsync(ct);
         }
 
         private async Task<long> BulkLoadTable(
-            SqlConnection connection, string table, string rsPath, string? connectionId,
+            NpgsqlConnection connection, string table, string rsPath, string? connectionId,
             long totalBytes, long baseUnits, long tableBytes, CancellationToken ct)
         {
             using var recordset = AdtgRecordsetReader.Open(rsPath);
             using var dataReader = new AdtgDataReader(recordset);
 
-            using var bulk = new SqlBulkCopy(
-                connection, SqlBulkCopyOptions.KeepIdentity | SqlBulkCopyOptions.KeepNulls, externalTransaction: null)
+            // Resolve recordset columns to the real (case-correct) destination column names and pick
+            // an explicit PostgreSQL type per column so the binary COPY stream is unambiguous.
+            var dbColumns = await GetTableColumns(connection, table, ct);
+            int count = recordset.Columns.Count;
+            var targetNames = new string[count];
+            var types = new NpgsqlDbType[count];
+            for (int i = 0; i < count; i++)
             {
-                DestinationTableName = $"[dbo].[{table.Replace("]", "]]")}]",
-                BulkCopyTimeout = 0,
-                BatchSize = 10000,
-                NotifyAfter = 50000,
-                EnableStreaming = true,
-            };
-
-            foreach (var column in recordset.Columns)
-            {
-                bulk.ColumnMappings.Add(column.Name, column.Name);
+                var col = recordset.Columns[i];
+                if (!dbColumns.TryGetValue(col.Name, out var actual))
+                    throw new InvalidOperationException(
+                        $"Column '{col.Name}' from the backup does not exist in table '{table}'.");
+                targetNames[i] = actual;
+                types[i] = NpgsqlTypeOf(col);
             }
 
-            if (!string.IsNullOrEmpty(connectionId))
+            var columnList = string.Join(", ", targetNames.Select(Quote));
+            var copyCommand = $"COPY {QualifiedTable(table)} ({columnList}) FROM STDIN (FORMAT BINARY)";
+
+            double baseFraction = (double)baseUnits / totalBytes;
+            double slice = (double)tableBytes / totalBytes;
+            bool report = !string.IsNullOrEmpty(connectionId);
+
+            await using var importer = await connection.BeginBinaryImportAsync(copyCommand, ct);
+            long rows = 0;
+            while (dataReader.Read())
             {
-                double baseFraction = (double)baseUnits / totalBytes;
-                double slice = (double)tableBytes / totalBytes;
-                bulk.SqlRowsCopied += (_, e) =>
+                await importer.StartRowAsync(ct);
+                for (int i = 0; i < count; i++)
+                {
+                    if (dataReader.IsDBNull(i))
+                        await importer.WriteNullAsync(ct);
+                    else
+                        await importer.WriteAsync(dataReader.GetValue(i), types[i], ct);
+                }
+
+                rows++;
+                if (report && rows % 50000 == 0)
                 {
                     // No reliable up-front row count, so ease toward (but never reach) the slice end.
-                    double within = 1.0 - 1.0 / (1.0 + e.RowsCopied / 100000.0);
+                    double within = 1.0 - 1.0 / (1.0 + rows / 100000.0);
                     int pct = (int)((baseFraction + slice * within) * 100);
                     Report(connectionId, Math.Min(99, pct));
-                };
+                }
             }
 
-            await bulk.WriteToServerAsync(dataReader, ct);
-            return bulk.RowsCopied64;
+            ulong written = await importer.CompleteAsync(ct);
+            return (long)written;
         }
+
+        // PostgreSQL maps for the CLR types the ADTG parser produces.
+        private static NpgsqlDbType NpgsqlTypeOf(AdtgColumn column)
+        {
+            var t = AdtgRecordsetReader.ClrTypeOf(column);
+            if (t == typeof(int)) return NpgsqlDbType.Integer;
+            if (t == typeof(short)) return NpgsqlDbType.Smallint;
+            if (t == typeof(bool)) return NpgsqlDbType.Boolean;
+            if (t == typeof(float)) return NpgsqlDbType.Real;
+            if (t == typeof(DateTime)) return NpgsqlDbType.Timestamp;
+            return NpgsqlDbType.Text;
+        }
+
+        private static string Quote(string identifier) => "\"" + identifier.Replace("\"", "\"\"") + "\"";
+
+        private static string QualifiedTable(string table) => $"\"public\".{Quote(table)}";
 
         // Fire-and-forget progress push to the single initiating client.
         private void Report(string? connectionId, int percent)

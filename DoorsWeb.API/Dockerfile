@@ -6,14 +6,27 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-# Pre-create the mounted data directories and hand them to the non-root runtime
-# user ($APP_UID). When Docker first mounts an *empty* named volume over one of
-# these paths it copies this ownership onto the volume, so the app can write to
-# /data/settings, /data/backups and /data/user-photo. Without this, fresh named
-# volumes are created root-owned and writes fail with "Access to the path ... is
-# denied". (Existing root-owned volumes must be recreated or chowned once.)
+# As root we (1) install the PostgreSQL client tools (pg_dump/pg_restore) that
+# BackupService shells out to, pinned to major 16 from the official PGDG apt repo to
+# match the postgres:16 server, and (2) pre-create the mounted data directories and
+# hand them to the non-root runtime user ($APP_UID). When Docker first mounts an
+# *empty* named volume over one of these paths it copies this ownership onto the
+# volume, so the app can write to /data/settings, /data/backups and /data/user-photo.
+# Without this, fresh named volumes are created root-owned and writes fail with
+# "Access to the path ... is denied". (Existing root-owned volumes must be recreated
+# or chowned once.)
 USER root
-RUN mkdir -p /data/backups /data/user-photo /data/settings \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates gnupg \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+         -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" \
+         > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client-16 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /data/backups /data/user-photo /data/settings \
     && chown -R $APP_UID:$APP_UID /data
 USER $APP_UID
 

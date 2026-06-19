@@ -18,7 +18,7 @@
                     <CardTitle>Where - select the doors you want to include</CardTitle>
                     <div class="row">
                         <div class="col-lg-8">
-                            <div class="border rounded" style="height: 160px; overflow-y: auto;">
+                            <div class="border rounded px-3 py-2" style="height: 160px; overflow-y: auto;">
                                 @{
                                     var doors = trigger.ShowSelectedDoorsOnly ? trigger.Doors.Where(d => d.Selected).ToList() : trigger.Doors;
                                 }
@@ -30,7 +30,7 @@
                                 {
                                     @foreach (var door in doors)
                                     {
-                                        <label class="form-check mb-1 px-3">
+                                        <label class="form-check mb-1">
                                             <InputCheckbox class="form-check-input" @bind-Value="door.Selected"></InputCheckbox>
                                             <span class="form-check-label">@door.Name</span>
                                         </label>
@@ -56,7 +56,7 @@
                     <CardTitle>What - select the events you want to include</CardTitle>
                     <div class="row">
                         <div class="col-lg-8">
-                            <div class="border rounded" style="height: 160px; overflow-y: auto;">
+                            <div class="border rounded px-3 py-2" style="height: 160px; overflow-y: auto;">
                                 @{
                                     var events = trigger.ShowSelectedEventsOnly ? trigger.Events.Where(e => e.Selected).ToList() : trigger.Events;
                                 }
@@ -68,7 +68,7 @@
                                 {
                                     @foreach (var ev in events)
                                     {
-                                        <label class="form-check mb-1 px-3">
+                                        <label class="form-check mb-1">
                                             <InputCheckbox class="form-check-input" @bind-Value="ev.Selected"></InputCheckbox>
                                             <span class="form-check-label">@ev.Name</span>
                                         </label>
@@ -126,6 +126,10 @@
                                 <div class="col-lg-7">
                                     <InputSelect class="form-select" @bind-Value="trigger.RelayDoor" disabled="@(!trigger.TriggerRelayB)">
                                         <option value="">(none)</option>
+                                        @foreach (var door in trigger.Doors)
+                                        {
+                                            <option value="@door.Code">@door.Name</option>
+                                        }
                                     </InputSelect>
                                 </div>
                                 <div class="col-lg-2">
@@ -140,6 +144,8 @@
                                 <div class="col-lg-7">
                                     <InputSelect class="form-select" @bind-Value="trigger.RelayAction" disabled="@(!trigger.TriggerRelayB)">
                                         <option value="">(none)</option>
+                                        <option value="Open">Open</option>
+                                        <option value="Close">Close</option>
                                     </InputSelect>
                                 </div>
                             </div>
@@ -212,6 +218,8 @@
                 trigger.AlarmMessage = dto.AlarmText;
                 trigger.SuppressDuplicateAlarms = dto.SuppressDuplicates;
                 trigger.TriggerRelayB = dto.TriggerRelayB;
+                trigger.RelayDoor = dto.RelayBdoor > 0 ? dto.RelayBdoor.ToString() : "";
+                trigger.RelayAction = dto.TriggerRelayB ? (dto.OpenRelayB ? "Open" : "Close") : "";
                 trigger.ResetAfter = dto.ResetRelayB;
                 trigger.ResetAfterSeconds = dto.ResetRelayBperiod;
                 trigger.Doors = dto.Sources.Select(s => new DoorItem
@@ -244,6 +252,8 @@
                 AlarmText = trigger.AlarmMessage,
                 SuppressDuplicates = trigger.SuppressDuplicateAlarms,
                 TriggerRelayB = trigger.TriggerRelayB,
+                RelayBdoor = int.TryParse(trigger.RelayDoor, out var relayDoor) ? relayDoor : 0,
+                OpenRelayB = trigger.RelayAction == "Open",
                 ResetRelayB = trigger.ResetAfter,
                 ResetRelayBperiod = trigger.ResetAfterSeconds ?? 0,
                 Sources = trigger.Doors.Select(d => new TriggerSourceDto

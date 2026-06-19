@@ -18,7 +18,7 @@
                     <CardTitle>Where - select the space zones you want to include</CardTitle>
                     <div class="row">
                         <div class="col-lg-8">
-                            <div class="border rounded" style="height: 160px; overflow-y: auto;">
+                            <div class="border rounded px-3 py-2" style="height: 160px; overflow-y: auto;">
                                 @{
                                     var zones = trigger.ShowSelectedZonesOnly ? trigger.Zones.Where(z => z.Selected).ToList() : trigger.Zones;
                                 }
@@ -30,7 +30,7 @@
                                 {
                                     @foreach (var zone in zones)
                                     {
-                                        <label class="form-check mb-1 px-3">
+                                        <label class="form-check mb-1">
                                             <InputCheckbox class="form-check-input" @bind-Value="zone.Selected"></InputCheckbox>
                                             <span class="form-check-label">@zone.Name</span>
                                         </label>

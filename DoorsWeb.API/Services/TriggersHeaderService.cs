@@ -88,6 +88,8 @@ namespace DoorsWeb.API.Services
                     dto.AlarmText = header.AlarmText;
                     dto.SuppressDuplicates = header.SuppressDuplicates;
                     dto.TriggerRelayB = header.TriggerRelayB;
+                    dto.RelayBdoor = header.RelayBdoor;
+                    dto.OpenRelayB = header.OpenRelayB;
                     dto.ResetRelayB = header.ResetRelayB;
                     dto.ResetRelayBperiod = header.ResetRelayBperiod;
                     dto.PopulationDirection = header.PopulationDirection;
@@ -155,6 +157,8 @@ namespace DoorsWeb.API.Services
             header.AlarmText = dto.AlarmText ?? "";
             header.SuppressDuplicates = dto.SuppressDuplicates;
             header.TriggerRelayB = dto.TriggerRelayB;
+            header.RelayBdoor = dto.RelayBdoor;
+            header.OpenRelayB = dto.OpenRelayB;
             header.ResetRelayB = dto.ResetRelayB;
             header.ResetRelayBperiod = dto.ResetRelayBperiod;
             header.PopulationDirection = dto.PopulationDirection;

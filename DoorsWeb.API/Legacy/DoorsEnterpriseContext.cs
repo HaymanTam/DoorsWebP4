@@ -149,8 +149,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TAccessLevelDetails>(entity =>
         {
             entity.HasKey(e => new { e.Level, e.Door })
-                .HasName("PK_AccessLevel_Details")
-                .IsClustered(false);
+                .HasName("PK_AccessLevel_Details");
 
             entity.ToTable("T_AccessLevel_Details");
         });
@@ -158,8 +157,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TAccessLevelHeader>(entity =>
         {
             entity.HasKey(e => new { e.AccessLevel, e.Site })
-                .HasName("PK_AccessLevel_Header")
-                .IsClustered(false);
+                .HasName("PK_AccessLevel_Header");
 
             entity.ToTable("T_AccessLevel_Header");
 
@@ -170,24 +168,22 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TAlarms>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_Alarms")
-                .IsClustered(false);
+                .HasName("PK_Alarms");
 
             entity.ToTable("T_Alarms");
 
             entity.Property(e => e.Code).ValueGeneratedNever();
             entity.Property(e => e.ActionedBy).HasMaxLength(20);
-            entity.Property(e => e.ActionedDate).HasColumnType("datetime");
+            entity.Property(e => e.ActionedDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.ActionedText).HasMaxLength(255);
-            entity.Property(e => e.AlarmDate).HasColumnType("datetime");
+            entity.Property(e => e.AlarmDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.AlarmDescription).HasMaxLength(50);
         });
 
         modelBuilder.Entity<TApbzoneDetails>(entity =>
         {
             entity.HasKey(e => new { e.Apbnumber, e.DoorNumber })
-                .HasName("PK_APBZone_Details")
-                .IsClustered(false);
+                .HasName("PK_APBZone_Details");
 
             entity.ToTable("T_APBZone_Details");
 
@@ -198,8 +194,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TApbzoneHeader>(entity =>
         {
             entity.HasKey(e => e.Apbnumber)
-                .HasName("PK_APBZone_Header")
-                .IsClustered(false);
+                .HasName("PK_APBZone_Header");
 
             entity.ToTable("T_APBZone_Header");
 
@@ -207,11 +202,11 @@ public partial class DoorsEnterpriseContext : DbContext
                 .ValueGeneratedNever()
                 .HasColumnName("APBNumber");
             entity.Property(e => e.Apbmode).HasColumnName("APBMode");
-            entity.Property(e => e.DiscoveryModeExpiryDate).HasColumnType("datetime");
-            entity.Property(e => e.DiscoveryModeStart).HasColumnType("datetime");
+            entity.Property(e => e.DiscoveryModeExpiryDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DiscoveryModeStart).HasColumnType("timestamp without time zone");
             entity.Property(e => e.Key).HasMaxLength(10);
             entity.Property(e => e.Name).HasMaxLength(30);
-            entity.Property(e => e.NextAutoLogout).HasColumnType("datetime");
+            entity.Property(e => e.NextAutoLogout).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<TArcCustom>(entity =>
@@ -267,9 +262,9 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.LastCardId)
                 .HasMaxLength(12)
                 .HasColumnName("LastCardID");
-            entity.Property(e => e.LastDate).HasColumnType("datetime");
+            entity.Property(e => e.LastDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.LockDriveMode).HasColumnName("Lock_Drive_Mode");
-            entity.Property(e => e.Modified).HasColumnType("datetime");
+            entity.Property(e => e.Modified).HasColumnType("timestamp without time zone");
             entity.Property(e => e.Name).HasMaxLength(30);
             entity.Property(e => e.Notes).HasMaxLength(255);
             entity.Property(e => e.Pdo).HasColumnName("PDO");
@@ -291,7 +286,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Rtctime)
                 .HasMaxLength(12)
                 .HasColumnName("RTCTime");
-            entity.Property(e => e.Updated).HasColumnType("datetime");
+            entity.Property(e => e.Updated).HasColumnType("timestamp without time zone");
             entity.Property(e => e.ValidFromTimeHh).HasColumnName("ValidFromTimeHH");
             entity.Property(e => e.ValidFromTimeMm).HasColumnName("ValidFromTimeMM");
             entity.Property(e => e.ValidToTimeHh).HasColumnName("ValidToTimeHH");
@@ -310,7 +305,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasMaxLength(8)
                 .HasColumnName("ActualCardID");
             entity.Property(e => e.AlarmId).HasColumnName("AlarmID");
-            entity.Property(e => e.EventDate).HasColumnType("datetime");
+            entity.Property(e => e.EventDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.EventId)
                 .ValueGeneratedOnAdd()
                 .HasColumnName("EventID");
@@ -357,7 +352,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .ToTable("T_Arc_Name_Header");
 
             entity.Property(e => e.Apbdate)
-                .HasColumnType("datetime")
+                .HasColumnType("timestamp without time zone")
                 .HasColumnName("APBDate");
             entity.Property(e => e.Apbnumber).HasColumnName("APBNumber");
             entity.Property(e => e.CardId)
@@ -369,8 +364,8 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("IDCardDesign");
-            entity.Property(e => e.LastDate).HasColumnType("datetime");
-            entity.Property(e => e.Modified).HasColumnType("datetime");
+            entity.Property(e => e.LastDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.Modified).HasColumnType("timestamp without time zone");
             entity.Property(e => e.OldCardId)
                 .HasMaxLength(8)
                 .HasColumnName("OldCardID");
@@ -378,8 +373,8 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasMaxLength(8)
                 .HasColumnName("PIN");
             entity.Property(e => e.Surname).HasMaxLength(30);
-            entity.Property(e => e.ValidFrom).HasColumnType("datetime");
-            entity.Property(e => e.ValidTo).HasColumnType("datetime");
+            entity.Property(e => e.ValidFrom).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.ValidTo).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<TArcSites>(entity =>
@@ -395,7 +390,7 @@ public partial class DoorsEnterpriseContext : DbContext
 
         modelBuilder.Entity<TAudit>(entity =>
         {
-            entity.HasKey(e => e.Id).IsClustered(false);
+            entity.HasKey(e => e.Id);
 
             entity.ToTable("T_Audit");
 
@@ -410,7 +405,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Forename)
                 .HasMaxLength(60)
                 .IsUnicode(false);
-            entity.Property(e => e.SaveDate).HasColumnType("datetime");
+            entity.Property(e => e.SaveDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.SavedBy)
                 .HasMaxLength(60)
                 .IsUnicode(false);
@@ -428,15 +423,14 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasNoKey()
                 .ToTable("T_Backup");
 
-            entity.Property(e => e.LastBackup).HasColumnType("datetime");
+            entity.Property(e => e.LastBackup).HasColumnType("timestamp without time zone");
             entity.Property(e => e.ScheduleTime).HasMaxLength(8);
         });
 
         modelBuilder.Entity<TBioData>(entity =>
         {
             entity.HasKey(e => e.Slot)
-                .HasName("PK_Bio_Data")
-                .IsClustered(false);
+                .HasName("PK_Bio_Data");
 
             entity.ToTable("T_Bio_Data");
 
@@ -467,19 +461,17 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCalendarDetails>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.ExceptionDate })
-                .HasName("PK_Calendar_Details")
-                .IsClustered(false);
+                .HasName("PK_Calendar_Details");
 
             entity.ToTable("T_Calendar_Details");
 
-            entity.Property(e => e.ExceptionDate).HasColumnType("datetime");
+            entity.Property(e => e.ExceptionDate).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<TCalendarHeader>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_Calendar_Header")
-                .IsClustered(false);
+                .HasName("PK_Calendar_Header");
 
             entity.ToTable("T_Calendar_Header");
 
@@ -489,8 +481,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardDesignDetails>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Sequence })
-                .HasName("PK_CardDesign_Details")
-                .IsClustered(false);
+                .HasName("PK_CardDesign_Details");
 
             entity.ToTable("T_CardDesign_Details");
 
@@ -508,8 +499,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardDesignHeader>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_CardDesign_Header")
-                .IsClustered(false);
+                .HasName("PK_CardDesign_Header");
 
             entity.ToTable("T_CardDesign_Header", tb => tb.HasTrigger("trgCardDesign"));
 
@@ -521,8 +511,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardManagerDefault>(entity =>
         {
             entity.HasKey(e => e.User)
-                .HasName("PK_CardManager_Default")
-                .IsClustered(false);
+                .HasName("PK_CardManager_Default");
 
             entity.ToTable("T_CardManager_Default");
 
@@ -532,8 +521,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardManagerHeader>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_CardManager_Header")
-                .IsClustered(false);
+                .HasName("PK_CardManager_Header");
 
             entity.ToTable("T_CardManager_Header");
 
@@ -545,8 +533,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardManagerOrderByFields>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.SortNumber })
-                .HasName("PK_CardManager_OrderByFields")
-                .IsClustered(false);
+                .HasName("PK_CardManager_OrderByFields");
 
             entity.ToTable("T_CardManager_OrderByFields");
 
@@ -557,8 +544,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardManagerSelectFields>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Position })
-                .HasName("PK_CardManager_SelectFields")
-                .IsClustered(false);
+                .HasName("PK_CardManager_SelectFields");
 
             entity.ToTable("T_CardManager_SelectFields");
 
@@ -569,8 +555,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardManagerWhereFields>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Sequence })
-                .HasName("PK_CardManager_WhereFields")
-                .IsClustered(false);
+                .HasName("PK_CardManager_WhereFields");
 
             entity.ToTable("T_CardManager_WhereFields");
 
@@ -584,8 +569,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardPackDetails>(entity =>
         {
             entity.HasKey(e => new { e.Site, e.CardPack })
-                .HasName("PK_CardPack_Details")
-                .IsClustered(false);
+                .HasName("PK_CardPack_Details");
 
             entity.ToTable("T_CardPack_Details");
         });
@@ -593,8 +577,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCardPackHeader>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_CardPack_Header")
-                .IsClustered(false);
+                .HasName("PK_CardPack_Header");
 
             entity.ToTable("T_CardPack_Header");
 
@@ -607,8 +590,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCommands>(entity =>
         {
             entity.HasKey(e => e.CommandId)
-                .HasName("PK_Commands")
-                .IsClustered(false);
+                .HasName("PK_Commands");
 
             entity.ToTable("T_Commands");
 
@@ -632,8 +614,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TConnectors>(entity =>
         {
             entity.HasKey(e => e.Connector)
-                .HasName("PK_Connectors")
-                .IsClustered(false);
+                .HasName("PK_Connectors");
 
             entity.ToTable("T_Connectors");
 
@@ -655,8 +636,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCustom>(entity =>
         {
             entity.HasKey(e => new { e.CustomFieldCode, e.Code })
-                .HasName("PK_Custom")
-                .IsClustered(false);
+                .HasName("PK_Custom");
 
             entity.ToTable("T_Custom");
 
@@ -666,8 +646,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TCustomFieldTypes>(entity =>
         {
             entity.HasKey(e => e.CustomField)
-                .HasName("PK_CustomFieldTypes")
-                .IsClustered(false);
+                .HasName("PK_CustomFieldTypes");
 
             entity.ToTable("T_CustomFieldTypes");
 
@@ -684,7 +663,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Comments)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.CommissionDate).HasColumnType("datetime");
+            entity.Property(e => e.CommissionDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.CustomerAddress1).HasMaxLength(30);
             entity.Property(e => e.CustomerAddress2).HasMaxLength(30);
             entity.Property(e => e.CustomerAddress3).HasMaxLength(30);
@@ -696,7 +675,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.CustomerPostCode).HasMaxLength(10);
             entity.Property(e => e.CustomerTelephone).HasMaxLength(30);
             entity.Property(e => e.Customeremail).HasMaxLength(50);
-            entity.Property(e => e.InstallationDate).HasColumnType("datetime");
+            entity.Property(e => e.InstallationDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.InstallerAddress1).HasMaxLength(30);
             entity.Property(e => e.InstallerAddress2).HasMaxLength(30);
             entity.Property(e => e.InstallerAddress3).HasMaxLength(30);
@@ -714,8 +693,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TDisplay>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Position })
-                .HasName("PK_Display")
-                .IsClustered(false);
+                .HasName("PK_Display");
 
             entity.ToTable("T_Display");
 
@@ -725,8 +703,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TDisplayTypes>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.PropertyId })
-                .HasName("PK_DisplayTypes")
-                .IsClustered(false);
+                .HasName("PK_DisplayTypes");
 
             entity.ToTable("T_DisplayTypes");
 
@@ -745,8 +722,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TDoorTechnology>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_Door_Technology")
-                .IsClustered(false);
+                .HasName("PK_Door_Technology");
 
             entity.ToTable("T_Door_Technology");
 
@@ -757,8 +733,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TDoors>(entity =>
         {
             entity.HasKey(e => e.Door)
-                .HasName("PK_Doors")
-                .IsClustered(false);
+                .HasName("PK_Doors");
 
             entity.ToTable("T_Doors");
 
@@ -794,9 +769,9 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.LastCardId)
                 .HasMaxLength(12)
                 .HasColumnName("LastCardID");
-            entity.Property(e => e.LastDate).HasColumnType("datetime");
+            entity.Property(e => e.LastDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.LockDriveMode).HasColumnName("Lock_Drive_Mode");
-            entity.Property(e => e.Modified).HasColumnType("datetime");
+            entity.Property(e => e.Modified).HasColumnType("timestamp without time zone");
             entity.Property(e => e.Name).HasMaxLength(30);
             entity.Property(e => e.Notes).HasMaxLength(255);
             entity.Property(e => e.Pdo).HasColumnName("PDO");
@@ -818,7 +793,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Rtctime)
                 .HasMaxLength(12)
                 .HasColumnName("RTCTime");
-            entity.Property(e => e.Updated).HasColumnType("datetime");
+            entity.Property(e => e.Updated).HasColumnType("timestamp without time zone");
             entity.Property(e => e.ValidFromTimeHh).HasColumnName("ValidFromTimeHH");
             entity.Property(e => e.ValidFromTimeMm).HasColumnName("ValidFromTimeMM");
             entity.Property(e => e.ValidToTimeHh).HasColumnName("ValidToTimeHH");
@@ -830,8 +805,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TEnterpriseData>(entity =>
         {
             entity.HasKey(e => new { e.Property, e.Value })
-                .HasName("PK_EnterpriseData")
-                .IsClustered(false);
+                .HasName("PK_EnterpriseData");
 
             entity.ToTable("T_EnterpriseData");
 
@@ -842,8 +816,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TEventTypes>(entity =>
         {
             entity.HasKey(e => e.EventType)
-                .HasName("PK_EventTypes")
-                .IsClustered(false);
+                .HasName("PK_EventTypes");
 
             entity.ToTable("T_EventTypes");
 
@@ -861,8 +834,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TEvents>(entity =>
         {
             entity.HasKey(e => new { e.EventDate, e.CardNumber, e.DoorNumber, e.EventType, e.ReaderId, e.EventId })
-                .HasName("PK_Events")
-                .IsClustered(false);
+                .HasName("PK_Events");
 
             entity.ToTable("T_Events");
 
@@ -870,7 +842,7 @@ public partial class DoorsEnterpriseContext : DbContext
 
             entity.HasIndex(e => e.EventId, "IND_EventID").IsUnique();
 
-            entity.Property(e => e.EventDate).HasColumnType("datetime");
+            entity.Property(e => e.EventDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.ReaderId).HasColumnName("ReaderID");
             entity.Property(e => e.EventId)
                 .ValueGeneratedOnAdd()
@@ -884,8 +856,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TFloorPlans>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_FloorPlans")
-                .IsClustered(false);
+                .HasName("PK_FloorPlans");
 
             entity.ToTable("T_FloorPlans");
 
@@ -897,8 +868,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TIocontrollerDetails>(entity =>
         {
             entity.HasKey(e => new { e.ControllerId, e.IoinputIndex })
-                .HasName("PK_IOController_Details")
-                .IsClustered(false);
+                .HasName("PK_IOController_Details");
 
             entity.ToTable("T_IOController_Details");
 
@@ -911,8 +881,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TIocontrollerHeader>(entity =>
         {
             entity.HasKey(e => e.ControllerId)
-                .HasName("PK_IOController_Header")
-                .IsClustered(false);
+                .HasName("PK_IOController_Header");
 
             entity.ToTable("T_IOController_Header");
 
@@ -936,8 +905,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TModems>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_Modems")
-                .IsClustered(false);
+                .HasName("PK_Modems");
 
             entity.ToTable("T_Modems");
 
@@ -949,19 +917,17 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TNameAccessLevels>(entity =>
         {
             entity.HasKey(e => new { e.CardNumber, e.Site, e.Level })
-                .HasName("PK_Name_AccessLevels")
-                .IsClustered(false);
+                .HasName("PK_Name_AccessLevels");
 
             entity.ToTable("T_Name_AccessLevels");
 
-            entity.Property(e => e.Modified).HasColumnType("datetime");
+            entity.Property(e => e.Modified).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<TNameCustomFields>(entity =>
         {
             entity.HasKey(e => e.CardNumber)
-                .HasName("PK_Name_CustomFields")
-                .IsClustered(false);
+                .HasName("PK_Name_CustomFields");
 
             entity.ToTable("T_Name_CustomFields");
 
@@ -996,8 +962,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TNameHeader>(entity =>
         {
             entity.HasKey(e => e.CardNumber)
-                .HasName("PK_Name_Header")
-                .IsClustered(false);
+                .HasName("PK_Name_Header");
 
             entity.ToTable("T_Name_Header");
 
@@ -1005,7 +970,7 @@ public partial class DoorsEnterpriseContext : DbContext
 
             entity.Property(e => e.CardNumber).ValueGeneratedNever();
             entity.Property(e => e.Apbdate)
-                .HasColumnType("datetime")
+                .HasColumnType("timestamp without time zone")
                 .HasColumnName("APBDate");
             entity.Property(e => e.Apbnumber).HasColumnName("APBNumber");
             entity.Property(e => e.CardId)
@@ -1017,8 +982,8 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("IDCardDesign");
-            entity.Property(e => e.LastDate).HasColumnType("datetime");
-            entity.Property(e => e.Modified).HasColumnType("datetime");
+            entity.Property(e => e.LastDate).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.Modified).HasColumnType("timestamp without time zone");
             entity.Property(e => e.OldCardId)
                 .HasMaxLength(8)
                 .HasColumnName("OldCardID");
@@ -1026,15 +991,14 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasMaxLength(8)
                 .HasColumnName("PIN");
             entity.Property(e => e.Surname).HasMaxLength(30);
-            entity.Property(e => e.ValidFrom).HasColumnType("datetime");
-            entity.Property(e => e.ValidTo).HasColumnType("datetime");
+            entity.Property(e => e.ValidFrom).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.ValidTo).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<TSites>(entity =>
         {
             entity.HasKey(e => e.Site)
-                .HasName("PK_Sites")
-                .IsClustered(false);
+                .HasName("PK_Sites");
 
             entity.ToTable("T_Sites");
 
@@ -1049,20 +1013,18 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TSpaceZoneAttendance>(entity =>
         {
             entity.HasKey(e => new { e.ZoneNumber, e.CardIndex, e.DateandTime })
-                .HasName("PK_SpaceZone_Attendance")
-                .IsClustered(false);
+                .HasName("PK_SpaceZone_Attendance");
 
             entity.ToTable("T_SpaceZone_Attendance");
 
-            entity.Property(e => e.DateandTime).HasColumnType("datetime");
+            entity.Property(e => e.DateandTime).HasColumnType("timestamp without time zone");
             entity.Property(e => e.Keyf).HasMaxLength(60);
         });
 
         modelBuilder.Entity<TSpaceZoneCardholders>(entity =>
         {
             entity.HasKey(e => new { e.SpaceZone, e.CardNumber })
-                .HasName("PK_SpaceZone_Cardholders")
-                .IsClustered(false);
+                .HasName("PK_SpaceZone_Cardholders");
 
             entity.ToTable("T_SpaceZone_Cardholders");
         });
@@ -1070,8 +1032,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TSpaceZoneDetails>(entity =>
         {
             entity.HasKey(e => new { e.Door, e.Site, e.Zone })
-                .HasName("PK_SpaceZone_Details")
-                .IsClustered(false);
+                .HasName("PK_SpaceZone_Details");
 
             entity.ToTable("T_SpaceZone_Details");
 
@@ -1083,8 +1044,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TSpaceZoneHeader>(entity =>
         {
             entity.HasKey(e => e.ZoneNumber)
-                .HasName("PK_SpaceZone_Header")
-                .IsClustered(false);
+                .HasName("PK_SpaceZone_Header");
 
             entity.ToTable("T_SpaceZone_Header");
 
@@ -1098,8 +1058,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TStatusView>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_StatusView")
-                .IsClustered(false);
+                .HasName("PK_StatusView");
 
             entity.ToTable("T_StatusView");
 
@@ -1121,8 +1080,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TTimeSheetHeader>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_TimeSheet_Header")
-                .IsClustered(false);
+                .HasName("PK_TimeSheet_Header");
 
             entity.ToTable("T_TimeSheet_Header");
 
@@ -1155,19 +1113,18 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Custom7).HasMaxLength(30);
             entity.Property(e => e.Custom8).HasMaxLength(30);
             entity.Property(e => e.Custom9).HasMaxLength(30);
-            entity.Property(e => e.DateFrom).HasColumnType("datetime");
-            entity.Property(e => e.DateTo).HasColumnType("datetime");
+            entity.Property(e => e.DateFrom).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.DateTo).HasColumnType("timestamp without time zone");
             entity.Property(e => e.FirstName).HasMaxLength(30);
             entity.Property(e => e.LastName).HasMaxLength(30);
             entity.Property(e => e.Name).HasMaxLength(30);
-            entity.Property(e => e.Rollover).HasColumnType("datetime");
+            entity.Property(e => e.Rollover).HasColumnType("timestamp without time zone");
         });
 
         modelBuilder.Entity<TTimeSheetZones>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Zone })
-                .HasName("PK_TimeSheet_Zones")
-                .IsClustered(false);
+                .HasName("PK_TimeSheet_Zones");
 
             entity.ToTable("T_TimeSheet_Zones");
         });
@@ -1175,8 +1132,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TTimeZoneDetails>(entity =>
         {
             entity.HasKey(e => new { e.TimeZone, e.Sequence })
-                .HasName("PK_TimeZone_Details")
-                .IsClustered(false);
+                .HasName("PK_TimeZone_Details");
 
             entity.ToTable("T_TimeZone_Details");
 
@@ -1187,8 +1143,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TTimeZoneHeader>(entity =>
         {
             entity.HasKey(e => new { e.TimeZone, e.Site })
-                .HasName("PK_TimeZone_Header")
-                .IsClustered(false);
+                .HasName("PK_TimeZone_Header");
 
             entity.ToTable("T_TimeZone_Header");
 
@@ -1199,8 +1154,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TTriggersControllers>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.ControllerCode, e.InputIndex })
-                .HasName("PK_Triggers_Controllers")
-                .IsClustered(false);
+                .HasName("PK_Triggers_Controllers");
 
             entity.ToTable("T_Triggers_Controllers");
         });
@@ -1208,8 +1162,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TTriggersEvents>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.EventType })
-                .HasName("PK_Triggers_Events")
-                .IsClustered(false);
+                .HasName("PK_Triggers_Events");
 
             entity.ToTable("T_Triggers_Events");
         });
@@ -1217,8 +1170,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TTriggersHeader>(entity =>
         {
             entity.HasKey(e => e.Code)
-                .HasName("PK_Triggers_Header")
-                .IsClustered(false);
+                .HasName("PK_Triggers_Header");
 
             entity.ToTable("T_Triggers_Header");
 
@@ -1233,8 +1185,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TUserPermissions>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Area })
-                .HasName("PK_User_Permissions")
-                .IsClustered(false);
+                .HasName("PK_User_Permissions");
 
             entity.ToTable("T_User_Permissions");
 
@@ -1246,8 +1197,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TUserSites>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Site })
-                .HasName("PK_User_Sites")
-                .IsClustered(false);
+                .HasName("PK_User_Sites");
 
             entity.ToTable("T_User_Sites");
         });
@@ -1255,8 +1205,7 @@ public partial class DoorsEnterpriseContext : DbContext
         modelBuilder.Entity<TUserlog>(entity =>
         {
             entity.HasKey(e => e.Key)
-                .HasName("PK_Userlog")
-                .IsClustered(false);
+                .HasName("PK_Userlog");
 
             entity.ToTable("T_Userlog");
 
@@ -1284,7 +1233,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
             entity.Property(e => e.Password)
-                .HasColumnType("varchar(max)"); // widened from legacy varchar(50) to hold BCrypt hashes
+                .HasColumnType("text"); // widened from legacy varchar(50) to hold BCrypt hashes
         });
 
         modelBuilder.Entity<VNameAccessLevels>(entity =>

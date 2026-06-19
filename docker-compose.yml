@@ -41,32 +41,29 @@ services:
       - ${USER_PHOTO_PATH:-user-photo}:/data/user-photo
       - ${SETTINGS_PATH:-settings}:/data/settings
     depends_on:
-      mssql:
+      postgres:
         condition: service_healthy
     networks:
       - doorsweb
 
-  mssql:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: doorsweb.mssql
-    # SQL Server grows its buffer pool to consume ALL available RAM by default and
-    # never releases it (looks like a leak, but is by design). MSSQL_MEMORY_LIMIT_MB
-    # caps SQL Server's own "max server memory"; mem_limit is the hard container
-    # ceiling and is kept ~1 GB above the buffer-pool cap to leave headroom for
-    # SQL's non-buffer-pool memory (avoids Docker OOM-killing the container).
-    mem_limit: 2560m
+  postgres:
+    image: postgres:16
+    container_name: doorsweb.postgres
+    # PostgreSQL keeps shared_buffers modest by default and leans on the OS page cache,
+    # so it doesn't hoard RAM the way SQL Server's buffer pool did; 1 GB is ample for dev.
+    mem_limit: 1g
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
-      - MSSQL_MEMORY_LIMIT_MB=1536
+      - POSTGRES_DB=DoorsWeb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      # Host port is overridable via MSSQL_HOST_PORT in .env (defaults to 1433).
-      # The container port stays 1433, so in-network clients still use doorsweb.mssql:1433.
-      - "${MSSQL_HOST_PORT:-1433}:1433"
+      # Host port is overridable via POSTGRES_HOST_PORT in .env (defaults to 5432).
+      # The container port stays 5432, so in-network clients still use doorsweb.postgres:5432.
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
-      - mssql-data:/var/opt/mssql
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d DoorsWeb"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -86,5 +83,5 @@ volumes:
     driver: local
   settings:
     driver: local
-  mssql-data:
+  postgres-data:
     driver: local

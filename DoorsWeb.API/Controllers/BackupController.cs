@@ -26,9 +26,9 @@ namespace DoorsWeb.API.Controllers
 
         // Creates a full database backup.
         [HttpPost]
-        public async Task<ActionResult<BackupOperationResult>> Create(CreateBackupRequest request)
+        public async Task<ActionResult<BackupOperationResult>> Create(CreateBackupRequest request, CancellationToken cancellationToken)
         {
-            var result = await _service.CreateBackup(request);
+            var result = await _service.CreateBackup(request, cancellationToken);
             if (!result.Success)
             {
                 return Problem(detail: result.Message, title: "Backup Failed", statusCode: 500);
@@ -38,9 +38,9 @@ namespace DoorsWeb.API.Controllers
 
         // Restores the database from an existing backup file.
         [HttpPost("restore")]
-        public async Task<ActionResult<BackupOperationResult>> Restore(RestoreBackupRequest request)
+        public async Task<ActionResult<BackupOperationResult>> Restore(RestoreBackupRequest request, CancellationToken cancellationToken)
         {
-            var result = await _service.RestoreBackup(request);
+            var result = await _service.RestoreBackup(request, cancellationToken);
             if (!result.Success)
             {
                 return Problem(detail: result.Message, title: "Restore Failed", statusCode: 500);

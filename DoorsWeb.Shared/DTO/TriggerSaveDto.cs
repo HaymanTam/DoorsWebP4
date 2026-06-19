@@ -17,6 +17,10 @@ namespace DoorsWeb.Shared.DTO
         public bool SuppressDuplicates { get; set; }
 
         public bool TriggerRelayB { get; set; }
+        /// <summary>Door whose Relay B is driven (T_Triggers_Header.RelayBdoor). 0 = none.</summary>
+        public int RelayBdoor { get; set; }
+        /// <summary>Relay B action: true = Open, false = Close (T_Triggers_Header.OpenRelayB).</summary>
+        public bool OpenRelayB { get; set; }
         public bool ResetRelayB { get; set; }
         public int ResetRelayBperiod { get; set; }
 

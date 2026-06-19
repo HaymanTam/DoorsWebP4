@@ -3,16 +3,16 @@ using System;
 using DoorsWeb.API.Legacy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace DoorsWeb.API.Migrations
 {
     [DbContext(typeof(DoorsEnterpriseContext))]
-    [Migration("20260617234149_InitialCreate")]
+    [Migration("20260619170645_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -21,28 +21,26 @@ namespace DoorsWeb.API.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.5")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TAccessLevelDetails", b =>
                 {
                     b.Property<int>("Level")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Door")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("DoorTimeZone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("LevelDefault")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("Level", "Door")
                         .HasName("PK_AccessLevel_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Level", "Door"), false);
 
                     b.HasIndex("Door");
 
@@ -52,29 +50,27 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TAccessLevelHeader", b =>
                 {
                     b.Property<int>("AccessLevel")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("LocalLevel")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("TimeZone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("AccessLevel", "Site")
                         .HasName("PK_AccessLevel_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("AccessLevel", "Site"), false);
 
                     b.HasIndex("Site");
 
@@ -84,48 +80,46 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TAlarms", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ActionedBy")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("ActionedDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ActionedText")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTime?>("AlarmDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("AlarmDescription")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int?>("AlarmType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ControllerNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("EventType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("InputIndex")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("IsRead")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_Alarms");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.HasIndex("EventType");
 
@@ -137,35 +131,33 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TApbzoneDetails", b =>
                 {
                     b.Property<int>("Apbnumber")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("APBNumber");
 
                     b.Property<int>("DoorNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("EnforceOnEntry")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("EnforceOnExit")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Key")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<int?>("MemberType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ReaderA")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ReaderB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Apbnumber", "DoorNumber")
                         .HasName("PK_APBZone_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Apbnumber", "DoorNumber"), false);
 
                     b.HasIndex("DoorNumber");
 
@@ -175,55 +167,53 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TApbzoneHeader", b =>
                 {
                     b.Property<int>("Apbnumber")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("APBNumber");
 
                     b.Property<int?>("Apbmode")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("APBMode");
 
                     b.Property<bool?>("AutoLogOut")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("DiscoveryMode")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("DiscoveryModeDuration")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DiscoveryModeExpiryDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool?>("DiscoveryModeOnFireAlarm")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("DiscoveryModeOnFireAlarmDuration")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DiscoveryModeStart")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("FireInterfaceDoor")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Key")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime?>("NextAutoLogout")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Apbnumber")
                         .HasName("PK_APBZone_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Apbnumber"), false);
 
                     b.HasIndex("Site");
 
@@ -233,14 +223,14 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TArcCustom", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("CustomFieldCode")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.ToTable("T_Arc_Custom", (string)null);
                 });
@@ -248,14 +238,14 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TArcCustomFieldTypes", b =>
                 {
                     b.Property<int>("CustomField")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("DataType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Literal")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.ToTable("T_Arc_CustomFieldTypes", (string)null);
                 });
@@ -263,295 +253,295 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TArcDoors", b =>
                 {
                     b.Property<int?>("AccessCodeDig1")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig1");
 
                     b.Property<int?>("AccessCodeDig2")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig2");
 
                     b.Property<int?>("AccessCodeDig3")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig3");
 
                     b.Property<int?>("AccessCodeDig4")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig4");
 
                     b.Property<int?>("AccessCodeDig5")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig5");
 
                     b.Property<int?>("AccessCodeDig6")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig6");
 
                     b.Property<int?>("AccessCodeDig7")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig7");
 
                     b.Property<int?>("AccessCodeDig8")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig8");
 
                     b.Property<int?>("AccessCodeLen")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Len");
 
                     b.Property<int?>("AlarmZoneNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("AutoDelayVal")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("AutoRelock")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("BioEnrolA")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("Bio_Enrol_A");
 
                     b.Property<bool?>("BioEnrolB")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("Bio_Enrol_B");
 
                     b.Property<bool?>("CarIn")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("CarOut")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("CardandPintimeZone")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CardandPINTimeZone");
 
                     b.Property<int?>("ConAlmVolume")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CON_ALM_Volume");
 
                     b.Property<int?>("ConFbVolume")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CON_FB_Volume");
 
                     b.Property<int?>("Connector")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ControllerId")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("ControllerID");
 
                     b.Property<bool?>("ControllerIp")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("ControllerIP");
 
                     b.Property<int>("Door")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("DoorIpaddress")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("DoorIPAddress");
 
                     b.Property<int?>("DoorType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlan")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlanX")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlanY")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("IdSequenceA")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ID_Sequence_A");
 
                     b.Property<int?>("IdSequenceB")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ID_Sequence_B");
 
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("KeyboardName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("KeyboardTech")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("KeypadStarMode")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("Keypad_Star_Mode");
 
                     b.Property<int?>("LastCard")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LastCardId")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("LastCardID");
 
                     b.Property<DateTime?>("LastDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("LastEvent")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LocalDoorNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LockDriveMode")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("Lock_Drive_Mode");
 
                     b.Property<int?>("LogCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("LogInA")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("LogInB")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("LogUpdateInterval1")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LogUpdateInterval2")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("LogoutA")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("LogoutB")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("Modified")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int?>("Pdo")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("PDO");
 
                     b.Property<int?>("PlanNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("RandomSearchFreq")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("Random_Search_Freq");
 
                     b.Property<int?>("RdrBrightnessA")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Brightness_A");
 
                     b.Property<int?>("RdrBrightnessB")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Brightness_B");
 
                     b.Property<int?>("RdrVolumeA")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Volume_A");
 
                     b.Property<int?>("RdrVolumeB")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Volume_B");
 
                     b.Property<string>("ReaderAname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("ReaderAName");
 
                     b.Property<string>("ReaderBname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("ReaderBName");
 
                     b.Property<int?>("RelayBmode")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("RelayBtimeZone")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RelayBTimeZone");
 
                     b.Property<int?>("ReleaseDelay")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ReleaseTime")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ReleaseTimeB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Rtcdate")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("RTCDate");
 
                     b.Property<string>("Rtctime")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("RTCTime");
 
                     b.Property<int?>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Status1")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Status2")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StatusUpdateInterval1")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StatusUpdateInterval2")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TechnologyA")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TechnologyB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TimeLock")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("Updated")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("ValidFromTimeHh")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidFromTimeHH");
 
                     b.Property<int?>("ValidFromTimeMm")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidFromTimeMM");
 
                     b.Property<int?>("ValidToTimeHh")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidToTimeHH");
 
                     b.Property<int?>("ValidToTimeMm")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidToTimeMM");
 
                     b.Property<int?>("VdiskDirectories")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<float?>("Xplace")
                         .HasColumnType("real")
@@ -568,34 +558,34 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<string>("ActualCardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("ActualCardID");
 
                     b.Property<int?>("AlarmId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AlarmID");
 
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("DoorNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("EventDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("EventId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("EventID");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EventId"));
 
                     b.Property<int>("EventType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ReaderId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ReaderID");
 
                     b.ToTable("T_Arc_Events", (string)null);
@@ -604,107 +594,107 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TArcNameCustomFields", b =>
                 {
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Custom1")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom10")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom11")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom12")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom13")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom14")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom15")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom16")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom17")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom18")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom19")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom2")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom20")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom21")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom22")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom23")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom24")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom25")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom3")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom4")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom5")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom6")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom7")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom8")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom9")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.ToTable("T_Arc_Name_CustomFields", (string)null);
                 });
@@ -712,102 +702,102 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TArcNameHeader", b =>
                 {
                     b.Property<DateTime?>("Apbdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("APBDate");
 
                     b.Property<int?>("Apbnumber")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("APBNumber");
 
                     b.Property<bool?>("BioAdmin")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("BioOptOut")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("CardDesign")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("CardID");
 
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("Enabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Flexi")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Forname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("HotStamp")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("IdcardDesign")
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("IDCardDesign");
 
                     b.Property<bool?>("InUse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("LastDoor")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LastEvent")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("Modified")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("OldCardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("OldCardID");
 
                     b.Property<string>("Pin")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("PIN");
 
                     b.Property<int?>("PinRequired")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Rollcall")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Surname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool?>("UpdatePending")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("ValidFrom")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("ValidFromOverride")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("ValidTo")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("ValidToOverride")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("Void")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.ToTable("T_Arc_Name_Header", (string)null);
                 });
@@ -815,22 +805,22 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TArcSites", b =>
                 {
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.ToTable("T_Arc_Sites", (string)null);
                 });
@@ -839,57 +829,55 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ID");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AccessLevels")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(1000)");
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("CardId")
                         .IsRequired()
                         .HasMaxLength(8)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("CardID");
 
                     b.Property<bool>("Enabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Forename")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<DateTime>("SaveDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("SavedBy")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<string>("Surname")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.Property<string>("Workstation")
                         .IsRequired()
                         .HasMaxLength(60)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.HasKey("Id");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
 
                     b.ToTable("T_Audit", (string)null);
                 });
@@ -897,45 +885,45 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TBackup", b =>
                 {
                     b.Property<bool>("DeleteToRecycleBin")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IncludePhotos")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IncludePlans")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("KeepNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("KeepOn")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastBackup")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("MaximumNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("MaximumOn")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("SaveDays")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ScheduleFrequency")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ScheduleNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("ScheduleOn")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("ScheduleTime")
                         .IsRequired()
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
+                        .HasColumnType("character varying(8)");
 
                     b.ToTable("T_Backup", (string)null);
                 });
@@ -943,50 +931,48 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TBioData", b =>
                 {
                     b.Property<int>("Slot")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("BioChecksumLeft")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("BioChecksum_Left");
 
                     b.Property<int?>("BioChecksumRight")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("BioChecksum_Right");
 
                     b.Property<string>("BioTemplateLeft")
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("Bio_Template_Left");
 
                     b.Property<string>("BioTemplateRight")
                         .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnType("character varying(4000)")
                         .HasColumnName("Bio_Template_Right");
 
                     b.Property<string>("FingerLeft")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("Finger_Left");
 
                     b.Property<string>("FingerRight")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)")
+                        .HasColumnType("character varying(1)")
                         .HasColumnName("Finger_Right");
 
                     b.Property<string>("Id")
                         .HasMaxLength(12)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("ID");
 
                     b.Property<string>("Status")
                         .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasColumnType("character varying(1)");
 
                     b.HasKey("Slot")
                         .HasName("PK_Bio_Data");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Slot"), false);
 
                     b.HasIndex(new[] { "Slot" }, "IND_Slot")
                         .IsUnique();
@@ -997,15 +983,13 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCalendarDetails", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("ExceptionDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Code", "ExceptionDate")
                         .HasName("PK_Calendar_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "ExceptionDate"), false);
 
                     b.ToTable("T_Calendar_Details", (string)null);
                 });
@@ -1014,24 +998,22 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<string>("Description")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("LocalNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_Calendar_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.HasIndex("Site");
 
@@ -1041,63 +1023,61 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCardDesignDetails", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Sequence")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Alignment")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("Bold")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Colour")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("FontName")
                         .IsRequired()
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("FontSize")
                         .IsRequired()
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<int>("Height")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("Italic")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Left")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(255)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("Top")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Type")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("Underline")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Width")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code", "Sequence")
                         .HasName("PK_CardDesign_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "Sequence"), false);
 
                     b.ToTable("T_CardDesign_Details", (string)null);
                 });
@@ -1106,44 +1086,38 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(255)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("Orientation")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_CardDesign_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.ToTable("T_CardDesign_Header", null, t =>
                         {
                             t.HasTrigger("trgCardDesign");
                         });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCardManagerDefault", b =>
                 {
                     b.Property<int>("User")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("User")
                         .HasName("PK_CardManager_Default");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("User"), false);
 
                     b.HasIndex("Code");
 
@@ -1153,44 +1127,42 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCardManagerHeader", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("BottomMargin")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("LeftMargin")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ListViewType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Orientation")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Owner")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Printer")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("RightMargin")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TopMargin")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ViewType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_CardManager_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.ToTable("T_CardManager_Header", (string)null);
                 });
@@ -1198,26 +1170,24 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCardManagerOrderByFields", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("SortNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Descending")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("FieldName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("TableName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Code", "SortNumber")
                         .HasName("PK_CardManager_OrderByFields");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "SortNumber"), false);
 
                     b.ToTable("T_CardManager_OrderByFields", (string)null);
                 });
@@ -1225,29 +1195,27 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCardManagerSelectFields", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Position")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ColumnWidth")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("FieldName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("FieldType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("TableName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Code", "Position")
                         .HasName("PK_CardManager_SelectFields");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "Position"), false);
 
                     b.ToTable("T_CardManager_SelectFields", (string)null);
                 });
@@ -1255,38 +1223,36 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCardManagerWhereFields", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Sequence")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("FieldName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("FieldType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Operator")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("TableName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Value1")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Value2")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Code", "Sequence")
                         .HasName("PK_CardManager_WhereFields");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "Sequence"), false);
 
                     b.ToTable("T_CardManager_WhereFields", (string)null);
                 });
@@ -1294,15 +1260,13 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCardPackDetails", b =>
                 {
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("CardPack")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Site", "CardPack")
                         .HasName("PK_CardPack_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Site", "CardPack"), false);
 
                     b.HasIndex("CardPack");
 
@@ -1313,26 +1277,24 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<string>("FirstCardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("FirstCardID");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("Qty")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_CardPack_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.ToTable("T_CardPack_Header", (string)null);
                 });
@@ -1341,10 +1303,10 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("CommandId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CommandID");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CommandId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CommandId"));
 
                     b.Property<short?>("B1")
                         .HasColumnType("smallint");
@@ -1395,90 +1357,88 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<bool?>("Bol1")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Bol2")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Bol3")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Bol4")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Bol5")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Bol6")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Bol7")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Bol8")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("Command")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Connector")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ControllerId")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("ControllerID");
 
                     b.Property<string>("Data")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("character varying(100)");
 
                     b.Property<int?>("EngFunctionNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LevelA")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LevelB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LevelC")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LevelD")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("NewId")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("NewID");
 
                     b.Property<int?>("NewQty")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("OldId")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("OldID");
 
                     b.Property<int?>("OldQty")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Priority")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ValidFrom")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)");
+                        .HasColumnType("character varying(12)");
 
                     b.Property<string>("ValidTo")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)");
+                        .HasColumnType("character varying(12)");
 
                     b.HasKey("CommandId")
                         .HasName("PK_Commands");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("CommandId"), false);
 
                     b.HasIndex("Connector");
 
@@ -1490,100 +1450,98 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TConnectors", b =>
                 {
                     b.Property<int>("Connector")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ComPort")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("CommandFrequency")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ConnType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("DownloadLogsWhenUpdating")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Encrypted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("ForceDistrib")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("ForcePing")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("ForceTimeSync")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Ipaddress")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("IPAddress");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("ModemConnectionFrequency")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ModemConnectionPeriod")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ModemConnectionTime")
                         .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+                        .HasColumnType("character varying(5)");
 
                     b.Property<bool?>("ModemDownloadLogs")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("ModemStayConnected")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("ModemUploadCommands")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Pabx")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("PABX");
 
                     b.Property<string>("Path")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int?>("PingFrequency")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Retries")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("RetryInterval")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("Telnumber")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Connector")
                         .HasName("PK_Connectors");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Connector"), false);
 
                     b.HasIndex("Site");
 
@@ -1593,19 +1551,17 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCustom", b =>
                 {
                     b.Property<int>("CustomFieldCode")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("CustomFieldCode", "Code")
                         .HasName("PK_Custom");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("CustomFieldCode", "Code"), false);
 
                     b.ToTable("T_Custom", (string)null);
                 });
@@ -1613,19 +1569,17 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TCustomFieldTypes", b =>
                 {
                     b.Property<int>("CustomField")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("DataType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Literal")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("CustomField")
                         .HasName("PK_CustomFieldTypes");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("CustomField"), false);
 
                     b.ToTable("T_CustomFieldTypes", (string)null);
                 });
@@ -1636,131 +1590,131 @@ namespace DoorsWeb.API.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<DateTime>("CommissionDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("CustomerAddress1")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerAddress2")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerAddress3")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerAddress4")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerCompany")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerContact")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerCountry")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerFax")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("CustomerPostCode")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("CustomerTelephone")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Customeremail")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("InstallType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("InstallationDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("InstallerAddress1")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerAddress2")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerAddress3")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerAddress4")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerCompany")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerContact")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerCountry")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerFax")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("InstallerPostCode")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("InstallerTelephone")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Installeremail")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("ProductKey")
                         .IsRequired()
                         .HasMaxLength(9)
-                        .HasColumnType("nvarchar(9)");
+                        .HasColumnType("character varying(9)");
 
                     b.ToTable("T_Customer", (string)null);
                 });
@@ -1768,22 +1722,20 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TDisplay", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Position")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ColumnWidth")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("PropertyId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("PropertyID");
 
                     b.HasKey("Code", "Position")
                         .HasName("PK_Display");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "Position"), false);
 
                     b.HasIndex("Code", "PropertyId");
 
@@ -1793,37 +1745,35 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TDisplayTypes", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("PropertyId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("PropertyID");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("FalseDescription")
                         .IsRequired()
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool>("IsTrueFalse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("TrueDescription")
                         .IsRequired()
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Code", "PropertyId")
                         .HasName("PK_DisplayTypes");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "PropertyId"), false);
 
                     b.ToTable("T_DisplayTypes", (string)null);
                 });
@@ -1831,19 +1781,17 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TDoorTechnology", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("TechnologyCode")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_Door_Technology");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.ToTable("T_Door_Technology", (string)null);
                 });
@@ -1851,295 +1799,295 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TDoors", b =>
                 {
                     b.Property<int>("Door")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("AccessCodeDig1")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig1");
 
                     b.Property<int?>("AccessCodeDig2")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig2");
 
                     b.Property<int?>("AccessCodeDig3")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig3");
 
                     b.Property<int?>("AccessCodeDig4")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig4");
 
                     b.Property<int?>("AccessCodeDig5")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig5");
 
                     b.Property<int?>("AccessCodeDig6")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig6");
 
                     b.Property<int?>("AccessCodeDig7")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig7");
 
                     b.Property<int?>("AccessCodeDig8")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Dig8");
 
                     b.Property<int?>("AccessCodeLen")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AccessCode_Len");
 
                     b.Property<int?>("AlarmZoneNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("AutoDelayVal")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("AutoRelock")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("BioEnrolA")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("Bio_Enrol_A");
 
                     b.Property<bool?>("BioEnrolB")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("Bio_Enrol_B");
 
                     b.Property<bool?>("CarIn")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("CarOut")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("CardandPintimeZone")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CardandPINTimeZone");
 
                     b.Property<int?>("ConAlmVolume")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CON_ALM_Volume");
 
                     b.Property<int?>("ConFbVolume")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CON_FB_Volume");
 
                     b.Property<int?>("Connector")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ControllerId")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("ControllerID");
 
                     b.Property<bool?>("ControllerIp")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("ControllerIP");
 
                     b.Property<string>("DoorIpaddress")
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("DoorIPAddress");
 
                     b.Property<int?>("DoorType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlan")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlanX")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlanY")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("IdSequenceA")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ID_Sequence_A");
 
                     b.Property<int?>("IdSequenceB")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ID_Sequence_B");
 
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("KeyboardName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("KeyboardTech")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("KeypadStarMode")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("Keypad_Star_Mode");
 
                     b.Property<int?>("LastCard")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LastCardId")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("LastCardID");
 
                     b.Property<DateTime?>("LastDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("LastEvent")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LocalDoorNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LockDriveMode")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("Lock_Drive_Mode");
 
                     b.Property<int?>("LogCount")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("LogInA")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("LogInB")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("LogUpdateInterval1")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LogUpdateInterval2")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("LogoutA")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("LogoutB")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("Modified")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int?>("Pdo")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("PDO");
 
                     b.Property<int?>("PlanNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("RandomSearchFreq")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("Random_Search_Freq");
 
                     b.Property<int?>("RdrBrightnessA")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Brightness_A");
 
                     b.Property<int?>("RdrBrightnessB")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Brightness_B");
 
                     b.Property<int?>("RdrVolumeA")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Volume_A");
 
                     b.Property<int?>("RdrVolumeB")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RDR_Volume_B");
 
                     b.Property<string>("ReaderAname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("ReaderAName");
 
                     b.Property<string>("ReaderBname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("ReaderBName");
 
                     b.Property<int?>("RelayBmode")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("RelayBtimeZone")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RelayBTimeZone");
 
                     b.Property<int?>("ReleaseDelay")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ReleaseTime")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("ReleaseTimeB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Rtcdate")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("RTCDate");
 
                     b.Property<string>("Rtctime")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("RTCTime");
 
                     b.Property<int?>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Status1")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Status2")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StatusUpdateInterval1")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StatusUpdateInterval2")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TechnologyA")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TechnologyB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("TimeLock")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("Updated")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("ValidFromTimeHh")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidFromTimeHH");
 
                     b.Property<int?>("ValidFromTimeMm")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidFromTimeMM");
 
                     b.Property<int?>("ValidToTimeHh")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidToTimeHH");
 
                     b.Property<int?>("ValidToTimeMm")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ValidToTimeMM");
 
                     b.Property<int?>("VdiskDirectories")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<float?>("Xplace")
                         .HasColumnType("real")
@@ -2151,8 +2099,6 @@ namespace DoorsWeb.API.Migrations
 
                     b.HasKey("Door")
                         .HasName("PK_Doors");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Door"), false);
 
                     b.HasIndex("Connector");
 
@@ -2176,16 +2122,14 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<string>("Property")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Value")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Property", "Value")
                         .HasName("PK_EnterpriseData");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Property", "Value"), false);
 
                     b.ToTable("T_EnterpriseData", (string)null);
                 });
@@ -2193,23 +2137,21 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TEventTypes", b =>
                 {
                     b.Property<int>("EventType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Icon")
                         .IsRequired()
                         .HasMaxLength(30)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("EventType")
                         .HasName("PK_EventTypes");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("EventType"), false);
 
                     b.HasIndex(new[] { "EventType" }, "IND_EventTypes")
                         .IsUnique();
@@ -2220,41 +2162,39 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TEvents", b =>
                 {
                     b.Property<DateTime>("EventDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("DoorNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("EventType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ReaderId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ReaderID");
 
                     b.Property<int>("EventId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("EventID");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EventId"));
 
                     b.Property<string>("ActualCardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("ActualCardID");
 
                     b.Property<int?>("AlarmId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("AlarmID");
 
                     b.HasKey("EventDate", "CardNumber", "DoorNumber", "EventType", "ReaderId", "EventId")
                         .HasName("PK_Events");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("EventDate", "CardNumber", "DoorNumber", "EventType", "ReaderId", "EventId"), false);
 
                     b.HasIndex("CardNumber");
 
@@ -2274,23 +2214,21 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_FloorPlans");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.HasIndex("Site");
 
@@ -2300,7 +2238,7 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TIocontrollerDetails", b =>
                 {
                     b.Property<int>("ControllerId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ControllerID");
 
                     b.Property<short>("IoinputIndex")
@@ -2308,29 +2246,27 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnName("IOInputIndex");
 
                     b.Property<int?>("FloorPlan")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlanX")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("FloorPlanY")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("InputName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool?>("Inverted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("OutputName")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("ControllerId", "IoinputIndex")
                         .HasName("PK_IOController_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("ControllerId", "IoinputIndex"), false);
 
                     b.HasIndex("FloorPlan");
 
@@ -2340,46 +2276,44 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TIocontrollerHeader", b =>
                 {
                     b.Property<int>("ControllerId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ControllerID");
 
                     b.Property<int?>("Connector")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ControllerDay")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)");
+                        .HasColumnType("character varying(4)");
 
                     b.Property<int?>("ControllerIndex")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ControllerVersion")
                         .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)");
+                        .HasColumnType("character varying(4)");
 
                     b.Property<string>("Ipaddress")
                         .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
+                        .HasColumnType("character varying(15)")
                         .HasColumnName("IPAddress");
 
                     b.Property<string>("Name")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Rtcdate")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("RTCDate");
 
                     b.Property<string>("Rtctime")
                         .HasMaxLength(12)
-                        .HasColumnType("nvarchar(12)")
+                        .HasColumnType("character varying(12)")
                         .HasColumnName("RTCTime");
 
                     b.HasKey("ControllerId")
                         .HasName("PK_IOController_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("ControllerId"), false);
 
                     b.HasIndex("Connector");
 
@@ -2389,20 +2323,18 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TModems", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Comport")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("COMPort");
 
                     b.Property<string>("Description")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.HasKey("Code")
                         .HasName("PK_Modems");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.ToTable("T_Modems", (string)null);
                 });
@@ -2410,24 +2342,22 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TNameAccessLevels", b =>
                 {
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Level")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("Modified")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("CardNumber", "Site", "Level")
                         .HasName("PK_Name_AccessLevels");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("CardNumber", "Site", "Level"), false);
 
                     b.HasIndex("Site");
 
@@ -2439,112 +2369,110 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TNameCustomFields", b =>
                 {
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Custom1")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom10")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom11")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom12")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom13")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom14")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom15")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom16")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom17")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom18")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom19")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom2")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom20")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom21")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom22")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom23")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom24")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom25")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom3")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom4")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom5")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom6")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom7")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom8")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom9")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("CardNumber")
                         .HasName("PK_Name_CustomFields");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("CardNumber"), false);
 
                     b.ToTable("T_Name_CustomFields", (string)null);
                 });
@@ -2552,107 +2480,105 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TNameHeader", b =>
                 {
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("Apbdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("APBDate");
 
                     b.Property<int?>("Apbnumber")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("APBNumber");
 
                     b.Property<bool?>("BioAdmin")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("BioOptOut")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("CardDesign")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("CardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("CardID");
 
                     b.Property<bool?>("Enabled")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Flexi")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Forname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("HotStamp")
                         .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("IdcardDesign")
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("IDCardDesign");
 
                     b.Property<bool?>("InUse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("LastDoor")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("LastEvent")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("Modified")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("OldCardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("OldCardID");
 
                     b.Property<string>("Pin")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("PIN");
 
                     b.Property<int?>("PinRequired")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Rollcall")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Surname")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool?>("UpdatePending")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("ValidFrom")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("ValidFromOverride")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("ValidTo")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("ValidToOverride")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("Void")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("CardNumber")
                         .HasName("PK_Name_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("CardNumber"), false);
 
                     b.HasIndex("Apbnumber");
 
@@ -2671,56 +2597,60 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TSites", b =>
                 {
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Status")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.HasKey("Site")
                         .HasName("PK_Sites");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Site"), false);
 
                     b.HasIndex(new[] { "Site" }, "IND_Site")
                         .IsUnique();
 
                     b.ToTable("T_Sites", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Site = 1,
+                            Inuse = true,
+                            Name = "Default Site"
+                        });
                 });
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TSpaceZoneAttendance", b =>
                 {
                     b.Property<int>("ZoneNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("CardIndex")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("DateandTime")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool?>("AlarmFlag")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Keyf")
                         .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
+                        .HasColumnType("character varying(60)");
 
                     b.HasKey("ZoneNumber", "CardIndex", "DateandTime")
                         .HasName("PK_SpaceZone_Attendance");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("ZoneNumber", "CardIndex", "DateandTime"), false);
 
                     b.HasIndex("CardIndex");
 
@@ -2730,15 +2660,13 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TSpaceZoneCardholders", b =>
                 {
                     b.Property<int>("SpaceZone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("SpaceZone", "CardNumber")
                         .HasName("PK_SpaceZone_Cardholders");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("SpaceZone", "CardNumber"), false);
 
                     b.HasIndex("CardNumber");
 
@@ -2748,54 +2676,52 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TSpaceZoneDetails", b =>
                 {
                     b.Property<int>("Door")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Zone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("InReader1")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("InReader2")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("InReader3")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool?>("OpenOnFireAlarm")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("OutReader1")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("OutReader2")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("OutReader3")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Status")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.HasKey("Door", "Site", "Zone")
                         .HasName("PK_SpaceZone_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Door", "Site", "Zone"), false);
 
                     b.HasIndex("Site");
 
@@ -2807,67 +2733,65 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TSpaceZoneHeader", b =>
                 {
                     b.Property<int>("ZoneNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("CloseDoorsOnFireReset")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("FireInterfaceDoor")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("FireZone")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("InDispute")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Inuse")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool?>("LocalReport")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("MaxStay")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("MaxStayOn")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool?>("OpenDoorsOnFireAlarm")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Rented")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Report")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool?>("Reserved")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("RestrictCardholders")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.HasKey("ZoneNumber")
                         .HasName("PK_SpaceZone_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("ZoneNumber"), false);
 
                     b.HasIndex("Site");
 
@@ -2878,48 +2802,46 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<int?>("Display")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Move")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("Pause")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("ShowAllFloors")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("StatusView")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StatusViewX")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StatusViewY")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("StatusViewZ")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("UpdateChangesWhenPanning")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("Wait")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_StatusView");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.ToTable("T_StatusView", (string)null);
                 });
@@ -2927,19 +2849,19 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TSystem", b =>
                 {
                     b.Property<bool?>("AutoConfigUpdate")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Corporate1000Code")
                         .HasMaxLength(4)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(4)");
+                        .HasColumnType("character varying(4)");
 
                     b.Property<string>("CurrentVersion")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<bool?>("EnableFlexi")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.ToTable("T_System", (string)null);
                 });
@@ -2948,185 +2870,183 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<string>("CardId")
                         .IsRequired()
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("CardID");
 
                     b.Property<bool>("CardIdpageBreak")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("CardIDPageBreak");
 
                     b.Property<string>("Custom1")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom10")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom11")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom12")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom13")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom14")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom15")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom16")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom17")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom18")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom19")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom2")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom20")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom21")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom22")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom23")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom24")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom25")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom3")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom4")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom5")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom6")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom7")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom8")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Custom9")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime>("DateFrom")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("DatePageBreak")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("DateSearch")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("DateTo")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("InLastNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("InLastPeriod")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<DateTime>("Rollover")
-                        .HasColumnType("datetime");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Code")
                         .HasName("PK_TimeSheet_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.ToTable("T_TimeSheet_Header", (string)null);
                 });
@@ -3134,15 +3054,13 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TTimeSheetZones", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Zone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code", "Zone")
                         .HasName("PK_TimeSheet_Zones");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "Zone"), false);
 
                     b.HasIndex("Zone");
 
@@ -3152,50 +3070,48 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TTimeZoneDetails", b =>
                 {
                     b.Property<int>("TimeZone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Sequence")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Calendar")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool?>("DefaultCalendar")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("EndTime")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<bool?>("Fri")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Mon")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Sat")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("StartTime")
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<bool?>("Sun")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Thu")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Tue")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool?>("Wed")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.HasKey("TimeZone", "Sequence")
                         .HasName("PK_TimeZone_Details");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("TimeZone", "Sequence"), false);
 
                     b.HasIndex("Calendar");
 
@@ -3205,29 +3121,27 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TTimeZoneHeader", b =>
                 {
                     b.Property<int>("TimeZone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int?>("Calendar")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Key")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int?>("LocalTimeZone")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("TimeZone", "Site")
                         .HasName("PK_TimeZone_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("TimeZone", "Site"), false);
 
                     b.HasIndex("Calendar");
 
@@ -3239,18 +3153,16 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TTriggersControllers", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("ControllerCode")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("InputIndex")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code", "ControllerCode", "InputIndex")
                         .HasName("PK_Triggers_Controllers");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "ControllerCode", "InputIndex"), false);
 
                     b.ToTable("T_Triggers_Controllers", (string)null);
                 });
@@ -3258,15 +3170,13 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TTriggersEvents", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("EventType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code", "EventType")
                         .HasName("PK_Triggers_Events");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "EventType"), false);
 
                     b.HasIndex("EventType");
 
@@ -3277,88 +3187,86 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<string>("AlarmText")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool>("OpenOutput")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("OpenRelayB")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("OutputIndex")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("OutputSim")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("OutputSIM");
 
                     b.Property<int>("PopulationDirection")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("PopulationInput")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("PopulationInputOpens")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("PopulationSim")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("PopulationSIM");
 
                     b.Property<int>("PopulationValue")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("RelayBdoor")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("RelayBDoor");
 
                     b.Property<bool>("ResetOutput")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("ResetOutputPeriod")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("ResetRelayB")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("ResetRelayBperiod")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("ResetRelayBPeriod");
 
                     b.Property<bool>("ShowAlarm")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<bool>("SuppressDuplicates")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("TriggerOutput")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("TriggerRelayB")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("TriggerType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code")
                         .HasName("PK_Triggers_Header");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code"), false);
 
                     b.HasIndex("Site");
 
@@ -3368,17 +3276,15 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TUserPermissions", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Area")
                         .HasMaxLength(3)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(3)");
+                        .HasColumnType("character varying(3)");
 
                     b.HasKey("Code", "Area")
                         .HasName("PK_User_Permissions");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "Area"), false);
 
                     b.ToTable("T_User_Permissions", (string)null);
                 });
@@ -3386,15 +3292,13 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.TUserSites", b =>
                 {
                     b.Property<int>("Code")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Code", "Site")
                         .HasName("PK_User_Sites");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Code", "Site"), false);
 
                     b.HasIndex("Site");
 
@@ -3405,33 +3309,31 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<string>("Key")
                         .HasMaxLength(28)
-                        .HasColumnType("nvarchar(28)");
+                        .HasColumnType("character varying(28)");
 
                     b.Property<string>("Id")
                         .HasMaxLength(28)
-                        .HasColumnType("nvarchar(28)")
+                        .HasColumnType("character varying(28)")
                         .HasColumnName("ID");
 
                     b.Property<string>("LogInDateTime")
                         .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("LogInEvent")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("LogInPoint")
                         .HasMaxLength(28)
-                        .HasColumnType("nvarchar(28)");
+                        .HasColumnType("character varying(28)");
 
                     b.Property<string>("User")
                         .HasMaxLength(28)
-                        .HasColumnType("nvarchar(28)");
+                        .HasColumnType("character varying(28)");
 
                     b.HasKey("Key")
                         .HasName("PK_Userlog");
-
-                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Key"), false);
 
                     b.ToTable("T_Userlog", (string)null);
                 });
@@ -3440,24 +3342,25 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<int>("Code")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Code"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<bool>("Administrator")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(50)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Password")
                         .IsRequired()
-                        .HasColumnType("varchar(max)");
+                        .HasColumnType("text");
 
-                    b.HasKey("Code");
+                    b.HasKey("Code")
+                        .HasName("PK_T_Users");
 
                     b.ToTable("T_Users", (string)null);
 
@@ -3475,40 +3378,40 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<string>("CardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("CardID");
 
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<long?>("Id")
                         .HasColumnType("bigint")
                         .HasColumnName("ID");
 
                     b.Property<int>("LevelA")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("LevelB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Pin")
                         .IsRequired()
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("PIN");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ValidFrom")
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("ValidTo")
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.ToTable((string)null);
 
@@ -3519,43 +3422,43 @@ namespace DoorsWeb.API.Migrations
                 {
                     b.Property<string>("CardId")
                         .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)")
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("CardID");
 
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<long?>("Id")
                         .HasColumnType("bigint")
                         .HasColumnName("ID");
 
                     b.Property<int>("LevelA")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("LevelB")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Pin")
                         .IsRequired()
                         .HasMaxLength(4)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(4)")
+                        .HasColumnType("character varying(4)")
                         .HasColumnName("PIN");
 
                     b.Property<int>("Site")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("ValidFrom")
                         .IsRequired()
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("ValidTo")
                         .IsRequired()
                         .HasMaxLength(10)
                         .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.ToTable((string)null);
 
@@ -3565,11 +3468,11 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.VNameHeader", b =>
                 {
                     b.Property<int?>("CardId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("CardID");
 
                     b.Property<int>("CardNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.ToTable((string)null);
 

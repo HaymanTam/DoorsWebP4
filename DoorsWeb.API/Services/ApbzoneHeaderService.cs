@@ -61,7 +61,7 @@ namespace DoorsWeb.API.Services
 
             var dto = new ApbZoneSaveDto { Site = site };
 
-            var selected = new HashSet<int>();
+            var details = new Dictionary<int, TApbzoneDetails>();
             if (apbnumber is int apb)
             {
                 var header = await _context.TApbzoneHeader.AsNoTracking()
@@ -79,17 +79,27 @@ namespace DoorsWeb.API.Services
                     dto.LogOutDaily = header.AutoLogOut ?? false;
                     dto.LogOutTime = header.NextAutoLogout?.ToString("HH:mm");
                 }
-                selected = (await _context.TApbzoneDetails.AsNoTracking()
+                details = (await _context.TApbzoneDetails.AsNoTracking()
                     .Where(d => d.Apbnumber == apb)
-                    .Select(d => d.DoorNumber)
-                    .ToListAsync()).ToHashSet();
+                    .ToListAsync())
+                    .GroupBy(d => d.DoorNumber)
+                    .ToDictionary(g => g.Key, g => g.First());
             }
 
-            dto.Doors = doors.Select(d => new ApbZoneDoorDto
+            dto.Doors = doors.Select(d =>
             {
-                Door = d.Door,
-                Name = d.Name,
-                Included = selected.Contains(d.Door),
+                details.TryGetValue(d.Door, out var det);
+                return new ApbZoneDoorDto
+                {
+                    Door = d.Door,
+                    Name = d.Name,
+                    Included = det is not null,
+                    MemberType = det?.MemberType ?? 0,
+                    ReaderA = det?.ReaderA ?? 0,
+                    ReaderB = det?.ReaderB ?? 0,
+                    EnforceOnEntry = det?.EnforceOnEntry ?? false,
+                    EnforceOnExit = det?.EnforceOnExit ?? false,
+                };
             }).ToList();
 
             return dto;
@@ -118,14 +128,19 @@ namespace DoorsWeb.API.Services
                 await _context.SaveChangesAsync();
             }
 
-            // The web Doors tab only offers an include checkbox; reader/role/enforce columns have no
-            // editor yet, so they are left null rather than written with guessed values.
+            // Per-door behaviour (role / reader direction / enforce) is set via the Doors tab's
+            // properties popup; an unconfigured but included door defaults to a Border door.
             foreach (var d in dto.Doors.Where(x => x.Included))
             {
                 _context.TApbzoneDetails.Add(new TApbzoneDetails
                 {
                     Apbnumber = apb,
                     DoorNumber = d.Door,
+                    MemberType = d.MemberType,
+                    ReaderA = d.ReaderA,
+                    ReaderB = d.ReaderB,
+                    EnforceOnEntry = d.EnforceOnEntry,
+                    EnforceOnExit = d.EnforceOnExit,
                 });
             }
             await _context.SaveChangesAsync();

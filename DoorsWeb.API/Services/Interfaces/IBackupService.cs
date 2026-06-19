@@ -4,13 +4,13 @@ namespace DoorsWeb.API.Services.Interfaces
 {
     public interface IBackupService
     {
-        /// <summary>Lists the backup (.bak) files currently in the server backup directory.</summary>
+        /// <summary>Lists the backup (.dump) files currently in the server backup directory.</summary>
         List<BackupFileDto> GetBackups();
 
-        /// <summary>Creates a full database backup via native T-SQL BACKUP DATABASE.</summary>
-        Task<BackupOperationResult> CreateBackup(CreateBackupRequest request);
+        /// <summary>Creates a full database backup via pg_dump (custom format).</summary>
+        Task<BackupOperationResult> CreateBackup(CreateBackupRequest request, CancellationToken cancellationToken = default);
 
-        /// <summary>Restores the database from an existing backup via native T-SQL RESTORE DATABASE.</summary>
-        Task<BackupOperationResult> RestoreBackup(RestoreBackupRequest request);
+        /// <summary>Restores the database from an existing backup via pg_restore (--clean).</summary>
+        Task<BackupOperationResult> RestoreBackup(RestoreBackupRequest request, CancellationToken cancellationToken = default);
     }
 }

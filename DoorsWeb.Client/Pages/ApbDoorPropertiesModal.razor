@@ -1,0 +1,155 @@
+@* Per-door anti-passback behaviour popup (mirrors LegacyDoorsClient frmAPBZoneDoors,
+   "<door> Properties"). Rendered inline by AntiPassbackZoneModal — NOT via ModalService —
+   so it stacks cleanly above the parent zone modal. OK + Cancel only.
+
+   Role        : 1 = Border, 2 = Internal, 3 = External
+   Reader A/B  : 1 = into the zone (entry), 2 = out of the zone (exit)
+   Reader direction + enforce only apply to Border doors (frames disabled otherwise). *@
+
+<div class="modal fade show d-block" tabindex="-1" style="z-index: 1080;">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@DoorName Properties</h5>
+                <button type="button" class="btn-close" @onclick="Cancel"></button>
+            </div>
+            <div class="modal-body">
+                @* ----------------------------- Role ----------------------------- *@
+                <fieldset class="border rounded p-3 mb-3">
+                    <legend class="float-none w-auto px-2 fs-6 fw-bold mb-0">Role</legend>
+                    @foreach (var opt in RoleOptions)
+                    {
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="apb-role" id="apb-role-@opt.Value"
+                                   checked="@(memberType == opt.Value)" @onchange="() => memberType = opt.Value" />
+                            <label class="form-check-label" for="apb-role-@opt.Value">
+                                <span class="fw-bold">@opt.Label</span>
+                                <em class="text-muted ms-2">@opt.Hint</em>
+                            </label>
+                        </div>
+                    }
+                </fieldset>
+
+                <div class="row g-3 mb-3">
+                    @* --------------------------- Reader A --------------------------- *@
+                    <div class="col-md-6">
+                        <fieldset class="border rounded p-3 h-100" disabled="@(!IsBorder)">
+                            <legend class="float-none w-auto px-2 fs-6 mb-0">Reader A</legend>
+                            <div class="text-muted mb-2">Valid cards will:</div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="apb-readerA" id="apb-readerA-in"
+                                       checked="@(readerA == ReaderEntry)" @onchange="() => readerA = ReaderEntry" />
+                                <label class="form-check-label" for="apb-readerA-in">move user into the zone</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="apb-readerA" id="apb-readerA-out"
+                                       checked="@(readerA == ReaderExit)" @onchange="() => readerA = ReaderExit" />
+                                <label class="form-check-label" for="apb-readerA-out">move user out of the zone</label>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    @* --------------------------- Reader B --------------------------- *@
+                    <div class="col-md-6">
+                        <fieldset class="border rounded p-3 h-100" disabled="@(!IsBorder)">
+                            <legend class="float-none w-auto px-2 fs-6 mb-0">Reader B</legend>
+                            <div class="text-muted mb-2">Valid cards will:</div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="apb-readerB" id="apb-readerB-in"
+                                       checked="@(readerB == ReaderEntry)" @onchange="() => readerB = ReaderEntry" />
+                                <label class="form-check-label" for="apb-readerB-in">move user into the zone</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="apb-readerB" id="apb-readerB-out"
+                                       checked="@(readerB == ReaderExit)" @onchange="() => readerB = ReaderExit" />
+                                <label class="form-check-label" for="apb-readerB-out">move user out of the zone</label>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                @* ------------------------ Enforce Anti-Passback ------------------------ *@
+                <fieldset class="border rounded p-3" disabled="@(!IsBorder)">
+                    <legend class="float-none w-auto px-2 fs-6 mb-0">Enforce Anti-Passback</legend>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="apb-enforce-entry"
+                               checked="@enforceOnEntry" @onchange="e => enforceOnEntry = (bool)e.Value!" />
+                        <label class="form-check-label" for="apb-enforce-entry">
+                            On entry
+                            <em class="text-muted ms-2">[In order to open the door, cardholders must be out of the zone]</em>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="apb-enforce-exit"
+                               checked="@enforceOnExit" @onchange="e => enforceOnExit = (bool)e.Value!" />
+                        <label class="form-check-label" for="apb-enforce-exit">
+                            On exit
+                            <em class="text-muted ms-2">[In order to open the door, cardholders must be in the zone]</em>
+                        </label>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="Ok">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop fade show" style="z-index: 1075;"></div>
+
+@code {
+    private const int RoleBorder = 1, RoleInternal = 2, RoleExternal = 3;
+    private const int ReaderEntry = 1, ReaderExit = 2;
+
+    /// <summary>Door name shown in the popup title.</summary>
+    [Parameter] public string? DoorName { get; set; }
+
+    [Parameter] public int MemberType { get; set; } = RoleBorder;
+    [Parameter] public int ReaderA { get; set; } = ReaderEntry;
+    [Parameter] public int ReaderB { get; set; } = ReaderExit;
+    [Parameter] public bool EnforceOnEntry { get; set; }
+    [Parameter] public bool EnforceOnExit { get; set; }
+
+    /// <summary>Raised with the chosen settings when OK is clicked.</summary>
+    [Parameter] public EventCallback<ApbDoorSettings> OnOk { get; set; }
+
+    /// <summary>Raised when Cancel (or the close button) is clicked.</summary>
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    // Working copies so Cancel discards changes.
+    private int memberType;
+    private int readerA;
+    private int readerB;
+    private bool enforceOnEntry;
+    private bool enforceOnExit;
+
+    private bool IsBorder => memberType == RoleBorder;
+
+    private static readonly RoleOption[] RoleOptions =
+    {
+        new(RoleBorder,   "Border door",   "[This door moves cards in and out of the zone]"),
+        new(RoleInternal, "Internal door", "[Cardholders can only access this door when in the zone]"),
+        new(RoleExternal, "External door", "[Cardholders can only access this door when out of the zone]"),
+    };
+
+    // A fresh instance is created each time the popup opens, so seed the working copies once.
+    protected override void OnInitialized()
+    {
+        memberType = MemberType == 0 ? RoleBorder : MemberType;
+        readerA = ReaderA == 0 ? ReaderEntry : ReaderA;
+        readerB = ReaderB == 0 ? ReaderExit : ReaderB;
+        enforceOnEntry = EnforceOnEntry;
+        enforceOnExit = EnforceOnExit;
+    }
+
+    private async Task Ok()
+        => await OnOk.InvokeAsync(new ApbDoorSettings(memberType, readerA, readerB, enforceOnEntry, enforceOnExit));
+
+    private async Task Cancel() => await OnCancel.InvokeAsync();
+
+    private record RoleOption(int Value, string Label, string Hint);
+
+    /// <summary>The per-door settings chosen in the popup.</summary>
+    public record ApbDoorSettings(int MemberType, int ReaderA, int ReaderB, bool EnforceOnEntry, bool EnforceOnExit);
+}

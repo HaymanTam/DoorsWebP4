@@ -49,9 +49,42 @@
                     </div>
                 </HeaderTemplate>
                 <ChildContent>
-                    <Column Item="CardDto" Property="c => c.CardId" Title="Card Number" Searchable Sortable />
-                    <Column Item="CardDto" Property="c => c.Surname" Title="Last Name" Searchable Sortable />
-                    <Column Item="CardDto" Property="c => c.Forname" Title="First Name" Searchable Sortable />
+                    <Column Item="CardDto" Property="c => c.CardId" Title="Card Number" Searchable Sortable>
+                        <Template>
+                            @if (string.IsNullOrWhiteSpace(context.CardId))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else
+                            {
+                                @context.CardId
+                            }
+                        </Template>
+                    </Column>
+                    <Column Item="CardDto" Property="c => c.Surname" Title="Last Name" Searchable Sortable>
+                        <Template>
+                            @if (string.IsNullOrWhiteSpace(context.Surname))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else
+                            {
+                                @context.Surname
+                            }
+                        </Template>
+                    </Column>
+                    <Column Item="CardDto" Property="c => c.Forname" Title="First Name" Searchable Sortable>
+                        <Template>
+                            @if (string.IsNullOrWhiteSpace(context.Forname))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else
+                            {
+                                @context.Forname
+                            }
+                        </Template>
+                    </Column>
                     <Column Item="CardDto" Title="Access Levels">
                         <Template>
                             @if (context.AccessLevels.Count == 0)

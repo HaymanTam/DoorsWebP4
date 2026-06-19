@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<DoorsEnterpriseContext>(options =>
-    options.UseSqlServer(
+    options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection") ??
         throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")
     )
@@ -121,6 +121,15 @@ builder.Services.AddSingleton<IUdpProtocolService>(sp => sp.GetRequiredService<U
 builder.Services.AddHostedService(sp => sp.GetRequiredService<UdpProtocolService>());
 
 var app = builder.Build();
+
+// Apply EF migrations on startup so a fresh PostgreSQL volume gets the full schema
+// automatically (the legacy restore loads into these tables, so they must exist first).
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DoorsEnterpriseContext>();
+    db.Database.Migrate();
+}
+
 app.MapHub<EventHub>("/eventHub");
 app.MapHub<DoorsWeb.API.Services.BackupHub>("/backupHub");
 

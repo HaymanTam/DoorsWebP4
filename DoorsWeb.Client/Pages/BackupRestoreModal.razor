@@ -1,5 +1,5 @@
 @* Backup and Restore dialog. Shown via ModalService.ShowAsync("Backup and Restore", ...).
-   Calls the API's BackupController (native T-SQL BACKUP/RESTORE run server-side). *@
+   Calls the API's BackupController (pg_dump / pg_restore run server-side). *@
 
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.AspNetCore.Components.Forms
@@ -14,7 +14,7 @@
                 <label class="form-label mb-0">File name</label>
             </div>
             <div class="col-lg-9">
-                <input class="form-control" placeholder="(auto: DatabaseName_yyyyMMdd_HHmmss.bak)" @bind="newFileName" disabled="@busy" />
+                <input class="form-control" placeholder="(auto: DatabaseName_yyyyMMdd_HHmmss.dump)" @bind="newFileName" disabled="@busy" />
             </div>
         </div>
         <div class="mb-2 row align-items-center">
@@ -22,7 +22,7 @@
             <div class="col-lg-9">
                 <label class="form-check mb-0">
                     <input type="checkbox" class="form-check-input" @bind="compress" disabled="@busy" />
-                    <span class="form-check-label">Compress backup (turn off for SQL Express / LocalDB)</span>
+                    <span class="form-check-label">Compress backup</span>
                 </label>
             </div>
         </div>
@@ -288,7 +288,8 @@
 
     private void UpdateProgress(int percent)
     {
-        progressPercent = percent;
+        // Clamp defensively: a server miscount or error path must never push the bar past 100% (or below 0).
+        progressPercent = Math.Clamp(percent, 0, 100);
         InvokeAsync(StateHasChanged);
     }
 
@@ -315,7 +316,7 @@
         busy = true;
         busyAction = "backup";
         status = null;
-        progressPercent = HubReady ? 0 : null;
+        progressPercent = HubReady ? 0 : null; // server pushes BackupProgress; indeterminate if hub is down
         try
         {
             var request = new CreateBackupRequest
@@ -365,7 +366,7 @@
         busy = true;
         busyAction = "restore";
         status = null;
-        progressPercent = HubReady ? 0 : null;
+        progressPercent = HubReady ? 0 : null; // server pushes RestoreProgress; indeterminate if hub is down
         try
         {
             var request = new RestoreBackupRequest

@@ -171,7 +171,7 @@
         <Tab Title="Doors">
             <Card Size="CardSize.Default">
                 <CardBody>
-                    <p class="mb-2">Tick the doors you want to include in this anti-passback zone. Double-click a door to change it's behaviour.</p>
+                    <p class="mb-2">Tick the doors you want to include in this anti-passback zone. Double-click a door to change its behaviour.</p>
                     <div class="table-responsive border rounded" style="max-height: 420px; overflow-y: auto;">
                         <table class="table table-sm table-hover mb-0">
                             <thead>
@@ -192,17 +192,19 @@
                                 {
                                     @foreach (var door in zone.Doors)
                                     {
-                                        <tr>
-                                            <td>
+                                        <tr @ondblclick="() => EditDoor(door)" style="cursor: pointer;">
+                                            <td @onclick:stopPropagation>
                                                 <label class="form-check mb-0">
-                                                    <InputCheckbox class="form-check-input" @bind-Value="door.Included"></InputCheckbox>
+                                                    <input type="checkbox" class="form-check-input"
+                                                           checked="@door.Included"
+                                                           @onchange="e => SetIncluded(door, (bool)e.Value!)" />
                                                     <span class="form-check-label">@door.Name</span>
                                                 </label>
                                             </td>
-                                            <td>@door.Role</td>
-                                            <td>@door.ReaderA</td>
-                                            <td>@door.ReaderB</td>
-                                            <td>@(door.Enforce ? "Yes" : "No")</td>
+                                            <td>@RoleText(door)</td>
+                                            <td>@ReaderText(door, door.ReaderA)</td>
+                                            <td>@ReaderText(door, door.ReaderB)</td>
+                                            <td>@EnforceText(door)</td>
                                         </tr>
                                     }
                                 }
@@ -225,6 +227,19 @@
     </div>
 </TablerForm>
 
+@* Per-door behaviour popup, stacked above this modal. Rendered only while a door is being edited. *@
+@if (editing is not null)
+{
+    <ApbDoorPropertiesModal DoorName="@editing.Name"
+                            MemberType="editing.MemberType"
+                            ReaderA="editing.ReaderA"
+                            ReaderB="editing.ReaderB"
+                            EnforceOnEntry="editing.EnforceOnEntry"
+                            EnforceOnExit="editing.EnforceOnExit"
+                            OnOk="ApplyDoorSettings"
+                            OnCancel="() => editing = null" />
+}
+
 @code {
 
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
@@ -239,6 +254,13 @@
     private AntiPassbackZoneModel zone = new();
     private bool busy;
     private string? status;
+
+    // The door whose behaviour popup is currently open (null = closed).
+    private DoorRow? editing;
+
+    // Role / reader encodings shared with TApbzoneDetails (see DoorRow).
+    private const int RoleBorder = 1, RoleInternal = 2, RoleExternal = 3;
+    private const int ReaderEntry = 1, ReaderExit = 2;
 
     protected override async Task OnInitializedAsync()
     {
@@ -274,6 +296,11 @@
                     Door = d.Door,
                     Name = d.Name,
                     Included = d.Included,
+                    MemberType = d.MemberType,
+                    ReaderA = d.ReaderA,
+                    ReaderB = d.ReaderB,
+                    EnforceOnEntry = d.EnforceOnEntry,
+                    EnforceOnExit = d.EnforceOnExit,
                 }).ToList();
             }
         }
@@ -308,6 +335,11 @@
                 {
                     Door = d.Door,
                     Included = d.Included,
+                    MemberType = d.MemberType,
+                    ReaderA = d.ReaderA,
+                    ReaderB = d.ReaderB,
+                    EnforceOnEntry = d.EnforceOnEntry,
+                    EnforceOnExit = d.EnforceOnExit,
                 }).ToList(),
             };
 
@@ -341,6 +373,79 @@
         // Placeholder: force-logout all cards in the zone now (no API wired yet).
     }
 
+    // Ticking a door seeds the legacy defaults (Border door, Reader A = In, Reader B = Out,
+    // enforce off); unticking clears its behaviour back to "not a member".
+    private void SetIncluded(DoorRow door, bool included)
+    {
+        door.Included = included;
+        if (included)
+        {
+            door.MemberType = RoleBorder;
+            door.ReaderA = ReaderEntry;
+            door.ReaderB = ReaderExit;
+            door.EnforceOnEntry = false;
+            door.EnforceOnExit = false;
+        }
+        else
+        {
+            door.MemberType = 0;
+            door.ReaderA = 0;
+            door.ReaderB = 0;
+            door.EnforceOnEntry = false;
+            door.EnforceOnExit = false;
+        }
+    }
+
+    // Double-click opens the behaviour popup, ticking the door first if needed (mirrors legacy).
+    private void EditDoor(DoorRow door)
+    {
+        if (!door.Included) SetIncluded(door, true);
+        editing = door;
+    }
+
+    // OK from the popup: copy the chosen settings back onto the row.
+    private void ApplyDoorSettings(ApbDoorPropertiesModal.ApbDoorSettings s)
+    {
+        if (editing is not null)
+        {
+            editing.MemberType = s.MemberType;
+            editing.ReaderA = s.ReaderA;
+            editing.ReaderB = s.ReaderB;
+            editing.EnforceOnEntry = s.EnforceOnEntry;
+            editing.EnforceOnExit = s.EnforceOnExit;
+        }
+        editing = null;
+    }
+
+    // ---- Grid display helpers (blank when the door isn't included; N/A for non-border roles) ----
+    private static string RoleText(DoorRow d) => !d.Included ? "" : d.MemberType switch
+    {
+        RoleBorder => "Border door",
+        RoleInternal => "Internal door",
+        RoleExternal => "External door",
+        _ => "",
+    };
+
+    private static string ReaderText(DoorRow d, int reader)
+    {
+        if (!d.Included) return "";
+        if (d.MemberType != RoleBorder) return "N/A";
+        return reader switch { ReaderEntry => "In", ReaderExit => "Out", _ => "" };
+    }
+
+    private static string EnforceText(DoorRow d)
+    {
+        if (!d.Included) return "";
+        if (d.MemberType != RoleBorder) return "N/A";
+        return (d.EnforceOnEntry, d.EnforceOnExit) switch
+        {
+            (true, true) => "Entry and Exit",
+            (true, false) => "Entry only",
+            (false, true) => "Exit only",
+            _ => "No",
+        };
+    }
+
     public class AntiPassbackZoneModel
     {
         public string? Name { get; set; }
@@ -371,9 +476,13 @@
         public int Door { get; set; }
         public bool Included { get; set; }
         public string? Name { get; set; }
-        public string? Role { get; set; }
-        public string? ReaderA { get; set; }
-        public string? ReaderB { get; set; }
-        public bool Enforce { get; set; }
+
+        // Role: 0 = none, 1 = Border, 2 = Internal, 3 = External.
+        public int MemberType { get; set; }
+        // Reader direction: 0 = no change, 1 = into the zone (entry), 2 = out of the zone (exit).
+        public int ReaderA { get; set; }
+        public int ReaderB { get; set; }
+        public bool EnforceOnEntry { get; set; }
+        public bool EnforceOnExit { get; set; }
     }
 }

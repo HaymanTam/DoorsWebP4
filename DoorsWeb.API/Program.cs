@@ -1,8 +1,12 @@
+using DoorsWeb.API.Authorization;
 using DoorsWeb.API.Services;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.API.Services.Protocol;
+using DoorsWeb.Shared.Auth;
+using DoorsWeb.Shared.Enums;
 using Mapster;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
@@ -42,7 +46,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero
         };
     });
-builder.Services.AddAuthorization();
+// Per-area authorization: one Read (≥ Read) and one Write (≥ ReadWrite) policy per area.
+// A Super bypasses every requirement (see AreaAccessHandler).
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AreaPolicies.CardManagerRead,
+        p => p.Requirements.Add(new AreaAccessRequirement(PermissionClaims.CardManager, AreaAccess.Read)));
+    options.AddPolicy(AreaPolicies.CardManagerWrite,
+        p => p.Requirements.Add(new AreaAccessRequirement(PermissionClaims.CardManager, AreaAccess.ReadWrite)));
+
+    options.AddPolicy(AreaPolicies.SiteSettingsRead,
+        p => p.Requirements.Add(new AreaAccessRequirement(PermissionClaims.SiteSettings, AreaAccess.Read)));
+    options.AddPolicy(AreaPolicies.SiteSettingsWrite,
+        p => p.Requirements.Add(new AreaAccessRequirement(PermissionClaims.SiteSettings, AreaAccess.ReadWrite)));
+
+    options.AddPolicy(AreaPolicies.UserSettingsRead,
+        p => p.Requirements.Add(new AreaAccessRequirement(PermissionClaims.UserSettings, AreaAccess.Read)));
+    options.AddPolicy(AreaPolicies.UserSettingsWrite,
+        p => p.Requirements.Add(new AreaAccessRequirement(PermissionClaims.UserSettings, AreaAccess.ReadWrite)));
+});
+builder.Services.AddSingleton<IAuthorizationHandler, AreaAccessHandler>();
 
 builder.Services.AddCors(options =>
 {
@@ -81,7 +104,9 @@ builder.Services.AddScoped<IUsersService, UsersService>();
 // Alarms (read-only list for the Alarms page)
 builder.Services.AddScoped<IAlarmService, AlarmService>();
 
-// Audit log (read-only list for the Audit Log Viewer page)
+// Change-audit log: viewer list + per-service write. Needs the HTTP context to capture
+// the acting user and client IP.
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Events (read-only list for the Events page)
@@ -94,7 +119,6 @@ builder.Services.AddScoped<IDoorService, DoorService>();
 builder.Services.AddScoped<IAccessLevelHeaderService, AccessLevelHeaderService>();
 builder.Services.AddScoped<IApbzoneHeaderService, ApbzoneHeaderService>();
 builder.Services.AddScoped<ICalendarHeaderService, CalendarHeaderService>();
-builder.Services.AddScoped<ICardDesignHeaderService, CardDesignHeaderService>();
 builder.Services.AddScoped<ICardManagerHeaderService, CardManagerHeaderService>();
 builder.Services.AddScoped<ICardPackHeaderService, CardPackHeaderService>();
 builder.Services.AddScoped<IIocontrollerHeaderService, IocontrollerHeaderService>();

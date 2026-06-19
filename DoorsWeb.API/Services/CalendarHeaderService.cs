@@ -6,10 +6,12 @@ namespace DoorsWeb.API.Services
     public class CalendarHeaderService : ICalendarHeaderService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public CalendarHeaderService(DoorsEnterpriseContext context)
+        public CalendarHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<Calendar>> GetAll()
@@ -26,6 +28,7 @@ namespace DoorsWeb.API.Services
         {
             _context.Calendar.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Calendar", entity.Code.ToString(), entity.Description);
             return await _context.Calendar.AsNoTracking().ToListAsync();
         }
 
@@ -36,6 +39,7 @@ namespace DoorsWeb.API.Services
             entity.Code = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Calendar", id.ToString(), result.Description);
             return await _context.Calendar.AsNoTracking().ToListAsync();
         }
 
@@ -48,6 +52,7 @@ namespace DoorsWeb.API.Services
             _context.CalendarException.RemoveRange(details);
             _context.Calendar.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Calendar", id.ToString(), result.Description);
             return await _context.Calendar.AsNoTracking().ToListAsync();
         }
 
@@ -73,8 +78,10 @@ namespace DoorsWeb.API.Services
         public async Task<Calendar> Save(CalendarSaveDto dto)
         {
             Calendar header;
+            bool isUpdate;
             if (dto.Code is int code && await _context.Calendar.FindAsync(code) is { } existing)
             {
+                isUpdate = true;
                 existing.Description = dto.Description;
                 header = existing;
 
@@ -85,6 +92,7 @@ namespace DoorsWeb.API.Services
             }
             else
             {
+                isUpdate = false;
                 header = new Calendar
                 {
                     Site = dto.Site,
@@ -100,6 +108,7 @@ namespace DoorsWeb.API.Services
                 _context.CalendarException.Add(new CalendarException { Code = header.Code, ExceptionDate = date });
             }
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(isUpdate ? AuditAction.Update : AuditAction.Create, "Calendar", header.Code.ToString(), header.Description);
             return header;
         }
 

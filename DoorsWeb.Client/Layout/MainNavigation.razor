@@ -26,7 +26,8 @@
 
     <NavbarMenu>
         <AuthorizeView>
-            <Authorized>
+            <Authorized Context="auth">
+                @* Events and Alarms are visible to any authenticated user. *@
                 <NavbarMenuItem Href="events" Text="Events">
                     <MenuItemIcon>
                         <Icon class="icon" IconType="@TablerIcons.Search" />
@@ -37,14 +38,17 @@
                         <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
                     </MenuItemIcon>
                 </NavbarMenuItem>
-                <NavbarMenuItem Href="cardmanager" Text="Card Manager">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Users" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
+                @if (auth.User.CanReadCardManager())
+                {
+                    <NavbarMenuItem Href="cardmanager" Text="Card Manager">
+                        <MenuItemIcon>
+                            <Icon class="icon" IconType="@TablerIcons.Users" />
+                        </MenuItemIcon>
+                    </NavbarMenuItem>
+                }
 
-                @* ---- One collapsible group per site (click to expand) ---- *@
-                @if (sites is not null)
+                @* ---- One collapsible group per site (click to expand). Requires Site Settings read. ---- *@
+                @if (auth.User.CanReadSiteSettings() && sites is not null)
                 {
                     @foreach (var site in sites)
                     {
@@ -110,63 +114,70 @@
                                         <span class="nav-link-title">Space Zone Triggers</span>
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <NavLink class="nav-link" href="floorplans">
-                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Home" /></span>
-                                        <span class="nav-link-title">Floor Plans</span>
-                                    </NavLink>
-                                </li>
                             </div>
                         }
                     }
                 }
 
-                @* ---- Control Panel (click to expand) ---- *@
-                <li class="nav-item">
-                    <a class="nav-link" href="#" @onclick="ToggleControlPanel" @onclick:preventDefault>
-                        <span class="nav-link-icon">
-                            <Icon class="icon" IconType="@TablerIcons.Settings" />
-                        </span>
-                        <span class="nav-link-title">Control Panel</span>
-                        <span class="ms-auto">
-                            <Icon IconType="@(controlPanelOpen ? TablerIcons.Chevron_down : TablerIcons.Chevron_right)" />
-                        </span>
-                    </a>
-                </li>
-                @if (controlPanelOpen)
+                @* ---- Control Panel (click to expand). Shown only when at least one child is visible. ---- *@
+                @if (auth.User.CanReadSiteSettings() || auth.User.CanReadUserSettings())
                 {
-                    <div class="ms-4">
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="updatehardware">
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Refresh" /></span>
-                                <span class="nav-link-title">Update Hardware</span>
-                            </NavLink>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowBackupRestoreModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Database" /></span>
-                                <span class="nav-link-title">Backup and Restore</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="userspasswords">
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.User_star" /></span>
-                                <span class="nav-link-title">Users and Passwords</span>
-                            </NavLink>
-                        </li>
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="audit">
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Timeline" /></span>
-                                <span class="nav-link-title">Audit Log</span>
-                            </NavLink>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" @onclick="ShowSystemSettingsModal" @onclick:preventDefault>
-                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Adjustments" /></span>
-                                <span class="nav-link-title">System Settings</span>
-                            </a>
-                        </li>
-                    </div>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" @onclick="ToggleControlPanel" @onclick:preventDefault>
+                            <span class="nav-link-icon">
+                                <Icon class="icon" IconType="@TablerIcons.Settings" />
+                            </span>
+                            <span class="nav-link-title">Control Panel</span>
+                            <span class="ms-auto">
+                                <Icon IconType="@(controlPanelOpen ? TablerIcons.Chevron_down : TablerIcons.Chevron_right)" />
+                            </span>
+                        </a>
+                    </li>
+                    @if (controlPanelOpen)
+                    {
+                        <div class="ms-4">
+                            @* Update Hardware and Backup push to controllers, so require Site write. *@
+                            @if (auth.User.CanWriteSiteSettings())
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="ShowUpdateHardwareModal" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Refresh" /></span>
+                                        <span class="nav-link-title">Update Hardware</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="ShowBackupRestoreModal" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Database" /></span>
+                                        <span class="nav-link-title">Backup and Restore</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (auth.User.CanReadUserSettings())
+                            {
+                                <li class="nav-item">
+                                    <NavLink class="nav-link" href="userspasswords">
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.User_star" /></span>
+                                        <span class="nav-link-title">Users and Passwords</span>
+                                    </NavLink>
+                                </li>
+                                <li class="nav-item">
+                                    <NavLink class="nav-link" href="audit">
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Timeline" /></span>
+                                        <span class="nav-link-title">Audit Log</span>
+                                    </NavLink>
+                                </li>
+                            }
+                            @if (auth.User.CanReadSiteSettings())
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" href="#" @onclick="ShowSystemSettingsModal" @onclick:preventDefault>
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Adjustments" /></span>
+                                        <span class="nav-link-title">System Settings</span>
+                                    </a>
+                                </li>
+                            }
+                        </div>
+                    }
                 }
 
                 @* ---- Login/Logout pinned to bottom ---- *@
@@ -199,6 +210,10 @@
     private int? openSiteId;
     private bool controlPanelOpen = false;
 
+    // Whether the signed-in user may mutate site config (Site Settings ReadWrite). When false the
+    // site-config list modals are opened read-only (no Add/Edit/Delete). The API still enforces it.
+    private bool canWriteSite;
+
     protected override async Task OnInitializedAsync()
     {
         // Reload the site list whenever the auth state changes (e.g. after sign-in),
@@ -217,6 +232,16 @@
     {
         try
         {
+            // The site groups need Site Settings read; skip the call otherwise (the API would 403).
+            var state = await AuthStateProvider.GetAuthenticationStateAsync();
+            canWriteSite = state.User.CanWriteSiteSettings();
+            if (!state.User.CanReadSiteSettings())
+            {
+                sites = new();
+                openSiteId = null;
+                return;
+            }
+
             var client = ClientFactory.CreateClient("WebAPI");
             sites = await client.GetFromJsonAsync<List<SiteDto>>("api/Sites") ?? new();
 
@@ -256,10 +281,12 @@
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Access Level")
-            .Set(e => e.Load, () => LoadAccessLevelRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowAccessLevelEdit(site, null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowAccessLevelEdit(site, row))
-            .Set(e => e.OnDelete, DeleteAccessLevel);
+            .Set(e => e.Load, () => LoadAccessLevelRows(site.Site));
+        // Read-only users get a view-only list (EntityListModal hides Add/Edit/Delete when these are null).
+        if (canWriteSite)
+            component.Set(e => e.OnAdd, () => ShowAccessLevelEdit(site, null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowAccessLevelEdit(site, row))
+                     .Set(e => e.OnDelete, DeleteAccessLevel);
 
         await ModalService.ShowAsync($"Access Levels — {site.Name}", component, new ModalOptions
         {
@@ -308,10 +335,11 @@
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Time Zone")
-            .Set(e => e.Load, () => LoadTimeZoneRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowTimeZoneEdit(site, null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowTimeZoneEdit(site, row))
-            .Set(e => e.OnDelete, DeleteTimeZone);
+            .Set(e => e.Load, () => LoadTimeZoneRows(site.Site));
+        if (canWriteSite)
+            component.Set(e => e.OnAdd, () => ShowTimeZoneEdit(site, null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowTimeZoneEdit(site, row))
+                     .Set(e => e.OnDelete, DeleteTimeZone);
 
         await ModalService.ShowAsync($"Time Zones — {site.Name}", component, new ModalOptions
         {
@@ -360,10 +388,11 @@
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Calendar")
-            .Set(e => e.Load, () => LoadCalendarRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowCalendarEdit(site, null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowCalendarEdit(site, row))
-            .Set(e => e.OnDelete, DeleteCalendar);
+            .Set(e => e.Load, () => LoadCalendarRows(site.Site));
+        if (canWriteSite)
+            component.Set(e => e.OnAdd, () => ShowCalendarEdit(site, null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowCalendarEdit(site, row))
+                     .Set(e => e.OnDelete, DeleteCalendar);
 
         await ModalService.ShowAsync($"Calendars — {site.Name}", component, new ModalOptions
         {
@@ -409,10 +438,11 @@
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Space Zone")
-            .Set(e => e.Load, () => LoadSpaceZoneRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowSpaceZoneEdit(site, null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneEdit(site, row))
-            .Set(e => e.OnDelete, DeleteSpaceZone);
+            .Set(e => e.Load, () => LoadSpaceZoneRows(site.Site));
+        if (canWriteSite)
+            component.Set(e => e.OnAdd, () => ShowSpaceZoneEdit(site, null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneEdit(site, row))
+                     .Set(e => e.OnDelete, DeleteSpaceZone);
 
         await ModalService.ShowAsync($"Space Zones — {site.Name}", component, new ModalOptions
         {
@@ -460,10 +490,11 @@
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Anti-Passback Zone")
-            .Set(e => e.Load, () => LoadApbZoneRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowApbZoneEdit(site, null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowApbZoneEdit(site, row))
-            .Set(e => e.OnDelete, DeleteApbZone);
+            .Set(e => e.Load, () => LoadApbZoneRows(site.Site));
+        if (canWriteSite)
+            component.Set(e => e.OnAdd, () => ShowApbZoneEdit(site, null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowApbZoneEdit(site, row))
+                     .Set(e => e.OnDelete, DeleteApbZone);
 
         await ModalService.ShowAsync($"Anti-Passback Zones — {site.Name}", component, new ModalOptions
         {
@@ -511,10 +542,11 @@
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Door Trigger")
-            .Set(e => e.Load, () => LoadDoorTriggerRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowDoorTriggerEdit(site, null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowDoorTriggerEdit(site, row))
-            .Set(e => e.OnDelete, DeleteTrigger);
+            .Set(e => e.Load, () => LoadDoorTriggerRows(site.Site));
+        if (canWriteSite)
+            component.Set(e => e.OnAdd, () => ShowDoorTriggerEdit(site, null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowDoorTriggerEdit(site, row))
+                     .Set(e => e.OnDelete, DeleteTrigger);
 
         await ModalService.ShowAsync($"Door Triggers — {site.Name}", component, new ModalOptions
         {
@@ -557,10 +589,11 @@
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Space Zone Trigger")
-            .Set(e => e.Load, () => LoadSpaceZoneTriggerRows(site.Site))
-            .Set(e => e.OnAdd, () => ShowSpaceZoneTriggerEdit(site, null))
-            .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneTriggerEdit(site, row))
-            .Set(e => e.OnDelete, DeleteTrigger);
+            .Set(e => e.Load, () => LoadSpaceZoneTriggerRows(site.Site));
+        if (canWriteSite)
+            component.Set(e => e.OnAdd, () => ShowSpaceZoneTriggerEdit(site, null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowSpaceZoneTriggerEdit(site, row))
+                     .Set(e => e.OnDelete, DeleteTrigger);
 
         await ModalService.ShowAsync($"Space Zone Triggers — {site.Name}", component, new ModalOptions
         {
@@ -621,6 +654,17 @@
     {
         var component = new RenderComponent<SystemSettingsModal>();
         await ModalService.ShowAsync("System Settings", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task ShowUpdateHardwareModal()
+    {
+        var component = new RenderComponent<UpdateHardwareModal>();
+        await ModalService.ShowAsync("Update Hardware", component, new ModalOptions
         {
             Size = ModalSize.Large,
             ShowHeader = true,

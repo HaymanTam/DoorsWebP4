@@ -1,11 +1,14 @@
+using DoorsWeb.API.Authorization;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoorsWeb.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = AreaPolicies.UserSettingsRead)]
     public class UsersController : ControllerBase
     {
         private readonly IUsersService _service;
@@ -32,32 +35,51 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = AreaPolicies.UserSettingsWrite)]
         [HttpPost]
         public async Task<ActionResult<List<Users>>> Create(Users entity)
         {
             return Ok(await _service.Create(entity));
         }
 
+        [Authorize(Policy = AreaPolicies.UserSettingsWrite)]
         [HttpPut("{id}")]
         public async Task<ActionResult<List<Users>?>> Update(int id, Users entity)
         {
-            var result = await _service.Update(id, entity);
-            if (result is null)
+            try
             {
-                return Problem(detail: $"Update Failed! User ({id}) was not found.", title: "Not Found", statusCode: 404);
+                var result = await _service.Update(id, entity);
+                if (result is null)
+                {
+                    return Problem(detail: $"Update Failed! User ({id}) was not found.", title: "Not Found", statusCode: 404);
+                }
+                return Ok(result);
             }
-            return Ok(result);
+            catch (InvalidOperationException ex)
+            {
+                // Last-Super protection: at least one Super user must always exist.
+                return Problem(detail: ex.Message, title: "Cannot update user", statusCode: 409);
+            }
         }
 
+        [Authorize(Policy = AreaPolicies.UserSettingsWrite)]
         [HttpDelete("{id}")]
         public async Task<ActionResult<List<Users>?>> Delete(int id)
         {
-            var result = await _service.Delete(id);
-            if (result is null)
+            try
             {
-                return Problem(detail: $"Delete Failed! User ({id}) was not found.", title: "Not Found", statusCode: 404);
+                var result = await _service.Delete(id);
+                if (result is null)
+                {
+                    return Problem(detail: $"Delete Failed! User ({id}) was not found.", title: "Not Found", statusCode: 404);
+                }
+                return Ok(result);
             }
-            return Ok(result);
+            catch (InvalidOperationException ex)
+            {
+                // Last-Super protection: at least one Super user must always exist.
+                return Problem(detail: ex.Message, title: "Cannot delete user", statusCode: 409);
+            }
         }
     }
 }

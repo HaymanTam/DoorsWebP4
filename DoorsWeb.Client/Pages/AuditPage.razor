@@ -18,26 +18,33 @@
             <Progress Color="TablerColor.Blue" Indeterminate />
         }
 
-        <Table Item="AuditLogDto" Items="auditList" PageSize="15" Hover Responsive>
+        <Table Item="AuditLogDto" Items="auditList" PageSize="20" Hover Responsive>
             <ChildContent>
-                <Column Item="AuditLogDto" Property="a => a.CardId" Title="Card ID" Searchable Sortable />
-                <Column Item="AuditLogDto" Property="a => a.SaveDate" Title="Date Saved" Sortable />
-                <Column Item="AuditLogDto" Property="a => a.SavedBy" Title="Saved By" Searchable Sortable />
-                <Column Item="AuditLogDto" Property="a => a.FirstName" Title="First Name" Searchable Sortable />
-                <Column Item="AuditLogDto" Property="a => a.LastName" Title="Last Name" Searchable Sortable />
-                <Column Item="AuditLogDto" Property="a => a.Enabled" Title="Enabled" Sortable>
+                <Column Item="AuditLogDto" Property="a => a.Timestamp" Title="When" Sortable />
+                <Column Item="AuditLogDto" Property="a => a.UserName" Title="User" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.Action" Title="Action" Searchable Sortable>
                     <Template>
-                        @if (context.Enabled)
+                        @switch (context.Action)
                         {
-                            <Icon class="icon" IconType="@TablerIcons.Check" />
-                        }
-                        else
-                        {
-                            <Icon class="icon" IconType="@TablerIcons.X" />
+                            case "Create":
+                                <span class="badge bg-green-lt">Create</span>
+                                break;
+                            case "Update":
+                                <span class="badge bg-blue-lt">Update</span>
+                                break;
+                            case "Delete":
+                                <span class="badge bg-red-lt">Delete</span>
+                                break;
+                            default:
+                                <span class="badge bg-secondary-lt">@context.Action</span>
+                                break;
                         }
                     </Template>
                 </Column>
-                <Column Item="AuditLogDto" Property="a => a.AccessLevels" Title="Access Levels" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.EntityType" Title="Type" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.EntityKey" Title="Key" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.EntityName" Title="Name" Searchable Sortable />
+                <Column Item="AuditLogDto" Property="a => a.ClientIp" Title="Client IP" Searchable Sortable />
             </ChildContent>
         </Table>
     </CardBody>

@@ -46,10 +46,6 @@ public partial class DoorsEnterpriseContext : DbContext
 
     public virtual DbSet<Calendar> Calendar { get; set; }
 
-    public virtual DbSet<CardDesignField> CardDesignField { get; set; }
-
-    public virtual DbSet<CardDesign> CardDesign { get; set; }
-
     public virtual DbSet<CardManagerDefault> CardManagerDefault { get; set; }
 
     public virtual DbSet<CardManager> CardManager { get; set; }
@@ -395,26 +391,16 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_Audit");
 
             entity.Property(e => e.Id).HasColumnName("ID");
-            entity.Property(e => e.AccessLevels)
-                .HasMaxLength(1000)
-                .IsUnicode(false);
-            entity.Property(e => e.CardId)
-                .HasMaxLength(8)
-                .IsUnicode(false)
-                .HasColumnName("CardID");
-            entity.Property(e => e.Forename)
-                .HasMaxLength(60)
-                .IsUnicode(false);
-            entity.Property(e => e.SaveDate).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.SavedBy)
-                .HasMaxLength(60)
-                .IsUnicode(false);
-            entity.Property(e => e.Surname)
-                .HasMaxLength(60)
-                .IsUnicode(false);
-            entity.Property(e => e.Workstation)
-                .HasMaxLength(60)
-                .IsUnicode(false);
+            entity.Property(e => e.Timestamp).HasColumnType("timestamp without time zone");
+            entity.Property(e => e.UserName).HasMaxLength(60).IsUnicode(false);
+            entity.Property(e => e.ClientIp).HasMaxLength(45).IsUnicode(false);
+            entity.Property(e => e.Action).HasMaxLength(10).IsUnicode(false);
+            entity.Property(e => e.EntityType).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.EntityKey).HasMaxLength(50).IsUnicode(false);
+            entity.Property(e => e.EntityName).HasMaxLength(200);
+
+            // Audit log is queried newest-first and filtered by user/type; index the time column.
+            entity.HasIndex(e => e.Timestamp);
         });
 
         modelBuilder.Entity<Backup>(entity =>
@@ -476,36 +462,6 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_Calendar_Header");
 
             entity.Property(e => e.Description).HasMaxLength(30);
-        });
-
-        modelBuilder.Entity<CardDesignField>(entity =>
-        {
-            entity.HasKey(e => new { e.Code, e.Sequence })
-                .HasName("PK_CardDesign_Details");
-
-            entity.ToTable("T_CardDesign_Details");
-
-            entity.Property(e => e.FontName)
-                .HasMaxLength(30)
-                .IsUnicode(false);
-            entity.Property(e => e.FontSize)
-                .HasMaxLength(10)
-                .IsUnicode(false);
-            entity.Property(e => e.Text)
-                .HasMaxLength(255)
-                .IsUnicode(false);
-        });
-
-        modelBuilder.Entity<CardDesign>(entity =>
-        {
-            entity.HasKey(e => e.Code)
-                .HasName("PK_CardDesign_Header");
-
-            entity.ToTable("T_CardDesign_Header", tb => tb.HasTrigger("trgCardDesign"));
-
-            entity.Property(e => e.Description)
-                .HasMaxLength(255)
-                .IsUnicode(false);
         });
 
         modelBuilder.Entity<CardManagerDefault>(entity =>

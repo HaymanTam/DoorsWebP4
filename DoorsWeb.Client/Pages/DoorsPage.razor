@@ -1,5 +1,8 @@
 ﻿@page "/doors"
+@using DoorsWeb.Client.Auth
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IHttpClientFactory ClientFactory
+@inject AuthenticationStateProvider AuthState
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -9,9 +12,12 @@
             <Icon class="icon me-2" IconType="@TablerIcons.Door" />Doors
         </CardTitle>
         <CardActions class="ms-auto">
-            <Button BackgroundColor="TablerColor.Success" @onclick='(() => ShowDoorEditModal("New Door", 0))'>
-                <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Door
-            </Button>
+            @if (canWrite)
+            {
+                <Button BackgroundColor="TablerColor.Success" @onclick='(() => ShowDoorEditModal("New Door", 0))'>
+                    <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Door
+                </Button>
+            }
         </CardActions>
     </CardHeader>
     <CardBody>
@@ -21,8 +27,18 @@
         }
         else
         {
+            @if (!canWrite)
+            {
+                <div class="alert alert-info mb-3" role="alert">
+                    <Icon class="icon me-2" IconType="@TablerIcons.Eye" />
+                    You have read-only access to site settings. Adding, editing and deleting doors are disabled.
+                </div>
+            }
+            @* Editing is fully custom (Add button + action column below, both gated on canWrite),
+               so the built-in edit mode is disabled via AllowAdd/AllowEdit/AllowDelete. *@
             <Table @ref="table" Item="DoorListDto" Items="doorList" PageSize="pageSize"
-                   Hover Responsive EditMode=TableEditMode.Popup>
+                   Hover Responsive EditMode="TableEditMode.Popup"
+                   AllowAdd="canWrite" AllowEdit="canWrite" AllowDelete="canWrite">
                 <ChildContent>
                     <Column Item="DoorListDto" Property="e => e.Door" Title="Door" Sortable Visible=false>
                         <EditorTemplate>
@@ -49,14 +65,17 @@
                             @(context.LastUpdated != default ? context.LastUpdated : "")
                         </Template>
                     </Column>
-                    <Column Item="DoorListDto" title="" ActionColumn Width="130px">
-                        <Template>
-                            <span class="row-action">
-                                <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='(() => ShowDoorEditModal("Edit Door", context.Door))' />
-                                <Icon class="icon" IconType="@TablerIcons.Trash" @onclick='(() => ConfirmDeleteDoor(context.Door, context.ControllerId))' />
-                            </span>
-                        </Template>
-                    </Column>
+                    @if (canWrite)
+                    {
+                        <Column Item="DoorListDto" title="" ActionColumn Width="130px">
+                            <Template>
+                                <span class="row-action">
+                                    <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='(() => ShowDoorEditModal("Edit Door", context.Door))' />
+                                    <Icon class="icon" IconType="@TablerIcons.Trash" @onclick='(() => ConfirmDeleteDoor(context.Door, context.ControllerId))' />
+                                </span>
+                            </Template>
+                        </Column>
+                    }
                 </ChildContent>
             </Table>
             @if (doorList.Count == 0)
@@ -78,6 +97,11 @@
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
 
     private bool IsLoaded = false;
+
+    // Whether the signed-in user may mutate doors (Site Settings ReadWrite). Read-only users still
+    // see the list. The API is the real boundary; this just hides the Add/Edit/Delete controls.
+    private bool canWrite;
+
     private HttpClient client = new HttpClient();
     private List<DoorListDto> doorList = new List<DoorListDto>();
 
@@ -92,6 +116,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        canWrite = state.User.CanWriteSiteSettings();
+
         client = ClientFactory.CreateClient("WebAPI");
         doorList = await client.GetFromJsonAsync<List<DoorListDto>>("api/Door") ?? [];
         IsLoaded = true;

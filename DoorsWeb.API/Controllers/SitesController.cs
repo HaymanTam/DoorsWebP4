@@ -1,11 +1,14 @@
+using DoorsWeb.API.Authorization;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoorsWeb.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = AreaPolicies.SiteSettingsRead)]
     public class SitesController : ControllerBase
     {
         private readonly ISiteService _service;
@@ -22,6 +25,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         // Adds a site. Only Name is used; the id is server-assigned.
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpPost]
         public async Task<ActionResult<SiteDto>> Create(SiteDto dto)
         {
@@ -35,6 +39,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         // Renames a site. Only Name is used; the route id identifies the site.
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpPut("{site}")]
         public async Task<ActionResult<SiteDto>> Rename(int site, SiteDto dto)
         {
@@ -51,6 +56,7 @@ namespace DoorsWeb.API.Controllers
             return Ok(updated);
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpDelete("{site}")]
         public async Task<IActionResult> Delete(int site)
         {

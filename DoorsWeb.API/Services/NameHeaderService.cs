@@ -6,10 +6,12 @@ namespace DoorsWeb.API.Services
     public class NameHeaderService : INameHeaderService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public NameHeaderService(DoorsEnterpriseContext context)
+        public NameHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<Cardholder>> GetAll()
@@ -55,6 +57,7 @@ namespace DoorsWeb.API.Services
         {
             _context.Cardholder.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Cardholder", entity.CardId, FullName(entity));
             return await _context.Cardholder.AsNoTracking().ToListAsync();
         }
 
@@ -65,6 +68,7 @@ namespace DoorsWeb.API.Services
             entity.CardNumber = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Cardholder", result.CardId, FullName(result));
             return await _context.Cardholder.AsNoTracking().ToListAsync();
         }
 
@@ -74,7 +78,10 @@ namespace DoorsWeb.API.Services
             if (result is null) return null;
             _context.Cardholder.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Cardholder", result.CardId, FullName(result));
             return await _context.Cardholder.AsNoTracking().ToListAsync();
         }
+
+        private static string FullName(Cardholder c) => $"{c.Forname} {c.Surname}".Trim();
     }
 }

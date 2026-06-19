@@ -1,11 +1,14 @@
+using DoorsWeb.API.Authorization;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoorsWeb.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = AreaPolicies.SiteSettingsRead)]
     public class IocontrollerHeaderController : ControllerBase
     {
         private readonly IIocontrollerHeaderService _service;
@@ -32,12 +35,14 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpPost]
         public async Task<ActionResult<List<IoController>>> Create(IoController entity)
         {
             return Ok(await _service.Create(entity));
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpPut("{id}")]
         public async Task<ActionResult<List<IoController>?>> Update(int id, IoController entity)
         {
@@ -49,6 +54,7 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpDelete("{id}")]
         public async Task<ActionResult<List<IoController>?>> Delete(int id)
         {

@@ -3,6 +3,7 @@ using System;
 using DoorsWeb.API.Legacy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DoorsWeb.API.Migrations
 {
     [DbContext(typeof(DoorsEnterpriseContext))]
-    partial class DoorsEnterpriseContextModelSnapshot : ModelSnapshot
+    [Migration("20260619214837_AddUserAreaAccess")]
+    partial class AddUserAreaAccess
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1011,6 +1014,94 @@ namespace DoorsWeb.API.Migrations
                     b.ToTable("T_Calendar_Details", (string)null);
                 });
 
+            modelBuilder.Entity("DoorsWeb.Shared.Entities.CardDesign", b =>
+                {
+                    b.Property<int>("Code")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("Orientation")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Code")
+                        .HasName("PK_CardDesign_Header");
+
+                    b.ToTable("T_CardDesign_Header", null, t =>
+                        {
+                            t.HasTrigger("trgCardDesign");
+                        });
+                });
+
+            modelBuilder.Entity("DoorsWeb.Shared.Entities.CardDesignField", b =>
+                {
+                    b.Property<int>("Code")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Alignment")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Bold")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Colour")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FontName")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("FontSize")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Italic")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Left")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("Top")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Underline")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Code", "Sequence")
+                        .HasName("PK_CardDesign_Details");
+
+                    b.ToTable("T_CardDesign_Details", (string)null);
+                });
+
             modelBuilder.Entity("DoorsWeb.Shared.Entities.CardManager", b =>
                 {
                     b.Property<int>("Code")
@@ -1306,6 +1397,8 @@ namespace DoorsWeb.API.Migrations
                         .HasName("PK_Name_Header");
 
                     b.HasIndex("Apbnumber");
+
+                    b.HasIndex("CardDesign");
 
                     b.HasIndex("LastDoor");
 
@@ -3482,6 +3575,17 @@ namespace DoorsWeb.API.Migrations
                     b.Navigation("Calendar");
                 });
 
+            modelBuilder.Entity("DoorsWeb.Shared.Entities.CardDesignField", b =>
+                {
+                    b.HasOne("DoorsWeb.Shared.Entities.CardDesign", "CardDesign")
+                        .WithMany("CardDesignFields")
+                        .HasForeignKey("Code")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("CardDesign");
+                });
+
             modelBuilder.Entity("DoorsWeb.Shared.Entities.CardManagerDefault", b =>
                 {
                     b.HasOne("DoorsWeb.Shared.Entities.CardManager", "CardManager")
@@ -3551,6 +3655,11 @@ namespace DoorsWeb.API.Migrations
                         .HasForeignKey("Apbnumber")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("DoorsWeb.Shared.Entities.CardDesign", "CardDesignNavigation")
+                        .WithMany()
+                        .HasForeignKey("CardDesign")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("DoorsWeb.Shared.Entities.Doors", "LastDoorNavigation")
                         .WithMany()
                         .HasForeignKey("LastDoor")
@@ -3562,6 +3671,8 @@ namespace DoorsWeb.API.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("ApbzoneNavigation");
+
+                    b.Navigation("CardDesignNavigation");
 
                     b.Navigation("LastDoorNavigation");
 
@@ -3946,6 +4057,11 @@ namespace DoorsWeb.API.Migrations
             modelBuilder.Entity("DoorsWeb.Shared.Entities.Calendar", b =>
                 {
                     b.Navigation("CalendarExceptions");
+                });
+
+            modelBuilder.Entity("DoorsWeb.Shared.Entities.CardDesign", b =>
+                {
+                    b.Navigation("CardDesignFields");
                 });
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.CardManager", b =>

@@ -1,12 +1,15 @@
+using DoorsWeb.API.Authorization;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoorsWeb.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = AreaPolicies.SiteSettingsRead)]
     public class CalendarHeaderController : ControllerBase
     {
         private readonly ICalendarHeaderService _service;
@@ -44,18 +47,21 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpPost]
         public async Task<ActionResult<List<Calendar>>> Create(Calendar entity)
         {
             return Ok(await _service.Create(entity));
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpPost("save")]
         public async Task<ActionResult<Calendar>> Save(CalendarSaveDto dto)
         {
             return Ok(await _service.Save(dto));
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpPut("{id}")]
         public async Task<ActionResult<List<Calendar>?>> Update(int id, Calendar entity)
         {
@@ -67,6 +73,7 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
         [HttpDelete("{id}")]
         public async Task<ActionResult<List<Calendar>?>> Delete(int id)
         {

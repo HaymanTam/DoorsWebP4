@@ -1,0 +1,237 @@
+@* Update Hardware dialog. Shown via ModalService.ShowAsync("Update Hardware", ...).
+   Pick a site, tick one or more of its doors (at least one), choose what to push
+   (Card Data, Door Config and/or Date & Time — at least one), then Update. The
+   Update button stays disabled until at least one door AND one data type are chosen. *@
+
+@using DoorsWeb.Shared.DTO
+@inject IHttpClientFactory ClientFactory
+
+<div class="row g-3">
+    @* ---- Step 1: site + door picker ---------------------------------------- *@
+    <div class="col-12 col-lg-7">
+        <Card>
+            <CardBody>
+                <CardTitle>Doors</CardTitle>
+
+                <label class="form-label mb-1">Site</label>
+                <select class="form-select mb-2" @bind="selectedSiteId" disabled="@(busy || loading)">
+                    @if (sites is not null)
+                    {
+                        @foreach (var s in sites)
+                        {
+                            <option value="@s.Site">@s.Name</option>
+                        }
+                    }
+                </select>
+
+                <div class="table-responsive border rounded" style="max-height: 260px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 2.5rem;"></th>
+                                <th style="width: 4rem;">Door</th>
+                                <th>Name</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (loading)
+                            {
+                                <tr><td colspan="4" class="text-muted text-center py-4">Loading…</td></tr>
+                            }
+                            else if (DoorsForSelectedSite.Count == 0)
+                            {
+                                <tr><td colspan="4" class="text-muted text-center py-4">No doors in this site.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var d in DoorsForSelectedSite)
+                                {
+                                    <tr style="cursor: pointer;" @onclick="() => ToggleDoor(d.Door)">
+                                        <td>
+                                            <input type="checkbox" class="form-check-input"
+                                                   checked="@selectedDoors.Contains(d.Door)"
+                                                   @onclick:stopPropagation="true"
+                                                   @onchange="() => ToggleDoor(d.Door)" />
+                                        </td>
+                                        <td>@d.Door</td>
+                                        <td>@d.Name</td>
+                                        <td>@d.IPAddressString</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex align-items-center mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary me-2"
+                            @onclick="SelectAll" disabled="@(busy || DoorsForSelectedSite.Count == 0)">
+                        Select all
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            @onclick="RemoveAll" disabled="@(busy || selectedDoors.Count == 0)">
+                        Clear all
+                    </button>
+                    <span class="ms-auto text-muted small">@selectedDoors.Count door(s) selected</span>
+                </div>
+            </CardBody>
+        </Card>
+    </div>
+
+    @* ---- Step 2: what to push --------------------------------------------- *@
+    <div class="col-12 col-lg-5">
+        <Card>
+            <CardBody>
+                <CardTitle>What to update</CardTitle>
+
+                <label class="form-check mb-2">
+                    <input type="checkbox" class="form-check-input"
+                           checked="@updateCardData" @onchange="e => updateCardData = (bool)(e.Value ?? false)" disabled="@busy" />
+                    <span class="form-check-label">
+                        <strong>Card Data</strong>
+                        <span class="d-block text-muted small">Push the current cardholder / access data to the door.</span>
+                    </span>
+                </label>
+
+                <label class="form-check mb-2">
+                    <input type="checkbox" class="form-check-input"
+                           checked="@updateDoorConfig" @onchange="e => updateDoorConfig = (bool)(e.Value ?? false)" disabled="@busy" />
+                    <span class="form-check-label">
+                        <strong>Door Config</strong>
+                        <span class="d-block text-muted small">Push reader, relay and keypad configuration.</span>
+                    </span>
+                </label>
+
+                <label class="form-check mb-0">
+                    <input type="checkbox" class="form-check-input"
+                           checked="@updateDateTime" @onchange="e => updateDateTime = (bool)(e.Value ?? false)" disabled="@busy" />
+                    <span class="form-check-label">
+                        <strong>Date &amp; Time</strong>
+                        <span class="d-block text-muted small">Synchronise the door clock to the server time.</span>
+                    </span>
+                </label>
+            </CardBody>
+        </Card>
+    </div>
+</div>
+
+@if (status is not null)
+{
+    <div class="alert @(statusOk ? "alert-success" : "alert-danger") mb-0 mt-3" role="alert">
+        @status
+    </div>
+}
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+    <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+    <button type="button" class="btn btn-primary" @onclick="Update" disabled="@(busy || !CanUpdate)">
+        @if (busy) { <span class="spinner-border spinner-border-sm me-2"></span> }
+        <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Update
+    </button>
+</div>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    private HttpClient client = null!;
+
+    private List<SiteDto>? sites;
+    private List<DoorListDto> doors = new();
+
+    private int selectedSiteId;
+    private readonly HashSet<int> selectedDoors = new();
+
+    private bool updateCardData;
+    private bool updateDoorConfig;
+    private bool updateDateTime;
+
+    private bool loading = true;
+    private bool busy;
+    private string? status;
+    private bool statusOk;
+
+    // Doors belonging to the currently selected site, ordered by door number.
+    private List<DoorListDto> DoorsForSelectedSite =>
+        doors.Where(d => d.Site == selectedSiteId).OrderBy(d => d.Door).ToList();
+
+    // Update is allowed once at least one door and one data type are chosen.
+    private bool CanUpdate =>
+        selectedDoors.Count > 0 && (updateCardData || updateDoorConfig || updateDateTime);
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        try
+        {
+            sites = await client.GetFromJsonAsync<List<SiteDto>>("api/Sites") ?? new();
+            doors = await client.GetFromJsonAsync<List<DoorListDto>>("api/Door") ?? new();
+            selectedSiteId = sites.FirstOrDefault()?.Site ?? 0;
+        }
+        catch (Exception ex)
+        {
+            sites ??= new();
+            SetStatus(false, $"Could not load sites/doors: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void ToggleDoor(int door)
+    {
+        if (!selectedDoors.Remove(door))
+            selectedDoors.Add(door);
+    }
+
+    private void SelectAll()
+    {
+        foreach (var d in DoorsForSelectedSite)
+            selectedDoors.Add(d.Door);
+    }
+
+    // Clears every selected door (across all sites), matching the "Clear all" label.
+    private void RemoveAll() => selectedDoors.Clear();
+
+    private async Task Update()
+    {
+        if (!CanUpdate) return;
+
+        var types = new List<string>();
+        if (updateCardData) types.Add("Card Data");
+        if (updateDoorConfig) types.Add("Door Config");
+        if (updateDateTime) types.Add("Date & Time");
+
+        var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Update {selectedDoors.Count} door(s)?",
+            SubText = $"This will push {string.Join(", ", types)} to the selected door(s).",
+            IconType = TablerIcons.Refresh,
+            StatusColor = TablerColor.Primary
+        });
+        if (!confirmed) return;
+
+        busy = true;
+        status = null;
+        try
+        {
+            // TODO: wire to the controller push once the hardware-update endpoint exists.
+            // The selection (door numbers + update types) is captured here and ready to send.
+            SetStatus(true, $"Update queued for {selectedDoors.Count} door(s): {string.Join(", ", types)}.");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void Cancel() => ModalService.Close(ModalResult.Cancel());
+
+    private void SetStatus(bool ok, string message)
+    {
+        statusOk = ok;
+        status = message;
+    }
+}

@@ -6,10 +6,12 @@ namespace DoorsWeb.API.Services
     public class SpaceZoneHeaderService : ISpaceZoneHeaderService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public SpaceZoneHeaderService(DoorsEnterpriseContext context)
+        public SpaceZoneHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<SpaceZone>> GetAll()
@@ -26,6 +28,7 @@ namespace DoorsWeb.API.Services
         {
             _context.SpaceZone.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Space Zone", entity.ZoneNumber.ToString(), entity.Name);
             return await _context.SpaceZone.AsNoTracking().ToListAsync();
         }
 
@@ -36,6 +39,7 @@ namespace DoorsWeb.API.Services
             entity.ZoneNumber = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Space Zone", id.ToString(), result.Name);
             return await _context.SpaceZone.AsNoTracking().ToListAsync();
         }
 
@@ -48,6 +52,7 @@ namespace DoorsWeb.API.Services
             _context.SpaceZoneDoor.RemoveRange(details);
             _context.SpaceZone.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Space Zone", id.ToString(), result.Name);
             return await _context.SpaceZone.AsNoTracking().ToListAsync();
         }
 
@@ -99,8 +104,10 @@ namespace DoorsWeb.API.Services
         {
             SpaceZone header;
             int zone;
+            bool isUpdate;
             if (dto.ZoneNumber is int zn && await _context.SpaceZone.FindAsync(zn) is { } existing)
             {
+                isUpdate = true;
                 existing.Name = dto.Name;
                 existing.MaxStayOn = dto.RemoveOnExceed;
                 existing.MaxStay = dto.MaxStayHours;
@@ -115,6 +122,7 @@ namespace DoorsWeb.API.Services
             }
             else
             {
+                isUpdate = false;
                 zone = await NextZoneNumber();
                 header = new SpaceZone
                 {
@@ -143,6 +151,7 @@ namespace DoorsWeb.API.Services
                 });
             }
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(isUpdate ? AuditAction.Update : AuditAction.Create, "Space Zone", header.ZoneNumber.ToString(), header.Name);
             return header;
         }
 

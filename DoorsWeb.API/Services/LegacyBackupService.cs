@@ -26,6 +26,13 @@ namespace DoorsWeb.API.Services
     /// </summary>
     public class LegacyBackupService : ILegacyBackupService
     {
+        // The new-system audit log. It has no legacy counterpart, so a legacy backup never carries
+        // matching column data; rather than risk a column-mismatch on import, it is never loaded. It
+        // is, however, cleared on every legacy restore: the imported data is a different point in time,
+        // so the existing audit entries would reference entities that no longer exist. The import UI
+        // warns that all previous audit history is dropped.
+        private const string AuditTable = "T_Audit";
+
         private readonly string _connectionString;
         private readonly IHubContext<BackupHub> _hub;
         private readonly ILogger<LegacyBackupService> _logger;
@@ -90,8 +97,19 @@ namespace DoorsWeb.API.Services
                 var toLoad = new List<(string table, string tempPath, long size)>();
                 foreach (var e in entries)
                 {
-                    if (existingTables.TryGetValue(e.table, out var actual)) toLoad.Add((actual, e.tempPath, e.size));
-                    else result.Skipped.Add(e.table);
+                    if (!existingTables.TryGetValue(e.table, out var actual))
+                    {
+                        result.Skipped.Add(e.table);
+                        continue;
+                    }
+                    // Never load into the audit table (cleared separately below); a legacy backup has
+                    // no matching schema for it, so loading would throw on the column mismatch.
+                    if (string.Equals(actual, AuditTable, StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.Skipped.Add(e.table);
+                        continue;
+                    }
+                    toLoad.Add((actual, e.tempPath, e.size));
                 }
 
                 if (toLoad.Count == 0)
@@ -111,6 +129,12 @@ namespace DoorsWeb.API.Services
                 await SetReplicationRole(connection, replica: true, cancellationToken);
                 try
                 {
+                    // Drop all previous audit history. The restored data is a different point in time,
+                    // so existing audit entries would reference entities that no longer exist. It is
+                    // never reloaded from the backup (legacy has no audit table). Warned about in the UI.
+                    if (existingTables.TryGetValue(AuditTable, out var auditTable))
+                        await ClearTable(connection, auditTable, cancellationToken);
+
                     foreach (var (table, tempPath, size) in toLoad)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -127,15 +151,20 @@ namespace DoorsWeb.API.Services
                         Report(connectionId, (int)(bytesDone * 100 / totalBytes));
                     }
 
-                    // Post-load cleanup: the new system is IP-only, so collapse any duplicate UDP
-                    // connectors into one and repoint every door at the survivor. Done while trigger
-                    // enforcement is still disabled so the orphan deletes can't trip a reference.
-                    result.UdpConnectorsMerged =
-                        await ConsolidateUdpConnectors(connection, cancellationToken);
-
                     // Explicit identity values were just loaded; advance each identity sequence past
                     // its new maximum so future inserts don't collide.
                     await ResetIdentitySequences(connection, cancellationToken);
+
+                    // A legacy backup carries no granular permission data, so every imported user would
+                    // otherwise land with no access — and there might be no Super left to administer the
+                    // system. Promote all imported users to full access (Super + ReadWrite on every area)
+                    // so the operator isn't locked out. This is warned about loudly in the import UI.
+                    if (existingTables.TryGetValue("T_Users", out var usersTable)
+                        && toLoad.Any(t => string.Equals(t.table, usersTable, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        result.UsersGrantedFullAccess =
+                            await GrantFullAccessToAllUsers(connection, usersTable, cancellationToken);
+                    }
 
                     // Read-only integrity scan. The bulk COPY ran with FK enforcement off
                     // (session_replication_role = replica), and PostgreSQL does NOT retro-validate
@@ -156,11 +185,8 @@ namespace DoorsWeb.API.Services
                 result.Success = true;
                 result.TablesLoaded = result.Tables.Count;
                 var skippedNote = result.Skipped.Count > 0 ? $" Skipped {result.Skipped.Count} unmatched table(s)." : "";
-                var mergedNote = result.UdpConnectorsMerged > 0
-                    ? $" Merged {result.UdpConnectorsMerged} duplicate UDP connector(s) into one."
-                    : "";
                 result.Message =
-                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{skippedNote}{mergedNote}";
+                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{skippedNote}";
                 return result;
             }
             catch (Exception ex)
@@ -219,6 +245,27 @@ namespace DoorsWeb.API.Services
             return map;
         }
 
+        // Promotes every row in the users table to full access: Super (Administrator = true) plus
+        // ReadWrite (= 2) on each of the three permission areas. A legacy backup carries no granular
+        // permission data, so without this every imported user would land with no access and the
+        // operator could be locked out entirely. The SET clause is built only from columns that
+        // actually exist, so it is tolerant of older schemas. Returns the number of users updated.
+        private static async Task<long> GrantFullAccessToAllUsers(
+            NpgsqlConnection connection, string usersTable, CancellationToken ct)
+        {
+            var columns = await GetTableColumns(connection, usersTable, ct);
+            var sets = new List<string>();
+            if (columns.TryGetValue("Administrator", out var a)) sets.Add($"{Quote(a)} = true");
+            if (columns.TryGetValue("CardManagerAccess", out var cm)) sets.Add($"{Quote(cm)} = 2");
+            if (columns.TryGetValue("SiteSettingsAccess", out var ss)) sets.Add($"{Quote(ss)} = 2");
+            if (columns.TryGetValue("UserSettingsAccess", out var us)) sets.Add($"{Quote(us)} = 2");
+            if (sets.Count == 0) return 0;
+
+            var sql = $"UPDATE {QualifiedTable(usersTable)} SET {string.Join(", ", sets)};";
+            await using var cmd = new NpgsqlCommand(sql, connection) { CommandTimeout = 0 };
+            return await cmd.ExecuteNonQueryAsync(ct);
+        }
+
         // Toggle session-level referential-integrity enforcement. 'replica' suppresses user and
         // FK triggers for this connection so bulk loads can run in any order; DEFAULT restores them.
         private static async Task SetReplicationRole(NpgsqlConnection connection, bool replica, CancellationToken ct)
@@ -244,43 +291,6 @@ namespace DoorsWeb.API.Services
                 await using var fallback = new NpgsqlCommand($"DELETE FROM {quoted};", connection) { CommandTimeout = 0 };
                 await fallback.ExecuteNonQueryAsync(ct);
             }
-        }
-
-        // Collapses every UDP (Lan/UDP) connector into a single survivor and repoints all doors at it.
-        // UDP connectors are T_Connectors rows with ConnType = 3 (legacy mdlConnector.bas gcUDP).
-        // Returns the number of duplicate connectors removed (0 if there were 0 or 1 to begin with).
-        private static async Task<int> ConsolidateUdpConnectors(NpgsqlConnection connection, CancellationToken ct)
-        {
-            const int udpConnType = 3;
-
-            await using var survivorCmd = new NpgsqlCommand(
-                "SELECT MIN(\"Connector\") FROM \"public\".\"T_Connectors\" WHERE \"ConnType\" = @udp;", connection)
-            { CommandTimeout = 0 };
-            survivorCmd.Parameters.AddWithValue("udp", udpConnType);
-
-            var survivorObj = await survivorCmd.ExecuteScalarAsync(ct);
-            if (survivorObj is null || survivorObj is DBNull) return 0;
-            int survivor = Convert.ToInt32(survivorObj);
-
-            // Repoint doors that point at a soon-to-be-removed UDP connector.
-            await using (var update = new NpgsqlCommand(
-                "UPDATE \"public\".\"T_Doors\" SET \"Connector\" = @survivor " +
-                "WHERE \"Connector\" IN (SELECT \"Connector\" FROM \"public\".\"T_Connectors\" WHERE \"ConnType\" = @udp) " +
-                "AND \"Connector\" <> @survivor;", connection)
-            { CommandTimeout = 0 })
-            {
-                update.Parameters.AddWithValue("survivor", survivor);
-                update.Parameters.AddWithValue("udp", udpConnType);
-                await update.ExecuteNonQueryAsync(ct);
-            }
-
-            // Drop the now-orphaned duplicate UDP connectors; the affected-row count is the merge total.
-            await using var delete = new NpgsqlCommand(
-                "DELETE FROM \"public\".\"T_Connectors\" WHERE \"ConnType\" = @udp AND \"Connector\" <> @survivor;", connection)
-            { CommandTimeout = 0 };
-            delete.Parameters.AddWithValue("udp", udpConnType);
-            delete.Parameters.AddWithValue("survivor", survivor);
-            return await delete.ExecuteNonQueryAsync(ct);
         }
 
         // Bumps every identity sequence in the public schema past the current max value of its column,

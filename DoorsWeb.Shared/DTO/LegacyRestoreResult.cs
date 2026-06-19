@@ -22,11 +22,11 @@ namespace DoorsWeb.Shared.DTO
         public List<string> Skipped { get; set; } = new();
 
         /// <summary>
-        /// Number of duplicate UDP (Lan/UDP) connectors removed during post-restore consolidation.
-        /// Legacy data can hold several UDP connectors; the new IP-only system keeps a single one and
-        /// repoints every door at it.
+        /// Number of users granted full (Super + ReadWrite-everywhere) access after import. A legacy
+        /// backup carries no granular permission data, so every imported user is promoted to full access
+        /// to avoid locking the operator out. 0 when the backup contained no users table.
         /// </summary>
-        public int UdpConnectorsMerged { get; set; }
+        public long UsersGrantedFullAccess { get; set; }
 
         /// <summary>
         /// Read-only data-integrity findings from the post-restore scan. Reports rows that violate a

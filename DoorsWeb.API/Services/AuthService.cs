@@ -1,4 +1,6 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.Auth;
+using DoorsWeb.Shared.Enums;
 using DoorsWeb.Shared.Models;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -123,6 +125,19 @@ namespace DoorsWeb.API.Services
         private bool RequiresPasswordReset(string stored) =>
             !IsBcryptHash(stored) || StoredIsDefault(stored);
 
+        // A Super has ReadWrite everywhere regardless of the stored column; everyone else gets the
+        // stored level (clamped into the valid enum range, defaulting to None on any odd value).
+        private static AreaAccess EffectiveAccess(Users user, int stored)
+        {
+            if (user.Administrator) return AreaAccess.ReadWrite;
+            return stored switch
+            {
+                (int)AreaAccess.Read => AreaAccess.Read,
+                (int)AreaAccess.ReadWrite => AreaAccess.ReadWrite,
+                _ => AreaAccess.None
+            };
+        }
+
         private JwtPair GenerateJwtPair(Users user)
         {
             var mustChangePassword = RequiresPasswordReset(user.Password);
@@ -134,6 +149,12 @@ namespace DoorsWeb.API.Services
             var refreshExpiry = DateTimeOffset.UtcNow.AddDays(
                 double.Parse(_configuration["Jwt:RefreshTokenExpiryDays"] ?? "7"));
 
+            // A Super (Administrator) implicitly has ReadWrite on every area; otherwise emit the
+            // per-area level stored on the user. Claims carry the AreaAccess int as a string.
+            var cardManager = EffectiveAccess(user, user.CardManagerAccess);
+            var siteSettings = EffectiveAccess(user, user.SiteSettingsAccess);
+            var userSettings = EffectiveAccess(user, user.UserSettingsAccess);
+
             var accessToken = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
@@ -143,6 +164,10 @@ namespace DoorsWeb.API.Services
                     new Claim("Administrator", user.Administrator ? "true" : "false"),
                     new Claim(ClaimTypes.Role, user.Administrator ? "Administrator" : "User"),
                     new Claim("must_change_password", mustChangePassword ? "true" : "false"),
+                    new Claim(PermissionClaims.Super, user.Administrator ? "true" : "false"),
+                    new Claim(PermissionClaims.CardManager, ((int)cardManager).ToString()),
+                    new Claim(PermissionClaims.SiteSettings, ((int)siteSettings).ToString()),
+                    new Claim(PermissionClaims.UserSettings, ((int)userSettings).ToString()),
                 ],
                 expires: accessExpiry.UtcDateTime,
                 signingCredentials: creds);

@@ -9,6 +9,7 @@ namespace DoorsWeb.Shared.DTO
         public int ControllerId { get; set; }                // T_Doors.ControllerID (parsed from string)
         public string Name { get; set; } = null!;            // T_Doors.Name
         public string IPAddressString { get; set; } = null!; // T_Doors.DoorIPAddress
+        public int? Site { get; set; }                       // T_Doors.Site (FK to T_Sites; used to filter by site)
         public DateTime LastUpdated { get; set; } = DateTime.Now; // T_Doors.Updated
     }
 }

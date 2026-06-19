@@ -6,10 +6,12 @@ namespace DoorsWeb.API.Services
     public class AccessLevelHeaderService : IAccessLevelHeaderService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public AccessLevelHeaderService(DoorsEnterpriseContext context)
+        public AccessLevelHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<AccessLevels>> GetAll()
@@ -27,6 +29,7 @@ namespace DoorsWeb.API.Services
         {
             _context.AccessLevels.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Access Level", entity.AccessLevel.ToString(), entity.Name);
             return await _context.AccessLevels.AsNoTracking().ToListAsync();
         }
 
@@ -38,6 +41,7 @@ namespace DoorsWeb.API.Services
             entity.Site = site;
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Access Level", accessLevel.ToString(), result.Name);
             return await _context.AccessLevels.AsNoTracking().ToListAsync();
         }
 
@@ -50,6 +54,7 @@ namespace DoorsWeb.API.Services
             _context.AccessLevelDoor.RemoveRange(details);
             _context.AccessLevels.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Access Level", accessLevel.ToString(), result.Name);
             return await _context.AccessLevels.AsNoTracking().ToListAsync();
         }
 
@@ -99,8 +104,10 @@ namespace DoorsWeb.API.Services
         {
             AccessLevels header;
             int level;
+            bool isUpdate;
             if (dto.AccessLevel is int al && await _context.AccessLevels.FindAsync(al, dto.Site) is { } existing)
             {
+                isUpdate = true;
                 existing.Name = dto.Name;
                 existing.TimeZone = dto.TimeZone;
                 header = existing;
@@ -113,6 +120,7 @@ namespace DoorsWeb.API.Services
             }
             else
             {
+                isUpdate = false;
                 // Details key on Level alone, so the number must be globally unique.
                 level = await NextAccessLevel();
                 header = new AccessLevels
@@ -138,6 +146,7 @@ namespace DoorsWeb.API.Services
                 });
             }
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(isUpdate ? AuditAction.Update : AuditAction.Create, "Access Level", header.AccessLevel.ToString(), header.Name);
             return header;
         }
 

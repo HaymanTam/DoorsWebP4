@@ -1,0 +1,158 @@
+@* Card Pack dialog (mirrors LegacyDoorsClient frmCardPacks "General" tab).
+   Shown via ModalService.ShowAsync("Card packs - …", ...). OK + Cancel only.
+   The legacy "Tools" tab (Create Card Records / Delete Unused Cards) is intentionally omitted. *@
+
+@using System.Globalization
+@using DoorsWeb.Shared.Entities
+
+<TablerForm Model="@model" OnValidSubmit="OK">
+    <Card Size="CardSize.Default">
+        <CardBody>
+            <CardTitle>Card Pack</CardTitle>
+
+            <div class="mb-2 row align-items-center">
+                <div class="col-lg-3 text-end">
+                    <label class="form-label mb-0">Name</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputText class="form-control" @bind-Value="model.Name" disabled="@busy" />
+                </div>
+            </div>
+
+            <div class="mb-2 row align-items-center">
+                <div class="col-lg-3 text-end">
+                    <label class="form-label mb-0">First card ID</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputText class="form-control" @bind-Value="model.FirstCardId" maxlength="8"
+                               placeholder="00000000" disabled="@busy" />
+                    <div class="form-text">An 8-digit card number; the pack numbers run sequentially from here.</div>
+                </div>
+            </div>
+
+            <div class="mb-1 row align-items-center">
+                <div class="col-lg-3 text-end">
+                    <label class="form-label mb-0">Quantity</label>
+                </div>
+                <div class="col-lg-9">
+                    <InputNumber class="form-control" @bind-Value="model.Qty" disabled="@busy" />
+                    <div class="form-text">Number of cards in the pack (must be greater than 1).</div>
+                </div>
+            </div>
+        </CardBody>
+    </Card>
+
+    @if (status is not null)
+    {
+        <div class="alert alert-danger py-2 px-3 small mt-3 mb-0" role="alert">@status</div>
+    }
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+        <button type="submit" class="btn btn-primary" disabled="@busy">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+    [Inject] IHttpClientFactory ClientFactory { get; set; } = null!;
+
+    /// <summary>Existing card pack's code; null when creating a new one.</summary>
+    [Parameter] public int? CardPackId { get; set; }
+
+    private readonly CardPackModel model = new();
+    private bool busy;
+    private string? status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CardPackId is not int id) return;
+
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var pack = await client.GetFromJsonAsync<CardPack>($"api/CardPackHeader/{id}");
+            if (pack is not null)
+            {
+                model.Name = pack.Name;
+                model.FirstCardId = pack.FirstCardId;
+                model.Qty = pack.Qty;
+            }
+        }
+        catch
+        {
+            // Leave the form empty; the user can still enter values.
+        }
+    }
+
+    private async Task OK(EditContext context)
+    {
+        status = Validate();
+        if (status is not null) return;
+
+        busy = true;
+        try
+        {
+            var entity = new CardPack
+            {
+                Code = CardPackId ?? 0,
+                Name = model.Name!.Trim(),
+                // Legacy stores the first card as a zero-padded 8-digit string (Format "00000000").
+                FirstCardId = long.Parse(model.FirstCardId!.Trim(), CultureInfo.InvariantCulture)
+                    .ToString("00000000", CultureInfo.InvariantCulture),
+                Qty = model.Qty,
+            };
+
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = CardPackId is int id
+                ? await client.PutAsJsonAsync($"api/CardPackHeader/{id}", entity)
+                : await client.PostAsJsonAsync("api/CardPackHeader", entity);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ModalService.Close(ModalResult.Ok());
+                return;
+            }
+
+            status = $"Save failed ({(int)response.StatusCode}). {await response.Content.ReadAsStringAsync()}";
+        }
+        catch (Exception ex)
+        {
+            status = $"Save failed: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    // Mirrors the legacy frmCardPacks validation: name + first card required, quantity > 1.
+    private string? Validate()
+    {
+        if (string.IsNullOrWhiteSpace(model.Name))
+            return "Please enter a name for the card pack.";
+
+        var card = model.FirstCardId?.Trim() ?? "";
+        if (card.Length == 0)
+            return "Please enter the first card ID.";
+        if (!long.TryParse(card, NumberStyles.None, CultureInfo.InvariantCulture, out _))
+            return "The first card ID must be a number.";
+
+        if (model.Qty is not int qty)
+            return "Please enter a quantity.";
+        if (qty <= 1)
+            return "The quantity must be greater than 1.";
+
+        return null;
+    }
+
+    private void Cancel() => ModalService.Close(ModalResult.Cancel());
+
+    private sealed class CardPackModel
+    {
+        public string? Name { get; set; }
+        public string? FirstCardId { get; set; }
+        public int? Qty { get; set; }
+    }
+}

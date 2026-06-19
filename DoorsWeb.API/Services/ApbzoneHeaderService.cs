@@ -6,10 +6,12 @@ namespace DoorsWeb.API.Services
     public class ApbzoneHeaderService : IApbzoneHeaderService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public ApbzoneHeaderService(DoorsEnterpriseContext context)
+        public ApbzoneHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<ApbZone>> GetAll()
@@ -26,6 +28,7 @@ namespace DoorsWeb.API.Services
         {
             _context.ApbZone.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Anti-Passback Zone", entity.Apbnumber.ToString(), entity.Name);
             return await _context.ApbZone.AsNoTracking().ToListAsync();
         }
 
@@ -36,6 +39,7 @@ namespace DoorsWeb.API.Services
             entity.Apbnumber = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Anti-Passback Zone", id.ToString(), result.Name);
             return await _context.ApbZone.AsNoTracking().ToListAsync();
         }
 
@@ -48,6 +52,7 @@ namespace DoorsWeb.API.Services
             _context.ApbZoneDoor.RemoveRange(details);
             _context.ApbZone.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Anti-Passback Zone", id.ToString(), result.Name);
             return await _context.ApbZone.AsNoTracking().ToListAsync();
         }
 
@@ -109,8 +114,10 @@ namespace DoorsWeb.API.Services
         {
             ApbZone header;
             int apb;
+            bool isUpdate;
             if (dto.Apbnumber is int an && await _context.ApbZone.FindAsync(an) is { } existing)
             {
+                isUpdate = true;
                 ApplyHeader(existing, dto);
                 header = existing;
                 apb = an;
@@ -121,6 +128,7 @@ namespace DoorsWeb.API.Services
             }
             else
             {
+                isUpdate = false;
                 apb = await NextApbnumber();
                 header = new ApbZone { Apbnumber = apb, Site = dto.Site };
                 ApplyHeader(header, dto);
@@ -144,6 +152,7 @@ namespace DoorsWeb.API.Services
                 });
             }
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(isUpdate ? AuditAction.Update : AuditAction.Create, "Anti-Passback Zone", header.Apbnumber.ToString(), header.Name);
             return header;
         }
 

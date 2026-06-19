@@ -6,10 +6,12 @@ namespace DoorsWeb.API.Services
     public class TimeZoneHeaderService : ITimeZoneHeaderService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public TimeZoneHeaderService(DoorsEnterpriseContext context)
+        public TimeZoneHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<TimeZones>> GetAll()
@@ -27,6 +29,7 @@ namespace DoorsWeb.API.Services
         {
             _context.TimeZones.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Time Zone", entity.TimeZone.ToString(), entity.Name);
             return await _context.TimeZones.AsNoTracking().ToListAsync();
         }
 
@@ -38,6 +41,7 @@ namespace DoorsWeb.API.Services
             entity.Site = site;
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Time Zone", timeZone.ToString(), result.Name);
             return await _context.TimeZones.AsNoTracking().ToListAsync();
         }
 
@@ -50,6 +54,7 @@ namespace DoorsWeb.API.Services
             _context.TimeZoneInterval.RemoveRange(details);
             _context.TimeZones.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Time Zone", timeZone.ToString(), result.Name);
             return await _context.TimeZones.AsNoTracking().ToListAsync();
         }
 
@@ -91,8 +96,10 @@ namespace DoorsWeb.API.Services
         {
             TimeZones header;
             int timeZone;
+            bool isUpdate;
             if (dto.TimeZone is int tz && await _context.TimeZones.FindAsync(tz, dto.Site) is { } existing)
             {
+                isUpdate = true;
                 existing.Name = dto.Name;
                 existing.Calendar = dto.Calendar;
                 header = existing;
@@ -105,6 +112,7 @@ namespace DoorsWeb.API.Services
             }
             else
             {
+                isUpdate = false;
                 // Details key on TimeZone alone, so the number must be globally unique.
                 timeZone = await NextTimeZone();
                 header = new TimeZones
@@ -140,6 +148,7 @@ namespace DoorsWeb.API.Services
                 });
             }
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(isUpdate ? AuditAction.Update : AuditAction.Create, "Time Zone", header.TimeZone.ToString(), header.Name);
             return header;
         }
 

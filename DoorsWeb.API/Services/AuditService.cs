@@ -1,39 +1,91 @@
+using System.Security.Claims;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
+using DoorsWeb.Shared.Entities;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace DoorsWeb.API.Services
 {
     public class AuditService : IAuditService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<AuditService> _logger;
 
-        public AuditService(DoorsEnterpriseContext context)
+        public AuditService(
+            DoorsEnterpriseContext context,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<AuditService> logger)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
-        /// <summary>
-        /// All card-change audit records, newest first. Mirrors the legacy
-        /// sp_Audit_Read (ORDER BY SaveDate DESC); the audit table is append-only and read here only.
-        /// </summary>
         public async Task<List<AuditLogDto>> GetAll()
         {
             return await _context.Audit
                 .AsNoTracking()
-                .OrderByDescending(a => a.SaveDate)
+                .OrderByDescending(a => a.Timestamp)
                 .Select(a => new AuditLogDto
                 {
                     Id = a.Id,
-                    CardId = a.CardId,
-                    SaveDate = a.SaveDate,
-                    SavedBy = a.SavedBy,
-                    Workstation = a.Workstation,
-                    FirstName = a.Forename,
-                    LastName = a.Surname,
-                    Enabled = a.Enabled,
-                    AccessLevels = a.AccessLevels
+                    Timestamp = a.Timestamp,
+                    UserName = a.UserName,
+                    ClientIp = a.ClientIp,
+                    Action = a.Action,
+                    EntityType = a.EntityType,
+                    EntityKey = a.EntityKey,
+                    EntityName = a.EntityName
                 })
                 .ToListAsync();
         }
+
+        public async Task LogAsync(AuditAction action, string entityType, string? entityKey, string? entityName)
+        {
+            try
+            {
+                var entry = new Audit
+                {
+                    Timestamp = DateTime.UtcNow,
+                    UserName = ResolveUserName(),
+                    ClientIp = ResolveClientIp(),
+                    Action = action.ToString(),
+                    EntityType = entityType,
+                    EntityKey = Truncate(entityKey, 50),
+                    EntityName = Truncate(entityName, 200)
+                };
+
+                _context.Audit.Add(entry);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Auditing must never break the operation the user actually performed.
+                _logger.LogWarning(ex,
+                    "Failed to write audit entry ({Action} {EntityType} {EntityKey}).",
+                    action, entityType, entityKey);
+            }
+        }
+
+        /// <summary>Login name from the JWT, handling default inbound-claim mapping of "sub".</summary>
+        private string ResolveUserName()
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            if (user is null) return "system";
+
+            return user.FindFirst(JwtRegisteredClaimNames.Sub)?.Value     // unmapped "sub"
+                ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value         // mapped "sub"
+                ?? user.Identity?.Name
+                ?? "unknown";
+        }
+
+        private string? ResolveClientIp()
+        {
+            return _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+        }
+
+        private static string? Truncate(string? value, int maxLength)
+            => value is { Length: var len } && len > maxLength ? value[..maxLength] : value;
     }
 }

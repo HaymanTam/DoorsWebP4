@@ -1,7 +1,11 @@
 @page "/cardmanager"
 @using System.Text.Json
+@using DoorsWeb.Client.Auth
 @using DoorsWeb.Shared.DTO
+@using DoorsWeb.Shared.Entities
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IHttpClientFactory ClientFactory
+@inject AuthenticationStateProvider AuthState
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -17,8 +21,14 @@
             }
         </CardTitle>
         <CardActions class="ms-auto">
-            <Button BackgroundColor="TablerColor.Success" Class="me-2" OnClick='() => ShowCardEditModal("New Record", 0)'>
-                <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Card
+            @if (canWrite)
+            {
+                <Button BackgroundColor="TablerColor.Success" Class="me-2" OnClick='() => ShowCardEditModal("New Record", 0)'>
+                    <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Card
+                </Button>
+            }
+            <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick="ShowCardPacksModal">
+                <Icon class="icon me-1" IconType="@TablerIcons.Stack_2" />Card Packs
             </Button>
             <Button BackgroundColor="TablerColor.Secondary" OnClick="Refresh">
                 <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
@@ -33,6 +43,13 @@
         }
         else
         {
+            @if (!canWrite)
+            {
+                <div class="alert alert-info mb-3" role="alert">
+                    <Icon class="icon me-2" IconType="@TablerIcons.Eye" />
+                    You have read-only access to the card manager. Adding, editing and deleting are disabled.
+                </div>
+            }
             <Table @ref="table" Item="CardDto" Items="filteredCards" PageSize="pageSize" Hover Responsive>
                 @* Filter bar sits in the table header, next to the built-in (contains-across-columns) search box.
                    Everything here refines the already-streamed set client-side via ApplyFilters. *@
@@ -167,14 +184,17 @@
                             }
                         </Template>
                     </Column>
-                    <Column Item="CardDto" title="" ActionColumn Width="130px">
-                        <Template>
-                            <span class="row-action">
-                                <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='() => ShowCardEditModal("Card Record", context.CardNumber)' />
-                                <Icon class="icon" IconType="@TablerIcons.Trash" @onclick="() => ConfirmDeleteCard(context.CardNumber)" />
-                            </span>
-                        </Template>
-                    </Column>
+                    @if (canWrite)
+                    {
+                        <Column Item="CardDto" title="" ActionColumn Width="130px">
+                            <Template>
+                                <span class="row-action">
+                                    <Icon class="icon" IconType="@TablerIcons.Edit" @onclick='() => ShowCardEditModal("Card Record", context.CardNumber)' />
+                                    <Icon class="icon" IconType="@TablerIcons.Trash" @onclick="() => ConfirmDeleteCard(context.CardNumber)" />
+                                </span>
+                            </Template>
+                        </Column>
+                    }
                 </ChildContent>
             </Table>
             @if (filteredCards.Count == 0)
@@ -193,6 +213,11 @@
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
 
     private bool IsLoaded = false;
+
+    // Whether the signed-in user may mutate cards (Card Manager ReadWrite). Read-only users still
+    // see the list. The API is the real boundary; this just hides the Add/Edit/Delete controls.
+    private bool canWrite;
+
     private HttpClient client = new HttpClient();
     private List<CardDto> cards = new();              // full set streamed from the API
     private List<CardDto> filteredCards = new();      // what the table shows after the Access Level filter
@@ -239,6 +264,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        canWrite = state.User.CanWriteCardManager();
+
         client = ClientFactory.CreateClient("WebAPI");
         await Refresh();
     }
@@ -466,6 +494,54 @@
         {
             await Refresh();
         }
+    }
+
+    // ---- Card Packs: name-only list modal (api/CardPackHeader, key Code) ----
+    private async Task ShowCardPacksModal()
+    {
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Card Pack")
+            .Set(e => e.Load, LoadCardPackRows);
+        // Read-only users get a view-only list (EntityListModal hides Add/Edit/Delete when these are null).
+        if (canWrite)
+            component.Set(e => e.OnAdd, () => ShowCardPackEdit(null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowCardPackEdit(row))
+                     .Set(e => e.OnDelete, DeleteCardPack);
+
+        await ModalService.ShowAsync("Card Packs", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+            CloseOnEsc = true,
+        });
+    }
+
+    private async Task<List<EntityListRow>> LoadCardPackRows()
+    {
+        var list = await client.GetFromJsonAsync<List<CardPack>>("api/CardPackHeader") ?? new();
+        return list.OrderBy(p => p.Name)
+                   .Select(p => new EntityListRow { Id = p.Code.ToString(), Name = p.Name ?? "" }).ToList();
+    }
+
+    private async Task ShowCardPackEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Card packs - New card pack" : "Card packs - Edit card pack";
+        var component = new RenderComponent<CardPackModal>();
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (row is not null) component.Set(e => e.CardPackId, int.Parse(row.Id));
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task DeleteCardPack(EntityListRow row)
+    {
+        await client.DeleteAsync($"api/CardPackHeader/{row.Id}");
     }
 
     private async Task ConfirmDeleteCard(int cardNumber)

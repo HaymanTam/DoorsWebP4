@@ -10,10 +10,12 @@ namespace DoorsWeb.API.Services
         private const int NoTimeZone = 10000;
 
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public DoorService(DoorsEnterpriseContext context)
+        public DoorService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<DoorListDto>> GetAll()
@@ -22,7 +24,7 @@ namespace DoorsWeb.API.Services
             var rows = await _context.Doors
                 .AsNoTracking()
                 .OrderBy(d => d.Name)
-                .Select(d => new { d.Door, d.ControllerId, d.Name, d.DoorIpaddress, d.Updated })
+                .Select(d => new { d.Door, d.ControllerId, d.Name, d.DoorIpaddress, d.Site, d.Updated })
                 .ToListAsync();
 
             return rows.Select(d => new DoorListDto
@@ -31,6 +33,7 @@ namespace DoorsWeb.API.Services
                 ControllerId = ParseControllerId(d.ControllerId),
                 Name = d.Name ?? string.Empty,
                 IPAddressString = d.DoorIpaddress ?? string.Empty,
+                Site = d.Site,
                 LastUpdated = d.Updated ?? DateTime.MinValue
             }).ToList();
         }
@@ -47,6 +50,7 @@ namespace DoorsWeb.API.Services
             ApplyToEntity(dto, e);
             _context.Doors.Add(e);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Door", e.Door.ToString(), e.Name);
             return await GetAll();
         }
 
@@ -56,6 +60,7 @@ namespace DoorsWeb.API.Services
             if (e is null) return null;
             ApplyToEntity(dto, e);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Door", door.ToString(), e.Name);
             return await GetAll();
         }
 
@@ -65,6 +70,7 @@ namespace DoorsWeb.API.Services
             if (e is null) return null;
             _context.Doors.Remove(e);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Door", door.ToString(), e.Name);
             return await GetAll();
         }
 

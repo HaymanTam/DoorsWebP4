@@ -1,4 +1,5 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
 
 namespace DoorsWeb.API.Services
@@ -10,11 +11,13 @@ namespace DoorsWeb.API.Services
 
         private readonly DoorsEnterpriseContext _context;
         private readonly IPwHashService _pwHash;
+        private readonly IAuditService _audit;
 
-        public UsersService(DoorsEnterpriseContext context, IPwHashService pwHash)
+        public UsersService(DoorsEnterpriseContext context, IPwHashService pwHash, IAuditService audit)
         {
             _context = context;
             _pwHash = pwHash;
+            _audit = audit;
         }
 
         public async Task<List<Users>> GetAll()
@@ -39,6 +42,7 @@ namespace DoorsWeb.API.Services
             entity.Password = _pwHash.Hash(raw);
             _context.Users.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "User", entity.Code.ToString(), entity.Description);
             return await GetAll();
         }
 
@@ -47,13 +51,23 @@ namespace DoorsWeb.API.Services
             var existing = await _context.Users.FirstOrDefaultAsync(u => u.Code == id);
             if (existing is null) return null;
 
+            // Last-Super protection: never let the only remaining Super be demoted, or the system
+            // would have no one able to manage users. Surfaced as 409 by the controller.
+            if (existing.Administrator && !entity.Administrator && await IsLastSuper(existing.Code))
+                throw new InvalidOperationException(
+                    "At least one Super user must remain. Promote another user to Super before removing this one's Super status.");
+
             existing.Description = entity.Description;
             existing.Administrator = entity.Administrator;
+            existing.CardManagerAccess = entity.CardManagerAccess;
+            existing.SiteSettingsAccess = entity.SiteSettingsAccess;
+            existing.UserSettingsAccess = entity.UserSettingsAccess;
             // An empty password means "leave unchanged"; otherwise store the new one hashed.
             if (!string.IsNullOrEmpty(entity.Password))
                 existing.Password = _pwHash.Hash(entity.Password);
 
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "User", id.ToString(), existing.Description);
             return await GetAll();
         }
 
@@ -61,9 +75,20 @@ namespace DoorsWeb.API.Services
         {
             var existing = await _context.Users.FirstOrDefaultAsync(u => u.Code == id);
             if (existing is null) return null;
+
+            // Last-Super protection: block deleting the only remaining Super (409 from controller).
+            if (existing.Administrator && await IsLastSuper(existing.Code))
+                throw new InvalidOperationException(
+                    "At least one Super user must remain. Promote another user to Super before deleting this one.");
+
             _context.Users.Remove(existing);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "User", id.ToString(), existing.Description);
             return await GetAll();
         }
+
+        // True when the given user is the only Super left (no other user has Administrator set).
+        private async Task<bool> IsLastSuper(int code) =>
+            !await _context.Users.AnyAsync(u => u.Administrator && u.Code != code);
     }
 }

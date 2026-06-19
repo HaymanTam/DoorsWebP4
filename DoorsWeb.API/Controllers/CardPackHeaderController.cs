@@ -1,11 +1,14 @@
+using DoorsWeb.API.Authorization;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoorsWeb.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = AreaPolicies.CardManagerRead)]
     public class CardPackHeaderController : ControllerBase
     {
         private readonly ICardPackHeaderService _service;
@@ -32,12 +35,14 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = AreaPolicies.CardManagerWrite)]
         [HttpPost]
         public async Task<ActionResult<List<CardPack>>> Create(CardPack entity)
         {
             return Ok(await _service.Create(entity));
         }
 
+        [Authorize(Policy = AreaPolicies.CardManagerWrite)]
         [HttpPut("{id}")]
         public async Task<ActionResult<List<CardPack>?>> Update(int id, CardPack entity)
         {
@@ -49,6 +54,7 @@ namespace DoorsWeb.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Policy = AreaPolicies.CardManagerWrite)]
         [HttpDelete("{id}")]
         public async Task<ActionResult<List<CardPack>?>> Delete(int id)
         {

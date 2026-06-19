@@ -114,11 +114,6 @@ public partial class DoorsEnterpriseContext
                 .WithMany()
                 .HasForeignKey(d => d.Apbnumber)
                 .OnDelete(DeleteBehavior.NoAction);
-
-            entity.HasOne(d => d.CardDesignNavigation)
-                .WithMany()
-                .HasForeignKey(d => d.CardDesign)
-                .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_Name_CustomFields (one-to-one, shared PK) ---------------------
@@ -423,15 +418,6 @@ public partial class DoorsEnterpriseContext
                 .WithMany(p => p.Displays)
                 .HasForeignKey(d => new { d.Code, d.PropertyId })
                 .HasPrincipalKey(p => new { p.Code, p.PropertyId })
-                .OnDelete(DeleteBehavior.NoAction);
-        });
-
-        // ---- T_CardDesign_Details --------------------------------------------
-        modelBuilder.Entity<CardDesignField>(entity =>
-        {
-            entity.HasOne(d => d.CardDesign)
-                .WithMany(p => p.CardDesignFields)
-                .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

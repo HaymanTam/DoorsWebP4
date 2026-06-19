@@ -8,10 +8,12 @@ namespace DoorsWeb.API.Services
         private const int TriggerTypeSpaceZone = 3;
 
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public TriggersHeaderService(DoorsEnterpriseContext context)
+        public TriggersHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<Trigger>> GetAll()
@@ -28,6 +30,7 @@ namespace DoorsWeb.API.Services
         {
             _context.Trigger.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Trigger", entity.Code.ToString(), entity.Name);
             return await _context.Trigger.AsNoTracking().ToListAsync();
         }
 
@@ -38,6 +41,7 @@ namespace DoorsWeb.API.Services
             entity.Code = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Trigger", id.ToString(), result.Name);
             return await _context.Trigger.AsNoTracking().ToListAsync();
         }
 
@@ -52,6 +56,7 @@ namespace DoorsWeb.API.Services
             _context.TriggerEvent.RemoveRange(events);
             _context.Trigger.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Trigger", id.ToString(), result.Name);
             return await _context.Trigger.AsNoTracking().ToListAsync();
         }
 
@@ -115,8 +120,10 @@ namespace DoorsWeb.API.Services
         {
             Trigger header;
             int code;
+            bool isUpdate;
             if (dto.Code is int c && await _context.Trigger.FindAsync(c) is { } existing)
             {
+                isUpdate = true;
                 ApplyHeader(existing, dto);
                 header = existing;
                 code = c;
@@ -127,6 +134,7 @@ namespace DoorsWeb.API.Services
             }
             else
             {
+                isUpdate = false;
                 // Code is a DB identity, so it is assigned on insert.
                 header = new Trigger { Site = dto.Site, Name = dto.Name ?? "", AlarmText = "" };
                 ApplyHeader(header, dto);
@@ -146,6 +154,7 @@ namespace DoorsWeb.API.Services
                 });
             }
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(isUpdate ? AuditAction.Update : AuditAction.Create, "Trigger", header.Code.ToString(), header.Name);
             return header;
         }
 

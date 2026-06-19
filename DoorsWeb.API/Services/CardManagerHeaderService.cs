@@ -1,14 +1,17 @@
 using DoorsWeb.API.Services.Interfaces;
+using DoorsWeb.Shared.DTO;
 
 namespace DoorsWeb.API.Services
 {
     public class CardManagerHeaderService : ICardManagerHeaderService
     {
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public CardManagerHeaderService(DoorsEnterpriseContext context)
+        public CardManagerHeaderService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<CardManager>> GetAll()
@@ -25,6 +28,7 @@ namespace DoorsWeb.API.Services
         {
             _context.CardManager.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Card Manager", entity.Code.ToString(), entity.Description);
             return await _context.CardManager.AsNoTracking().ToListAsync();
         }
 
@@ -35,6 +39,7 @@ namespace DoorsWeb.API.Services
             entity.Code = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Card Manager", id.ToString(), result.Description);
             return await _context.CardManager.AsNoTracking().ToListAsync();
         }
 
@@ -44,6 +49,7 @@ namespace DoorsWeb.API.Services
             if (result is null) return null;
             _context.CardManager.Remove(result);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Card Manager", id.ToString(), result.Description);
             return await _context.CardManager.AsNoTracking().ToListAsync();
         }
     }

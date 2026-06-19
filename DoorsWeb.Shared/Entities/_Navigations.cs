@@ -85,7 +85,6 @@ public partial class Cardholder
     public Doors? LastDoorNavigation { get; set; }
     public EventTypes? LastEventNavigation { get; set; }
     public ApbZone? ApbzoneNavigation { get; set; }
-    public CardDesign? CardDesignNavigation { get; set; }
     public CardholderCustomFields? CustomFields { get; set; }
 
     public ICollection<CardholderAccessLevel> CardholderAccessLevels { get; set; } = new List<CardholderAccessLevel>();
@@ -276,16 +275,6 @@ public partial class DisplayTypes
 public partial class Display
 {
     public DisplayTypes? DisplayType { get; set; }
-}
-
-public partial class CardDesign
-{
-    public ICollection<CardDesignField> CardDesignFields { get; set; } = new List<CardDesignField>();
-}
-
-public partial class CardDesignField
-{
-    public CardDesign? CardDesign { get; set; }
 }
 
 public partial class CardPack

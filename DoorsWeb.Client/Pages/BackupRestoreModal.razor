@@ -115,6 +115,29 @@
                 Any such data in the backup is ignored on import and will not be restored.
             </div>
         </div>
+        <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
+            <Icon class="icon flex-shrink-0 me-2" IconType="@TablerIcons.Alert_triangle" />
+            <div>
+                <strong>All previous audit history will be dropped.</strong><br />
+                The audit log is cleared on import — the restored data is from a different point in time,
+                so existing audit entries no longer apply. The legacy backup carries no audit data to replace it.
+            </div>
+        </div>
+
+        @* Prominent, hard-to-miss notice: a legacy backup carries no granular permission data, so the
+           importer promotes EVERY imported user to full (Super) access. Make this impossible to skim past. *@
+        <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+            <Icon class="icon flex-shrink-0 me-3" IconType="@TablerIcons.Shield_lock"
+                  style="width: 2.5rem; height: 2.5rem;" />
+            <div>
+                <h3 class="alert-title mb-1">Every user will be granted FULL access</h3>
+                <div>
+                    A legacy backup holds no permission data, so on import <strong>every imported user is
+                    promoted to Super</strong> — full read/write access to Card Manager, Site Settings and
+                    User Settings. Review and lock down user permissions immediately after the import.
+                </div>
+            </div>
+        </div>
 
         <div class="mb-2 row align-items-center">
             <div class="col-lg-3 text-end">
@@ -170,6 +193,16 @@
             @if (legacyResult.Skipped.Count > 0)
             {
                 <p class="text-muted small mt-2 mb-0">Skipped (no matching table): @string.Join(", ", legacyResult.Skipped)</p>
+            }
+            @if (legacyResult.UsersGrantedFullAccess > 0)
+            {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                    <Icon class="icon flex-shrink-0 me-2" IconType="@TablerIcons.Shield_lock" />
+                    <div>
+                        <strong>@legacyResult.UsersGrantedFullAccess.ToString("N0")</strong> imported user(s) were granted
+                        full (Super) access. Review and lock down user permissions now.
+                    </div>
+                </div>
             }
             @if (legacyResult.Findings.Count > 0)
             {
@@ -462,6 +495,9 @@
         {
             MainText = $"Restore from legacy backup {legacyFile.Name}?",
             SubText = "Matching tables will be cleared and reloaded from the backup. "
+                + "EVERY imported user will be granted full (Super) access — a legacy backup carries no "
+                + "permission data, so review and lock down user permissions immediately afterward. "
+                + "All previous audit history will be dropped. "
                 + "Connectors are obsolete and no longer used — this system is IP only, so any "
                 + "connector data in the backup is irrelevant to the new system. "
                 + "This overwrites the current data and cannot be undone!",

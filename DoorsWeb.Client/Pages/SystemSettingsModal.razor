@@ -3,8 +3,11 @@
    Site changes persist immediately (each is its own API call), so OK and Cancel
    both simply close the dialog. *@
 
+@using DoorsWeb.Client.Auth
 @using DoorsWeb.Shared.DTO
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IHttpClientFactory ClientFactory
+@inject AuthenticationStateProvider AuthState
 
 <Card Size="CardSize.Default">
     <CardBody>
@@ -44,25 +47,28 @@
                                     }
                                 </td>
                                 <td class="text-end text-nowrap">
-                                    @if (editingSite == s.Site)
+                                    @if (canWrite)
                                     {
-                                        <Icon class="icon text-success me-2" style="cursor: pointer;" IconType="@TablerIcons.Check"
-                                              @onclick="() => SaveRename(s)" />
-                                        <Icon class="icon text-muted" style="cursor: pointer;" IconType="@TablerIcons.X"
-                                              @onclick="CancelRename" />
-                                    }
-                                    else
-                                    {
-                                        <Icon class="icon text-primary me-2" style="cursor: pointer;" IconType="@TablerIcons.Pencil"
-                                              @onclick="() => BeginRename(s)" />
-                                        @if (sites.Count > 1)
+                                        @if (editingSite == s.Site)
                                         {
-                                            <Icon class="icon text-danger" style="cursor: pointer;" IconType="@TablerIcons.Trash"
-                                                  @onclick="() => RemoveSite(s)" />
+                                            <Icon class="icon text-success me-2" style="cursor: pointer;" IconType="@TablerIcons.Check"
+                                                  @onclick="() => SaveRename(s)" />
+                                            <Icon class="icon text-muted" style="cursor: pointer;" IconType="@TablerIcons.X"
+                                                  @onclick="CancelRename" />
                                         }
                                         else
                                         {
-                                            <Icon class="icon text-muted" style="opacity: .35; cursor: not-allowed;" IconType="@TablerIcons.Trash" />
+                                            <Icon class="icon text-primary me-2" style="cursor: pointer;" IconType="@TablerIcons.Pencil"
+                                                  @onclick="() => BeginRename(s)" />
+                                            @if (sites.Count > 1)
+                                            {
+                                                <Icon class="icon text-danger" style="cursor: pointer;" IconType="@TablerIcons.Trash"
+                                                      @onclick="() => RemoveSite(s)" />
+                                            }
+                                            else
+                                            {
+                                                <Icon class="icon text-muted" style="opacity: .35; cursor: not-allowed;" IconType="@TablerIcons.Trash" />
+                                            }
                                         }
                                     }
                                 </td>
@@ -78,18 +84,28 @@
             At least one site is required — the last remaining site can't be removed.
         </div>
 
-        <div class="row g-2 align-items-center">
-            <div class="col">
-                <input class="form-control" placeholder="New site name" maxlength="30"
-                       @bind="newSiteName" @bind:event="oninput" disabled="@busy" />
+        @if (canWrite)
+        {
+            <div class="row g-2 align-items-center">
+                <div class="col">
+                    <input class="form-control" placeholder="New site name" maxlength="30"
+                           @bind="newSiteName" @bind:event="oninput" disabled="@busy" />
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-success" @onclick="AddSite"
+                            disabled="@(busy || string.IsNullOrWhiteSpace(newSiteName))">
+                        <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Site
+                    </button>
+                </div>
             </div>
-            <div class="col-auto">
-                <button type="button" class="btn btn-success" @onclick="AddSite"
-                        disabled="@(busy || string.IsNullOrWhiteSpace(newSiteName))">
-                    <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Site
-                </button>
+        }
+        else
+        {
+            <div class="alert alert-info mb-0" role="alert">
+                <Icon class="icon me-2" IconType="@TablerIcons.Eye" />
+                You have read-only access to site settings. Adding, renaming and removing sites are disabled.
             </div>
-        </div>
+        }
     </CardBody>
 </Card>
 
@@ -125,8 +141,15 @@
     private string? status;
     private bool statusOk;
 
+    // Whether the signed-in user may mutate sites (Site Settings ReadWrite). Read-only users still
+    // see the list. The API is the real boundary; this just hides the add/rename/remove controls.
+    private bool canWrite;
+
     protected override async Task OnInitializedAsync()
     {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        canWrite = state.User.CanWriteSiteSettings();
+
         client = ClientFactory.CreateClient("WebAPI");
         await LoadSites();
     }

@@ -10,10 +10,12 @@ namespace DoorsWeb.API.Services
         private const int NameMaxLength = 30;
 
         private readonly DoorsEnterpriseContext _context;
+        private readonly IAuditService _audit;
 
-        public SiteService(DoorsEnterpriseContext context)
+        public SiteService(DoorsEnterpriseContext context, IAuditService audit)
         {
             _context = context;
+            _audit = audit;
         }
 
         public async Task<List<SiteDto>> GetAll()
@@ -41,6 +43,7 @@ namespace DoorsWeb.API.Services
             var entity = new Sites { Site = nextId, Name = name, Inuse = true };
             _context.Sites.Add(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Create, "Site", entity.Site.ToString(), entity.Name);
 
             return new SiteDto { Site = entity.Site, Name = entity.Name };
         }
@@ -58,6 +61,7 @@ namespace DoorsWeb.API.Services
 
             entity.Name = name;
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Update, "Site", entity.Site.ToString(), entity.Name);
 
             return new SiteDto { Site = entity.Site, Name = entity.Name };
         }
@@ -73,6 +77,7 @@ namespace DoorsWeb.API.Services
 
             _context.Sites.Remove(entity);
             await _context.SaveChangesAsync();
+            await _audit.LogAsync(AuditAction.Delete, "Site", entity.Site.ToString(), entity.Name);
             return true;
         }
     }

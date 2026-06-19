@@ -207,7 +207,7 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            var url = $"api/TriggersHeader/edit/{SiteId}/{TriggerTypeDoor}";
+            var url = $"api/Trigger/edit/{SiteId}/{TriggerTypeDoor}";
             if (Code is int c) url += $"?code={c}";
 
             var dto = await client.GetFromJsonAsync<TriggerSaveDto>(url);
@@ -264,7 +264,7 @@
             };
 
             var client = ClientFactory.CreateClient("WebAPI");
-            var response = await client.PostAsJsonAsync("api/TriggersHeader/save", dto);
+            var response = await client.PostAsJsonAsync("api/Trigger/save", dto);
             if (response.IsSuccessStatusCode)
             {
                 ModalService.Close(ModalResult.Ok());

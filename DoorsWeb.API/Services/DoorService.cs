@@ -9,12 +9,6 @@ namespace DoorsWeb.API.Services
         // Legacy sentinel meaning "no time zone / never open" (frmDoors lcNoTimeZone).
         private const int NoTimeZone = 10000;
 
-        // T_Connectors.ConnType marker for IP/UDP connectors. The new system is IP-only,
-        // so every new door is attached to a UDP connector (auto-created if none exists).
-        // Value confirmed from legacy mdlConnector.bas: gcRS232=1, gcModem=2, gcUDP=3, gcTCP=4.
-        private const int UdpConnType = 3;
-        private const string DefaultConnectorName = "default connector";
-
         private readonly DoorsEnterpriseContext _context;
 
         public DoorService(DoorsEnterpriseContext context)
@@ -25,7 +19,7 @@ namespace DoorsWeb.API.Services
         public async Task<List<DoorListDto>> GetAll()
         {
             // Pull raw columns first; ControllerID parsing isn't translatable to SQL.
-            var rows = await _context.TDoors
+            var rows = await _context.Doors
                 .AsNoTracking()
                 .OrderBy(d => d.Name)
                 .Select(d => new { d.Door, d.ControllerId, d.Name, d.DoorIpaddress, d.Updated })
@@ -43,24 +37,22 @@ namespace DoorsWeb.API.Services
 
         public async Task<DoorDetailDto?> GetById(int door)
         {
-            var e = await _context.TDoors.AsNoTracking().FirstOrDefaultAsync(d => d.Door == door);
+            var e = await _context.Doors.AsNoTracking().FirstOrDefaultAsync(d => d.Door == door);
             return e is null ? null : ToDetail(e);
         }
 
         public async Task<List<DoorListDto>> Create(DoorDetailDto dto)
         {
-            var e = new TDoors { Door = dto.Door };
+            var e = new Doors { Door = dto.Door };
             ApplyToEntity(dto, e);
-            // IP-only system: always bind new doors to a UDP connector.
-            e.Connector = await EnsureUdpConnectorAsync();
-            _context.TDoors.Add(e);
+            _context.Doors.Add(e);
             await _context.SaveChangesAsync();
             return await GetAll();
         }
 
         public async Task<List<DoorListDto>?> Update(int door, DoorDetailDto dto)
         {
-            var e = await _context.TDoors.FirstOrDefaultAsync(d => d.Door == door);
+            var e = await _context.Doors.FirstOrDefaultAsync(d => d.Door == door);
             if (e is null) return null;
             ApplyToEntity(dto, e);
             await _context.SaveChangesAsync();
@@ -69,38 +61,11 @@ namespace DoorsWeb.API.Services
 
         public async Task<List<DoorListDto>?> Delete(int door)
         {
-            var e = await _context.TDoors.FirstOrDefaultAsync(d => d.Door == door);
+            var e = await _context.Doors.FirstOrDefaultAsync(d => d.Door == door);
             if (e is null) return null;
-            _context.TDoors.Remove(e);
+            _context.Doors.Remove(e);
             await _context.SaveChangesAsync();
             return await GetAll();
-        }
-
-        // Returns the id of a UDP connector, creating "default connector" if none exists.
-        private async Task<int> EnsureUdpConnectorAsync()
-        {
-            var existing = await _context.TConnectors
-                .Where(c => c.ConnType == UdpConnType)
-                .OrderBy(c => c.Connector)
-                .Select(c => c.Connector)
-                .FirstOrDefaultAsync();
-            if (existing != 0) return existing;
-
-            // Connector PK is ValueGeneratedNever -> assign manually as max+1 (or 1 if empty).
-            var nextId = await _context.TConnectors.AnyAsync()
-                ? await _context.TConnectors.MaxAsync(c => c.Connector) + 1
-                : 1;
-
-            var connector = new TConnectors
-            {
-                Connector = nextId,
-                Name = DefaultConnectorName,
-                ConnType = UdpConnType,
-                Inuse = true
-            };
-            _context.TConnectors.Add(connector);
-            await _context.SaveChangesAsync();
-            return connector.Connector;
         }
 
         // ---- mapping helpers ------------------------------------------------
@@ -108,7 +73,7 @@ namespace DoorsWeb.API.Services
         private static int ParseControllerId(string? value)
             => int.TryParse(value, out var id) ? id : 0;
 
-        private static DoorDetailDto ToDetail(TDoors e)
+        private static DoorDetailDto ToDetail(Doors e)
         {
             var pdo = e.Pdo ?? 0;
             var timeLock = e.TimeLock ?? NoTimeZone;
@@ -119,7 +84,6 @@ namespace DoorsWeb.API.Services
                 ControllerId = ParseControllerId(e.ControllerId),
                 Name = e.Name ?? string.Empty,
                 IPAddressString = e.DoorIpaddress ?? string.Empty,
-                Connector = e.Connector,
 
                 AutoRelockEnable = e.AutoRelock ?? false,
                 RelayA_Delay = ToByte(e.ReleaseDelay),
@@ -163,13 +127,13 @@ namespace DoorsWeb.API.Services
             };
         }
 
-        private static void ApplyToEntity(DoorDetailDto dto, TDoors e)
+        private static void ApplyToEntity(DoorDetailDto dto, Doors e)
         {
             e.ControllerId = dto.ControllerId.ToString();
             e.Name = dto.Name;
             e.DoorIpaddress = dto.IPAddressString;
-            // Connector is managed automatically (see EnsureUdpConnectorAsync); never
-            // touch it here so Update() preserves the existing binding.
+            // Connectors are obsolete in this IP-only system; Doors.Connector is left untouched
+            // (null on new doors, preserved on existing ones).
 
             e.AutoRelock = dto.AutoRelockEnable;
             e.ReleaseDelay = dto.RelayA_Delay;
@@ -229,7 +193,7 @@ namespace DoorsWeb.API.Services
 
         // Access code is stored across AccessCode_Dig1..8, least-significant digit first
         // (legacy: Dig{i} = digit at position 9-i of the zero-padded 8-digit code).
-        private static int? ReassembleAccessCode(TDoors e)
+        private static int? ReassembleAccessCode(Doors e)
         {
             var digits = new[]
             {
@@ -247,7 +211,7 @@ namespace DoorsWeb.API.Services
             return code == 0 ? null : code;
         }
 
-        private static void SplitAccessCode(int code, TDoors e)
+        private static void SplitAccessCode(int code, Doors e)
         {
             if (code < 0) code = 0;
             e.AccessCodeDig1 = code / 1 % 10;

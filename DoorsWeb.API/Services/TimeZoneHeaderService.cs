@@ -12,54 +12,54 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<TTimeZoneHeader>> GetAll()
+        public async Task<List<TimeZones>> GetAll()
         {
-            return await _context.TTimeZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeZones.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TTimeZoneHeader?> GetById(int site, int timeZone)
+        public async Task<TimeZones?> GetById(int site, int timeZone)
         {
             // EF composite key order is { TimeZone, Site } — keep FindAsync args in that order.
-            return await _context.TTimeZoneHeader.FindAsync(timeZone, site);
+            return await _context.TimeZones.FindAsync(timeZone, site);
         }
 
-        public async Task<List<TTimeZoneHeader>> Create(TTimeZoneHeader entity)
+        public async Task<List<TimeZones>> Create(TimeZones entity)
         {
-            _context.TTimeZoneHeader.Add(entity);
+            _context.TimeZones.Add(entity);
             await _context.SaveChangesAsync();
-            return await _context.TTimeZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeZones.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TTimeZoneHeader>?> Update(int site, int timeZone, TTimeZoneHeader entity)
+        public async Task<List<TimeZones>?> Update(int site, int timeZone, TimeZones entity)
         {
-            var result = await _context.TTimeZoneHeader.FindAsync(timeZone, site);
+            var result = await _context.TimeZones.FindAsync(timeZone, site);
             if (result is null) return null;
             entity.TimeZone = timeZone; // keep route and body key aligned
             entity.Site = site;
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
-            return await _context.TTimeZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeZones.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TTimeZoneHeader>?> Delete(int site, int timeZone)
+        public async Task<List<TimeZones>?> Delete(int site, int timeZone)
         {
-            var result = await _context.TTimeZoneHeader.FindAsync(timeZone, site);
+            var result = await _context.TimeZones.FindAsync(timeZone, site);
             if (result is null) return null;
 
-            var details = await _context.TTimeZoneDetails.Where(d => d.TimeZone == timeZone).ToListAsync();
-            _context.TTimeZoneDetails.RemoveRange(details);
-            _context.TTimeZoneHeader.Remove(result);
+            var details = await _context.TimeZoneInterval.Where(d => d.TimeZone == timeZone).ToListAsync();
+            _context.TimeZoneInterval.RemoveRange(details);
+            _context.TimeZones.Remove(result);
             await _context.SaveChangesAsync();
-            return await _context.TTimeZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeZones.AsNoTracking().ToListAsync();
         }
 
         public async Task<TimeZoneSaveDto?> GetWithElements(int site, int timeZone)
         {
-            var header = await _context.TTimeZoneHeader.AsNoTracking()
+            var header = await _context.TimeZones.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.TimeZone == timeZone && t.Site == site);
             if (header is null) return null;
 
-            var details = await _context.TTimeZoneDetails.AsNoTracking()
+            var details = await _context.TimeZoneInterval.AsNoTracking()
                 .Where(d => d.TimeZone == timeZone)
                 .OrderBy(d => d.Sequence)
                 .ToListAsync();
@@ -87,11 +87,11 @@ namespace DoorsWeb.API.Services
             };
         }
 
-        public async Task<TTimeZoneHeader> Save(TimeZoneSaveDto dto)
+        public async Task<TimeZones> Save(TimeZoneSaveDto dto)
         {
-            TTimeZoneHeader header;
+            TimeZones header;
             int timeZone;
-            if (dto.TimeZone is int tz && await _context.TTimeZoneHeader.FindAsync(tz, dto.Site) is { } existing)
+            if (dto.TimeZone is int tz && await _context.TimeZones.FindAsync(tz, dto.Site) is { } existing)
             {
                 existing.Name = dto.Name;
                 existing.Calendar = dto.Calendar;
@@ -99,15 +99,15 @@ namespace DoorsWeb.API.Services
                 timeZone = tz;
 
                 // Replace the element set: drop the old rows, then re-insert below.
-                var old = await _context.TTimeZoneDetails.Where(d => d.TimeZone == tz).ToListAsync();
-                _context.TTimeZoneDetails.RemoveRange(old);
+                var old = await _context.TimeZoneInterval.Where(d => d.TimeZone == tz).ToListAsync();
+                _context.TimeZoneInterval.RemoveRange(old);
                 await _context.SaveChangesAsync();
             }
             else
             {
                 // Details key on TimeZone alone, so the number must be globally unique.
                 timeZone = await NextTimeZone();
-                header = new TTimeZoneHeader
+                header = new TimeZones
                 {
                     TimeZone = timeZone,
                     Site = dto.Site,
@@ -115,14 +115,14 @@ namespace DoorsWeb.API.Services
                     Calendar = dto.Calendar,
                     LocalTimeZone = await NextLocalTimeZone(dto.Site),
                 };
-                _context.TTimeZoneHeader.Add(header);
+                _context.TimeZones.Add(header);
                 await _context.SaveChangesAsync();
             }
 
             int sequence = 1;
             foreach (var el in dto.Elements)
             {
-                _context.TTimeZoneDetails.Add(new TTimeZoneDetails
+                _context.TimeZoneInterval.Add(new TimeZoneInterval
                 {
                     TimeZone = timeZone,
                     Sequence = sequence++,
@@ -146,14 +146,14 @@ namespace DoorsWeb.API.Services
         // Globally unique time-zone number (details key on TimeZone without Site).
         private async Task<int> NextTimeZone()
         {
-            var max = await _context.TTimeZoneHeader.Select(t => (int?)t.TimeZone).MaxAsync();
+            var max = await _context.TimeZones.Select(t => (int?)t.TimeZone).MaxAsync();
             return (max ?? 0) + 1;
         }
 
         // Per-site 1-based display index the legacy client shows.
         private async Task<int> NextLocalTimeZone(int site)
         {
-            var max = await _context.TTimeZoneHeader.Where(t => t.Site == site).Select(t => t.LocalTimeZone).MaxAsync();
+            var max = await _context.TimeZones.Where(t => t.Site == site).Select(t => t.LocalTimeZone).MaxAsync();
             return (max ?? 0) + 1;
         }
     }

@@ -17,13 +17,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TCalendarHeader>>> GetAll()
+        public async Task<ActionResult<List<Calendar>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TCalendarHeader>> GetById(int id)
+        public async Task<ActionResult<Calendar>> GetById(int id)
         {
             var result = await _service.GetById(id);
             if (result is null)
@@ -45,19 +45,19 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TCalendarHeader>>> Create(TCalendarHeader entity)
+        public async Task<ActionResult<List<Calendar>>> Create(Calendar entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPost("save")]
-        public async Task<ActionResult<TCalendarHeader>> Save(CalendarSaveDto dto)
+        public async Task<ActionResult<Calendar>> Save(CalendarSaveDto dto)
         {
             return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<TCalendarHeader>?>> Update(int id, TCalendarHeader entity)
+        public async Task<ActionResult<List<Calendar>?>> Update(int id, Calendar entity)
         {
             var result = await _service.Update(id, entity);
             if (result is null)
@@ -68,7 +68,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<List<TCalendarHeader>?>> Delete(int id)
+        public async Task<ActionResult<List<Calendar>?>> Delete(int id)
         {
             var result = await _service.Delete(id);
             if (result is null)

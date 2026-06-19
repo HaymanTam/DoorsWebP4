@@ -32,7 +32,7 @@ public partial class DoorsEnterpriseContext
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
         // ---- T_Doors ----------------------------------------------------------
-        modelBuilder.Entity<TDoors>(entity =>
+        modelBuilder.Entity<Doors>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
                 .WithMany(p => p.Doors)
@@ -66,7 +66,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Connectors -----------------------------------------------------
-        modelBuilder.Entity<TConnectors>(entity =>
+        modelBuilder.Entity<Connectors>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
                 .WithMany(p => p.Connectors)
@@ -75,19 +75,19 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_IOController_Header -------------------------------------------
-        modelBuilder.Entity<TIocontrollerHeader>(entity =>
+        modelBuilder.Entity<IoController>(entity =>
         {
             entity.HasOne(d => d.ConnectorNavigation)
-                .WithMany(p => p.IocontrollerHeaders)
+                .WithMany(p => p.IoControllers)
                 .HasForeignKey(d => d.Connector)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_IOController_Details ------------------------------------------
-        modelBuilder.Entity<TIocontrollerDetails>(entity =>
+        modelBuilder.Entity<IoControllerInput>(entity =>
         {
-            entity.HasOne(d => d.IocontrollerHeader)
-                .WithMany(p => p.IocontrollerDetails)
+            entity.HasOne(d => d.IoController)
+                .WithMany(p => p.IoControllerInputs)
                 .HasForeignKey(d => d.ControllerId)
                 .OnDelete(DeleteBehavior.NoAction);
 
@@ -98,7 +98,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Name_Header ----------------------------------------------------
-        modelBuilder.Entity<TNameHeader>(entity =>
+        modelBuilder.Entity<Cardholder>(entity =>
         {
             entity.HasOne(d => d.LastDoorNavigation)
                 .WithMany()
@@ -122,36 +122,36 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Name_CustomFields (one-to-one, shared PK) ---------------------
-        modelBuilder.Entity<TNameCustomFields>(entity =>
+        modelBuilder.Entity<CardholderCustomFields>(entity =>
         {
-            entity.HasOne(d => d.NameHeader)
+            entity.HasOne(d => d.Cardholder)
                 .WithOne(p => p.CustomFields)
-                .HasForeignKey<TNameCustomFields>(d => d.CardNumber)
+                .HasForeignKey<CardholderCustomFields>(d => d.CardNumber)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_Name_AccessLevels ---------------------------------------------
-        modelBuilder.Entity<TNameAccessLevels>(entity =>
+        modelBuilder.Entity<CardholderAccessLevel>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.NameAccessLevels)
+                .WithMany(p => p.CardholderAccessLevels)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            entity.HasOne(d => d.NameHeader)
-                .WithMany(p => p.NameAccessLevels)
+            entity.HasOne(d => d.Cardholder)
+                .WithMany(p => p.CardholderAccessLevels)
                 .HasForeignKey(d => d.CardNumber)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            entity.HasOne(d => d.AccessLevelHeader)
-                .WithMany(p => p.NameAccessLevels)
+            entity.HasOne(d => d.AccessLevel)
+                .WithMany(p => p.CardholderAccessLevels)
                 .HasForeignKey(d => new { d.Level, d.Site })
                 .HasPrincipalKey(p => new { p.AccessLevel, p.Site })
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_Events ---------------------------------------------------------
-        modelBuilder.Entity<TEvents>(entity =>
+        modelBuilder.Entity<Events>(entity =>
         {
             entity.HasOne(d => d.DoorNavigation)
                 .WithMany(p => p.Events)
@@ -170,76 +170,76 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_AccessLevel_Header --------------------------------------------
-        modelBuilder.Entity<TAccessLevelHeader>(entity =>
+        modelBuilder.Entity<AccessLevels>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.AccessLevelHeaders)
+                .WithMany(p => p.AccessLevels)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_AccessLevel_Details -------------------------------------------
-        modelBuilder.Entity<TAccessLevelDetails>(entity =>
+        modelBuilder.Entity<AccessLevelDoor>(entity =>
         {
             entity.HasOne(d => d.DoorNavigation)
-                .WithMany(p => p.AccessLevelDetails)
+                .WithMany(p => p.AccessLevelDoors)
                 .HasForeignKey(d => d.Door)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_APBZone_Header -------------------------------------------------
-        modelBuilder.Entity<TApbzoneHeader>(entity =>
+        modelBuilder.Entity<ApbZone>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.ApbzoneHeaders)
+                .WithMany(p => p.ApbZones)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_APBZone_Details ------------------------------------------------
-        modelBuilder.Entity<TApbzoneDetails>(entity =>
+        modelBuilder.Entity<ApbZoneDoor>(entity =>
         {
-            entity.HasOne(d => d.ApbzoneHeader)
-                .WithMany(p => p.ApbzoneDetails)
+            entity.HasOne(d => d.ApbZone)
+                .WithMany(p => p.ApbZoneDoors)
                 .HasForeignKey(d => d.Apbnumber)
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(d => d.DoorNavigation)
-                .WithMany(p => p.ApbzoneDetails)
+                .WithMany(p => p.ApbZoneDoors)
                 .HasForeignKey(d => d.DoorNumber)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_SpaceZone_Header ----------------------------------------------
-        modelBuilder.Entity<TSpaceZoneHeader>(entity =>
+        modelBuilder.Entity<SpaceZone>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.SpaceZoneHeaders)
+                .WithMany(p => p.SpaceZones)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_SpaceZone_Details ---------------------------------------------
-        modelBuilder.Entity<TSpaceZoneDetails>(entity =>
+        modelBuilder.Entity<SpaceZoneDoor>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.SpaceZoneDetails)
+                .WithMany(p => p.SpaceZoneDoors)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(d => d.DoorNavigation)
-                .WithMany(p => p.SpaceZoneDetails)
+                .WithMany(p => p.SpaceZoneDoors)
                 .HasForeignKey(d => d.Door)
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(d => d.ZoneNavigation)
-                .WithMany(p => p.SpaceZoneDetails)
+                .WithMany(p => p.SpaceZoneDoors)
                 .HasForeignKey(d => d.Zone)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_SpaceZone_Attendance ------------------------------------------
-        modelBuilder.Entity<TSpaceZoneAttendance>(entity =>
+        modelBuilder.Entity<SpaceZoneAttendance>(entity =>
         {
             entity.HasOne(d => d.CardIndexNavigation)
                 .WithMany(p => p.SpaceZoneAttendances)
@@ -253,9 +253,9 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_SpaceZone_Cardholders -----------------------------------------
-        modelBuilder.Entity<TSpaceZoneCardholders>(entity =>
+        modelBuilder.Entity<SpaceZoneCardholder>(entity =>
         {
-            entity.HasOne(d => d.NameHeader)
+            entity.HasOne(d => d.Cardholder)
                 .WithMany(p => p.SpaceZoneCardholders)
                 .HasForeignKey(d => d.CardNumber)
                 .OnDelete(DeleteBehavior.NoAction);
@@ -267,28 +267,28 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Calendar_Header -----------------------------------------------
-        modelBuilder.Entity<TCalendarHeader>(entity =>
+        modelBuilder.Entity<Calendar>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.CalendarHeaders)
+                .WithMany(p => p.Calendars)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_Calendar_Details ----------------------------------------------
-        modelBuilder.Entity<TCalendarDetails>(entity =>
+        modelBuilder.Entity<CalendarException>(entity =>
         {
-            entity.HasOne(d => d.CalendarHeader)
-                .WithMany(p => p.CalendarDetails)
+            entity.HasOne(d => d.Calendar)
+                .WithMany(p => p.CalendarExceptions)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_TimeZone_Header -----------------------------------------------
-        modelBuilder.Entity<TTimeZoneHeader>(entity =>
+        modelBuilder.Entity<TimeZones>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.TimeZoneHeaders)
+                .WithMany(p => p.TimeZones)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
 
@@ -299,7 +299,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_TimeZone_Details ----------------------------------------------
-        modelBuilder.Entity<TTimeZoneDetails>(entity =>
+        modelBuilder.Entity<TimeZoneInterval>(entity =>
         {
             entity.HasOne(d => d.CalendarNavigation)
                 .WithMany()
@@ -308,7 +308,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Alarms ---------------------------------------------------------
-        modelBuilder.Entity<TAlarms>(entity =>
+        modelBuilder.Entity<Alarms>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
                 .WithMany(p => p.Alarms)
@@ -322,7 +322,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_FloorPlans -----------------------------------------------------
-        modelBuilder.Entity<TFloorPlans>(entity =>
+        modelBuilder.Entity<FloorPlans>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
                 .WithMany(p => p.FloorPlans)
@@ -331,28 +331,28 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Triggers_Header -----------------------------------------------
-        modelBuilder.Entity<TTriggersHeader>(entity =>
+        modelBuilder.Entity<Trigger>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.TriggersHeaders)
+                .WithMany(p => p.Triggers)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_Triggers_Controllers ------------------------------------------
-        modelBuilder.Entity<TTriggersControllers>(entity =>
+        modelBuilder.Entity<TriggerController>(entity =>
         {
-            entity.HasOne(d => d.TriggersHeader)
-                .WithMany(p => p.TriggersControllers)
+            entity.HasOne(d => d.Trigger)
+                .WithMany(p => p.TriggerControllers)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_Triggers_Events -----------------------------------------------
-        modelBuilder.Entity<TTriggersEvents>(entity =>
+        modelBuilder.Entity<TriggerEvent>(entity =>
         {
-            entity.HasOne(d => d.TriggersHeader)
-                .WithMany(p => p.TriggersEvents)
+            entity.HasOne(d => d.Trigger)
+                .WithMany(p => p.TriggerEvents)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
 
@@ -363,7 +363,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Commands -------------------------------------------------------
-        modelBuilder.Entity<TCommands>(entity =>
+        modelBuilder.Entity<Commands>(entity =>
         {
             entity.HasOne(d => d.ConnectorNavigation)
                 .WithMany(p => p.Commands)
@@ -372,43 +372,43 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_CardManager_Default -------------------------------------------
-        modelBuilder.Entity<TCardManagerDefault>(entity =>
+        modelBuilder.Entity<CardManagerDefault>(entity =>
         {
-            entity.HasOne(d => d.CardManagerHeader)
+            entity.HasOne(d => d.CardManager)
                 .WithMany(p => p.CardManagerDefaults)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_CardManager_OrderByFields -------------------------------------
-        modelBuilder.Entity<TCardManagerOrderByFields>(entity =>
+        modelBuilder.Entity<CardManagerOrderByField>(entity =>
         {
-            entity.HasOne(d => d.CardManagerHeader)
+            entity.HasOne(d => d.CardManager)
                 .WithMany(p => p.OrderByFields)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_CardManager_SelectFields --------------------------------------
-        modelBuilder.Entity<TCardManagerSelectFields>(entity =>
+        modelBuilder.Entity<CardManagerSelectField>(entity =>
         {
-            entity.HasOne(d => d.CardManagerHeader)
+            entity.HasOne(d => d.CardManager)
                 .WithMany(p => p.SelectFields)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_CardManager_WhereFields ---------------------------------------
-        modelBuilder.Entity<TCardManagerWhereFields>(entity =>
+        modelBuilder.Entity<CardManagerWhereField>(entity =>
         {
-            entity.HasOne(d => d.CardManagerHeader)
+            entity.HasOne(d => d.CardManager)
                 .WithMany(p => p.WhereFields)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_Custom ---------------------------------------------------------
-        modelBuilder.Entity<TCustom>(entity =>
+        modelBuilder.Entity<Custom>(entity =>
         {
             entity.HasOne(d => d.CustomFieldType)
                 .WithMany(p => p.Customs)
@@ -417,7 +417,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_Display (composite FK -> T_DisplayTypes) ----------------------
-        modelBuilder.Entity<TDisplay>(entity =>
+        modelBuilder.Entity<Display>(entity =>
         {
             entity.HasOne(d => d.DisplayType)
                 .WithMany(p => p.Displays)
@@ -427,32 +427,32 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_CardDesign_Details --------------------------------------------
-        modelBuilder.Entity<TCardDesignDetails>(entity =>
+        modelBuilder.Entity<CardDesignField>(entity =>
         {
-            entity.HasOne(d => d.CardDesignHeader)
-                .WithMany(p => p.CardDesignDetails)
+            entity.HasOne(d => d.CardDesign)
+                .WithMany(p => p.CardDesignFields)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_CardPack_Details ----------------------------------------------
-        modelBuilder.Entity<TCardPackDetails>(entity =>
+        modelBuilder.Entity<CardPackSite>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.CardPackDetails)
+                .WithMany(p => p.CardPackSites)
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(d => d.CardPackNavigation)
-                .WithMany(p => p.CardPackDetails)
+                .WithMany(p => p.CardPackSites)
                 .HasForeignKey(d => d.CardPack)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ---- T_TimeSheet_Zones -----------------------------------------------
-        modelBuilder.Entity<TTimeSheetZones>(entity =>
+        modelBuilder.Entity<TimeSheetZone>(entity =>
         {
-            entity.HasOne(d => d.TimeSheetHeader)
+            entity.HasOne(d => d.TimeSheet)
                 .WithMany(p => p.TimeSheetZones)
                 .HasForeignKey(d => d.Code)
                 .OnDelete(DeleteBehavior.NoAction);
@@ -464,7 +464,7 @@ public partial class DoorsEnterpriseContext
         });
 
         // ---- T_UserSites ------------------------------------------------------
-        modelBuilder.Entity<TUserSites>(entity =>
+        modelBuilder.Entity<UserSites>(entity =>
         {
             entity.HasOne(d => d.SiteNavigation)
                 .WithMany(p => p.UserSites)
@@ -481,11 +481,11 @@ public partial class DoorsEnterpriseContext
         // BCrypt.HashPassword() call produces a new salt each model build, which
         // would generate spurious migrations. Users on this default are forced to
         // change it on first sign-in.
-        modelBuilder.Entity<TUsers>(entity =>
+        modelBuilder.Entity<Users>(entity =>
         {
             entity.HasKey(e => e.Code);
 
-            entity.HasData(new TUsers
+            entity.HasData(new Users
             {
                 Code = 1,
                 Description = "admin",
@@ -499,7 +499,7 @@ public partial class DoorsEnterpriseContext
         // one site. The System Settings dialog (and SiteService.Delete) prevent
         // removing the final remaining site, so this guarantees there is always
         // somewhere for doors / zones / triggers / etc. to belong to.
-        modelBuilder.Entity<TSites>().HasData(new TSites
+        modelBuilder.Entity<Sites>().HasData(new Sites
         {
             Site = 1,
             Name = "Default Site",

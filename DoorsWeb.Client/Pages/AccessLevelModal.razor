@@ -130,7 +130,7 @@
     private int? timeZoneValue;
 
     // Time zones defined for this site, used to populate the per-door Time Zone dropdowns.
-    private List<TTimeZoneHeader> timeZones = new();
+    private List<TimeZones> timeZones = new();
 
     private List<DoorRow> VisibleDoors =>
         level.ShowSelectedOnly ? level.Doors.Where(d => d.Selected).ToList() : level.Doors;
@@ -143,11 +143,11 @@
             var client = ClientFactory.CreateClient("WebAPI");
 
             // Populate the per-door Time Zone dropdowns from the site's defined time zones.
-            var tzList = await client.GetFromJsonAsync<List<TTimeZoneHeader>>("api/TimeZoneHeader");
+            var tzList = await client.GetFromJsonAsync<List<TimeZones>>("api/TimeZoneHeader");
             if (tzList is not null)
                 timeZones = tzList.Where(t => t.Site == SiteId).OrderBy(t => t.Name).ToList();
 
-            var url = $"api/AccessLevelHeader/{SiteId}/doors";
+            var url = $"api/AccessLevel/{SiteId}/doors";
             if (AccessLevelId is int id) url += $"?accessLevel={id}";
 
             var dto = await client.GetFromJsonAsync<AccessLevelSaveDto>(url);
@@ -193,7 +193,7 @@
             };
 
             var client = ClientFactory.CreateClient("WebAPI");
-            var response = await client.PostAsJsonAsync("api/AccessLevelHeader/save", dto);
+            var response = await client.PostAsJsonAsync("api/AccessLevel/save", dto);
             if (response.IsSuccessStatusCode)
             {
                 ModalService.Close(ModalResult.Ok());

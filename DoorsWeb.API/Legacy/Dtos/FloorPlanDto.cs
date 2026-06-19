@@ -9,21 +9,21 @@ namespace DoorsWeb.API.Legacy.Dtos
     //     </FloorPlans>
     //   </Site>
     //
-    // Scaffolded entities: TFloorPlans (Code, Site, Name), TSites.
+    // Scaffolded entities: FloorPlans (Code, Site, Name), Sites.
 
     /// <summary>One floor plan joined to its owning site.</summary>
     public class FloorPlanDto
     {
-        /// <summary>Floor-plan code. Source: FloorPlan/@Code (TFloorPlans.Code).</summary>
+        /// <summary>Floor-plan code. Source: FloorPlan/@Code (FloorPlans.Code).</summary>
         public int Code { get; set; }
 
-        /// <summary>Floor-plan name. Source: FloorPlan/@Name (TFloorPlans.Name).</summary>
+        /// <summary>Floor-plan name. Source: FloorPlan/@Name (FloorPlans.Name).</summary>
         public string? Name { get; set; }
 
-        /// <summary>Owning site code. Source: Site/@Code (TSites.Site).</summary>
+        /// <summary>Owning site code. Source: Site/@Code (Sites.Site).</summary>
         public int SiteCode { get; set; }
 
-        /// <summary>Owning site name. Source: Site/@Name (TSites.Name).</summary>
+        /// <summary>Owning site name. Source: Site/@Name (Sites.Name).</summary>
         public string? SiteName { get; set; }
     }
 }

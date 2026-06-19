@@ -136,6 +136,13 @@ namespace DoorsWeb.API.Services
                     // Explicit identity values were just loaded; advance each identity sequence past
                     // its new maximum so future inserts don't collide.
                     await ResetIdentitySequences(connection, cancellationToken);
+
+                    // Read-only integrity scan. The bulk COPY ran with FK enforcement off
+                    // (session_replication_role = replica), and PostgreSQL does NOT retro-validate
+                    // rows loaded that way, so a legacy backup can leave orphans behind even though the
+                    // constraints are nominally valid. Report them (and NULL names that crash the legacy
+                    // client) for review — this pass changes nothing.
+                    result.Findings = await ScanIntegrity(connection, cancellationToken);
                 }
                 finally
                 {
@@ -298,6 +305,138 @@ BEGIN
 END $$;";
             await using var cmd = new NpgsqlCommand(sql, connection) { CommandTimeout = 0 };
             await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        // One foreign key as read from the catalog: ordered child/parent column lists included so
+        // composite and Site-scoped keys are handled without hardcoding the relationship map.
+        private sealed record ForeignKeyInfo(
+            string Name, string ChildTable, string ParentTable,
+            IReadOnlyList<string> ChildColumns, IReadOnlyList<string> ParentColumns);
+
+        // Enumerates every foreign key in the public schema directly from pg_constraint, resolving the
+        // child/parent table names and the ordered child/parent column lists. This lets the orphan scan
+        // cover all live relationships (including composite, Site-scoped keys) without hardcoding them.
+        private static async Task<List<ForeignKeyInfo>> GetForeignKeys(NpgsqlConnection connection, CancellationToken ct)
+        {
+            const string sql = @"
+SELECT con.conname,
+       child.relname  AS child_table,
+       parent.relname AS parent_table,
+       (SELECT array_agg(att.attname ORDER BY k.ord)
+          FROM unnest(con.conkey) WITH ORDINALITY AS k(attnum, ord)
+          JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = k.attnum) AS child_cols,
+       (SELECT array_agg(att.attname ORDER BY k.ord)
+          FROM unnest(con.confkey) WITH ORDINALITY AS k(attnum, ord)
+          JOIN pg_attribute att ON att.attrelid = con.confrelid AND att.attnum = k.attnum) AS parent_cols
+FROM pg_constraint con
+JOIN pg_class child  ON child.oid  = con.conrelid
+JOIN pg_class parent ON parent.oid = con.confrelid
+JOIN pg_namespace ns ON ns.oid = con.connamespace
+WHERE con.contype = 'f' AND ns.nspname = 'public'
+ORDER BY child.relname, con.conname;";
+
+            var list = new List<ForeignKeyInfo>();
+            await using var cmd = new NpgsqlCommand(sql, connection);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            while (await reader.ReadAsync(ct))
+            {
+                list.Add(new ForeignKeyInfo(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    (string[])reader.GetValue(3),
+                    (string[])reader.GetValue(4)));
+            }
+            return list;
+        }
+
+        // Read-only post-restore integrity scan. Returns one finding per problem found and changes
+        // nothing — the caller surfaces these for review.
+        //
+        // Two kinds of findings:
+        //   "orphan"     - rows whose FK column(s) reference a parent row that doesn't exist. The bulk
+        //                  COPY ran under session_replication_role = replica (enforcement off) and
+        //                  PostgreSQL does NOT retro-validate those rows when enforcement is restored,
+        //                  so a legacy backup can leave orphans behind even though the constraints are
+        //                  nominally valid. A NULL FK column is skipped, so legitimate legacy "none"
+        //                  links (loaded as NULL) are not flagged.
+        //   "blank-name" - a name/description column that is NULL on a row the legacy VB6 client
+        //                  dereferences; a NULL there throws run-time error 91 when the record opens.
+        private async Task<List<LegacyScanFinding>> ScanIntegrity(NpgsqlConnection connection, CancellationToken ct)
+        {
+            var findings = new List<LegacyScanFinding>();
+
+            // 1. Foreign-key orphans, discovered from the catalog so every live FK is covered.
+            foreach (var fk in await GetForeignKeys(connection, ct))
+            {
+                ct.ThrowIfCancellationRequested();
+
+                // Skip rows whose FK is fully NULL — that's a legitimate "no parent" link, not an orphan.
+                var notNull = string.Join(" AND ", fk.ChildColumns.Select(c => $"c.{Quote(c)} IS NOT NULL"));
+                var join = string.Join(" AND ",
+                    fk.ParentColumns.Zip(fk.ChildColumns, (p, c) => $"p.{Quote(p)} = c.{Quote(c)}"));
+
+                var sql =
+                    $"SELECT count(*) FROM {QualifiedTable(fk.ChildTable)} c " +
+                    $"WHERE {notNull} AND NOT EXISTS (" +
+                    $"SELECT 1 FROM {QualifiedTable(fk.ParentTable)} p WHERE {join});";
+
+                await using var cmd = new NpgsqlCommand(sql, connection) { CommandTimeout = 0 };
+                var count = Convert.ToInt64(await cmd.ExecuteScalarAsync(ct) ?? 0L);
+                if (count > 0)
+                {
+                    findings.Add(new LegacyScanFinding
+                    {
+                        Kind = "orphan",
+                        Table = fk.ChildTable,
+                        Reference = fk.ParentTable,
+                        Detail = $"{fk.Name} ({string.Join(", ", fk.ChildColumns)} → {string.Join(", ", fk.ParentColumns)})",
+                        Count = count,
+                    });
+                    _logger.LogWarning(
+                        "Legacy import: {Count} orphan row(s) in {Child} violate FK {Constraint} -> {Parent}.",
+                        count, fk.ChildTable, fk.Name, fk.ParentTable);
+                }
+            }
+
+            // 2. NULL name/description on rows the legacy client dereferences. A NULL here makes the
+            //    VB6 client throw run-time error 91 when the record is opened.
+            var nameChecks = new (string Table, string Column)[]
+            {
+                ("T_Calendar_Header", "Description"),
+                ("T_AccessLevel_Header", "Name"),
+                ("T_TimeZone_Header", "Name"),
+                ("T_SpaceZone_Header", "Name"),
+                ("T_Triggers_Header", "Name"),
+                ("T_Doors", "Name"),
+            };
+            foreach (var (table, column) in nameChecks)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var columns = await GetTableColumns(connection, table, ct);
+                if (columns.Count == 0 || !columns.TryGetValue(column, out var actualColumn)) continue;
+
+                var sql = $"SELECT count(*) FROM {QualifiedTable(table)} WHERE {Quote(actualColumn)} IS NULL;";
+                await using var cmd = new NpgsqlCommand(sql, connection) { CommandTimeout = 0 };
+                var count = Convert.ToInt64(await cmd.ExecuteScalarAsync(ct) ?? 0L);
+                if (count > 0)
+                {
+                    findings.Add(new LegacyScanFinding
+                    {
+                        Kind = "blank-name",
+                        Table = table,
+                        Reference = actualColumn,
+                        Detail = $"{actualColumn} IS NULL",
+                        Count = count,
+                    });
+                    _logger.LogWarning(
+                        "Legacy import: {Count} row(s) in {Table} have a NULL {Column} (crashes the legacy client).",
+                        count, table, actualColumn);
+                }
+            }
+
+            return findings;
         }
 
         private async Task<long> BulkLoadTable(

@@ -4,7 +4,7 @@
        (replaces the legacy "Add or Remove Fields" toolbar), and
      - a drag-and-drop / click photo uploader with live preview
        (replaces the legacy "Cardholder Photo" toolbar button).
-   Core cardholder fields persist via api/NameHeader (POST for new, PUT for edit).
+   Core cardholder fields persist via api/Cardholder (POST for new, PUT for edit).
    Access levels, custom fields, bio data and the photo are UI-level only for now
    (no backing endpoint yet) and are clearly grouped so they can be wired up later. *@
 
@@ -286,7 +286,7 @@
     /// <summary>Suggested next free card number, used when creating a new record.</summary>
     [Parameter] public int NextCardNumber { get; set; }
 
-    private TNameHeader card = new();
+    private Cardholder card = new();
     private bool isNew = true;
     private bool busy;
     private string? status;
@@ -306,7 +306,7 @@
     private string? photoDataUrl;
     private string? photoError;
 
-    private List<TAccessLevelHeader>? accessLevels;
+    private List<AccessLevels>? accessLevels;
     private readonly HashSet<string> selectedAccessLevels = new();
     private readonly List<CustomField> customFields = new();
 
@@ -317,11 +317,11 @@
         if (CardNumber == 0)
         {
             isNew = true;
-            card = new TNameHeader { CardNumber = NextCardNumber, Enabled = true, InUse = true };
+            card = new Cardholder { CardNumber = NextCardNumber, Enabled = true, InUse = true };
         }
         else
         {
-            var result = await client.GetFromJsonAsync<TNameHeader?>($"api/NameHeader/{CardNumber}");
+            var result = await client.GetFromJsonAsync<Cardholder?>($"api/Cardholder/{CardNumber}");
             if (result is not null)
             {
                 card = result;
@@ -345,7 +345,7 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            accessLevels = await client.GetFromJsonAsync<List<TAccessLevelHeader>>("api/AccessLevelHeader") ?? new();
+            accessLevels = await client.GetFromJsonAsync<List<AccessLevels>>("api/AccessLevel") ?? new();
         }
         catch
         {
@@ -409,8 +409,8 @@
         {
             var client = ClientFactory.CreateClient("WebAPI");
             var response = isNew
-                ? await client.PostAsJsonAsync("api/NameHeader", card)
-                : await client.PutAsJsonAsync($"api/NameHeader/{card.CardNumber}", card);
+                ? await client.PostAsJsonAsync("api/Cardholder", card)
+                : await client.PutAsJsonAsync($"api/Cardholder/{card.CardNumber}", card);
 
             if (response.IsSuccessStatusCode)
             {

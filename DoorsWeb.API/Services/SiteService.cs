@@ -18,7 +18,7 @@ namespace DoorsWeb.API.Services
 
         public async Task<List<SiteDto>> GetAll()
         {
-            return await _context.TSites
+            return await _context.Sites
                 .AsNoTracking()
                 .OrderBy(s => s.Site)
                 .Select(s => new SiteDto { Site = s.Site, Name = s.Name })
@@ -34,12 +34,12 @@ namespace DoorsWeb.API.Services
                 name = name.Substring(0, NameMaxLength);
 
             // T_Sites.Site is ValueGeneratedNever, so assign the next id ourselves.
-            var nextId = await _context.TSites.AnyAsync()
-                ? await _context.TSites.MaxAsync(s => s.Site) + 1
+            var nextId = await _context.Sites.AnyAsync()
+                ? await _context.Sites.MaxAsync(s => s.Site) + 1
                 : 1;
 
-            var entity = new TSites { Site = nextId, Name = name, Inuse = true };
-            _context.TSites.Add(entity);
+            var entity = new Sites { Site = nextId, Name = name, Inuse = true };
+            _context.Sites.Add(entity);
             await _context.SaveChangesAsync();
 
             return new SiteDto { Site = entity.Site, Name = entity.Name };
@@ -53,7 +53,7 @@ namespace DoorsWeb.API.Services
             if (name.Length > NameMaxLength)
                 name = name.Substring(0, NameMaxLength);
 
-            var entity = await _context.TSites.FindAsync(site);
+            var entity = await _context.Sites.FindAsync(site);
             if (entity is null) return null;
 
             entity.Name = name;
@@ -64,14 +64,14 @@ namespace DoorsWeb.API.Services
 
         public async Task<bool> Delete(int site)
         {
-            var entity = await _context.TSites.FindAsync(site);
+            var entity = await _context.Sites.FindAsync(site);
             if (entity is null) return false;
 
             // At least one site must always exist, so the last one can't be removed.
-            if (await _context.TSites.CountAsync() <= 1)
+            if (await _context.Sites.CountAsync() <= 1)
                 throw new InvalidOperationException("Cannot delete the last remaining site. At least one site must exist.");
 
-            _context.TSites.Remove(entity);
+            _context.Sites.Remove(entity);
             await _context.SaveChangesAsync();
             return true;
         }

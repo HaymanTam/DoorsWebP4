@@ -4,10 +4,10 @@ namespace DoorsWeb.API.Services.Interfaces
 {
     public interface IIocontrollerHeaderService
     {
-        Task<List<TIocontrollerHeader>> GetAll();
-        Task<TIocontrollerHeader?> GetById(int id);
-        Task<List<TIocontrollerHeader>> Create(TIocontrollerHeader entity);
-        Task<List<TIocontrollerHeader>?> Update(int id, TIocontrollerHeader entity);
-        Task<List<TIocontrollerHeader>?> Delete(int id);
+        Task<List<IoController>> GetAll();
+        Task<IoController?> GetById(int id);
+        Task<List<IoController>> Create(IoController entity);
+        Task<List<IoController>?> Update(int id, IoController entity);
+        Task<List<IoController>?> Delete(int id);
     }
 }

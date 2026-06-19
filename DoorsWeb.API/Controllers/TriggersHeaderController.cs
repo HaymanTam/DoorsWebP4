@@ -17,13 +17,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TTriggersHeader>>> GetAll()
+        public async Task<ActionResult<List<Trigger>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TTriggersHeader>> GetById(int id)
+        public async Task<ActionResult<Trigger>> GetById(int id)
         {
             var result = await _service.GetById(id);
             if (result is null)
@@ -41,19 +41,19 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TTriggersHeader>>> Create(TTriggersHeader entity)
+        public async Task<ActionResult<List<Trigger>>> Create(Trigger entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPost("save")]
-        public async Task<ActionResult<TTriggersHeader>> Save(TriggerSaveDto dto)
+        public async Task<ActionResult<Trigger>> Save(TriggerSaveDto dto)
         {
             return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<TTriggersHeader>?>> Update(int id, TTriggersHeader entity)
+        public async Task<ActionResult<List<Trigger>?>> Update(int id, Trigger entity)
         {
             var result = await _service.Update(id, entity);
             if (result is null)
@@ -64,7 +64,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<List<TTriggersHeader>?>> Delete(int id)
+        public async Task<ActionResult<List<Trigger>?>> Delete(int id)
         {
             var result = await _service.Delete(id);
             if (result is null)

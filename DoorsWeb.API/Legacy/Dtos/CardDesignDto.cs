@@ -10,15 +10,15 @@ namespace DoorsWeb.API.Legacy.Dtos
     // The legacy client treats designs with Code < 3 as the protected/built-in
     // designs (shown with a locked icon).
     //
-    // Scaffolded entity: TCardDesignHeader (Code, Description, Orientation).
+    // Scaffolded entity: CardDesign (Code, Description, Orientation).
 
     /// <summary>One card design.</summary>
     public class CardDesignDto
     {
-        /// <summary>Card-design code. Source: Record/@Code (TCardDesignHeader.Code).</summary>
+        /// <summary>Card-design code. Source: Record/@Code (CardDesign.Code).</summary>
         public int Code { get; set; }
 
-        /// <summary>Card-design description. Source: Record/@Description (TCardDesignHeader.Description).</summary>
+        /// <summary>Card-design description. Source: Record/@Description (CardDesign.Description).</summary>
         public string? Description { get; set; }
 
         /// <summary>True for the built-in, protected designs (legacy rule: Code &lt; 3).</summary>

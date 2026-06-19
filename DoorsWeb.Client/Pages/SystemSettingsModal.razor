@@ -1,8 +1,7 @@
 @* System Settings dialog. Shown via ModalService.ShowAsync("System Settings", ...).
-   Manages sites (list / add / remove via the API's SitesController) and the global
-   connector polling settings (SystemSettingsController, stored as application settings).
-   OK saves the connector settings and closes; Cancel closes. Site add/remove persist
-   immediately (each is its own API call), so they are unaffected by Cancel. *@
+   Manages sites (list / add / rename / remove via the API's SitesController).
+   Site changes persist immediately (each is its own API call), so OK and Cancel
+   both simply close the dialog. *@
 
 @using DoorsWeb.Shared.DTO
 @inject IHttpClientFactory ClientFactory
@@ -94,51 +93,6 @@
     </CardBody>
 </Card>
 
-<Card Size="CardSize.Default">
-    <CardBody>
-        <CardTitle>Connector Settings</CardTitle>
-
-        <div class="mb-2 row align-items-center">
-            <div class="col-6 text-end">
-                <label class="form-label mb-0">Ping Controllers every</label>
-            </div>
-            <div class="col-3">
-                <input type="number" class="form-control" style="width: 5rem;" min="1" max="3600"
-                       @bind="settings.PingControllersSeconds" disabled="@busy" />
-            </div>
-            <div class="col-3">
-                <span class="form-label mb-0">seconds</span>
-            </div>
-        </div>
-
-        <div class="mb-2 row align-items-center">
-            <div class="col-6 text-end">
-                <label class="form-label mb-0">Check for commands every</label>
-            </div>
-            <div class="col-3">
-                <input type="number" class="form-control" style="width: 5rem;" min="1" max="3600"
-                       @bind="settings.CheckCommandsSeconds" disabled="@busy" />
-            </div>
-            <div class="col-3">
-                <span class="form-label mb-0">seconds</span>
-            </div>
-        </div>
-
-        <div class="mb-1 row align-items-center">
-            <div class="col-6 text-end">
-                <label class="form-label mb-0">Force a ping after</label>
-            </div>
-            <div class="col-3">
-                <input type="number" class="form-control" style="width: 5rem;" min="1" max="100000"
-                       @bind="settings.ForcePingAfterCommands" disabled="@busy" />
-            </div>
-            <div class="col-3">
-                <span class="form-label mb-0">commands</span>
-            </div>
-        </div>
-    </CardBody>
-</Card>
-
 @if (status is not null)
 {
     <div class="alert @(statusOk ? "alert-success" : "alert-danger") mb-0 mt-3" role="alert">
@@ -167,8 +121,6 @@
     private int? editingSite;
     private string? editName;
 
-    private ConnectorSettingsDto settings = new();
-
     private bool busy;
     private string? status;
     private bool statusOk;
@@ -177,7 +129,6 @@
     {
         client = ClientFactory.CreateClient("WebAPI");
         await LoadSites();
-        await LoadSettings();
     }
 
     private async Task LoadSites()
@@ -190,19 +141,6 @@
         {
             sites = new();
             SetStatus(false, $"Could not load sites: {ex.Message}");
-        }
-    }
-
-    private async Task LoadSettings()
-    {
-        try
-        {
-            settings = await client.GetFromJsonAsync<ConnectorSettingsDto>("api/SystemSettings/connector") ?? new();
-        }
-        catch (Exception ex)
-        {
-            settings = new();
-            SetStatus(false, $"Could not load connector settings: {ex.Message}");
         }
     }
 
@@ -321,31 +259,8 @@
         }
     }
 
-    private async Task Save()
-    {
-        busy = true;
-        status = null;
-        try
-        {
-            var response = await client.PutAsJsonAsync("api/SystemSettings/connector", settings);
-            if (response.IsSuccessStatusCode)
-            {
-                ModalService.Close(ModalResult.Ok());
-            }
-            else
-            {
-                SetStatus(false, await ReadError(response));
-            }
-        }
-        catch (Exception ex)
-        {
-            SetStatus(false, $"Save failed: {ex.Message}");
-        }
-        finally
-        {
-            busy = false;
-        }
-    }
+    // Sites persist immediately as they are edited, so OK has nothing to save - just close.
+    private void Save() => ModalService.Close(ModalResult.Ok());
 
     private void Cancel()
     {

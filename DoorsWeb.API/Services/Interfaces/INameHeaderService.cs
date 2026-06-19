@@ -5,14 +5,14 @@ namespace DoorsWeb.API.Services.Interfaces
 {
     public interface INameHeaderService
     {
-        Task<List<TNameHeader>> GetAll();
+        Task<List<Cardholder>> GetAll();
 
         /// <summary>Streams every card with the names of the access levels it is tied to,
         /// so the client can paint the first rows immediately and load the rest in the background.</summary>
         IAsyncEnumerable<CardDto> GetAllCards();
-        Task<TNameHeader?> GetById(int id);
-        Task<List<TNameHeader>> Create(TNameHeader entity);
-        Task<List<TNameHeader>?> Update(int id, TNameHeader entity);
-        Task<List<TNameHeader>?> Delete(int id);
+        Task<Cardholder?> GetById(int id);
+        Task<List<Cardholder>> Create(Cardholder entity);
+        Task<List<Cardholder>?> Update(int id, Cardholder entity);
+        Task<List<Cardholder>?> Delete(int id);
     }
 }

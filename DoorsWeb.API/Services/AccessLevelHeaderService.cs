@@ -12,50 +12,50 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<TAccessLevelHeader>> GetAll()
+        public async Task<List<AccessLevels>> GetAll()
         {
-            return await _context.TAccessLevelHeader.AsNoTracking().ToListAsync();
+            return await _context.AccessLevels.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TAccessLevelHeader?> GetById(int site, int accessLevel)
+        public async Task<AccessLevels?> GetById(int site, int accessLevel)
         {
             // EF composite key order is { AccessLevel, Site } — keep FindAsync args in that order.
-            return await _context.TAccessLevelHeader.FindAsync(accessLevel, site);
+            return await _context.AccessLevels.FindAsync(accessLevel, site);
         }
 
-        public async Task<List<TAccessLevelHeader>> Create(TAccessLevelHeader entity)
+        public async Task<List<AccessLevels>> Create(AccessLevels entity)
         {
-            _context.TAccessLevelHeader.Add(entity);
+            _context.AccessLevels.Add(entity);
             await _context.SaveChangesAsync();
-            return await _context.TAccessLevelHeader.AsNoTracking().ToListAsync();
+            return await _context.AccessLevels.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TAccessLevelHeader>?> Update(int site, int accessLevel, TAccessLevelHeader entity)
+        public async Task<List<AccessLevels>?> Update(int site, int accessLevel, AccessLevels entity)
         {
-            var result = await _context.TAccessLevelHeader.FindAsync(accessLevel, site);
+            var result = await _context.AccessLevels.FindAsync(accessLevel, site);
             if (result is null) return null;
             entity.AccessLevel = accessLevel; // keep route and body key aligned
             entity.Site = site;
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
-            return await _context.TAccessLevelHeader.AsNoTracking().ToListAsync();
+            return await _context.AccessLevels.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TAccessLevelHeader>?> Delete(int site, int accessLevel)
+        public async Task<List<AccessLevels>?> Delete(int site, int accessLevel)
         {
-            var result = await _context.TAccessLevelHeader.FindAsync(accessLevel, site);
+            var result = await _context.AccessLevels.FindAsync(accessLevel, site);
             if (result is null) return null;
 
-            var details = await _context.TAccessLevelDetails.Where(d => d.Level == accessLevel).ToListAsync();
-            _context.TAccessLevelDetails.RemoveRange(details);
-            _context.TAccessLevelHeader.Remove(result);
+            var details = await _context.AccessLevelDoor.Where(d => d.Level == accessLevel).ToListAsync();
+            _context.AccessLevelDoor.RemoveRange(details);
+            _context.AccessLevels.Remove(result);
             await _context.SaveChangesAsync();
-            return await _context.TAccessLevelHeader.AsNoTracking().ToListAsync();
+            return await _context.AccessLevels.AsNoTracking().ToListAsync();
         }
 
         public async Task<AccessLevelSaveDto> GetForEdit(int site, int? accessLevel)
         {
-            var doors = await _context.TDoors.AsNoTracking()
+            var doors = await _context.Doors.AsNoTracking()
                 .Where(d => d.Site == site)
                 .OrderBy(d => d.Name)
                 .Select(d => new { d.Door, d.Name })
@@ -63,10 +63,10 @@ namespace DoorsWeb.API.Services
 
             var dto = new AccessLevelSaveDto { Site = site };
 
-            var selected = new Dictionary<int, TAccessLevelDetails>();
+            var selected = new Dictionary<int, AccessLevelDoor>();
             if (accessLevel is int lvl)
             {
-                var header = await _context.TAccessLevelHeader.AsNoTracking()
+                var header = await _context.AccessLevels.AsNoTracking()
                     .FirstOrDefaultAsync(a => a.AccessLevel == lvl && a.Site == site);
                 if (header is not null)
                 {
@@ -74,7 +74,7 @@ namespace DoorsWeb.API.Services
                     dto.Name = header.Name;
                     dto.TimeZone = header.TimeZone;
                 }
-                selected = await _context.TAccessLevelDetails.AsNoTracking()
+                selected = await _context.AccessLevelDoor.AsNoTracking()
                     .Where(d => d.Level == lvl)
                     .ToDictionaryAsync(d => d.Door);
             }
@@ -95,11 +95,11 @@ namespace DoorsWeb.API.Services
             return dto;
         }
 
-        public async Task<TAccessLevelHeader> Save(AccessLevelSaveDto dto)
+        public async Task<AccessLevels> Save(AccessLevelSaveDto dto)
         {
-            TAccessLevelHeader header;
+            AccessLevels header;
             int level;
-            if (dto.AccessLevel is int al && await _context.TAccessLevelHeader.FindAsync(al, dto.Site) is { } existing)
+            if (dto.AccessLevel is int al && await _context.AccessLevels.FindAsync(al, dto.Site) is { } existing)
             {
                 existing.Name = dto.Name;
                 existing.TimeZone = dto.TimeZone;
@@ -107,15 +107,15 @@ namespace DoorsWeb.API.Services
                 level = al;
 
                 // Replace the door set: drop the old rows, then re-insert below.
-                var old = await _context.TAccessLevelDetails.Where(d => d.Level == al).ToListAsync();
-                _context.TAccessLevelDetails.RemoveRange(old);
+                var old = await _context.AccessLevelDoor.Where(d => d.Level == al).ToListAsync();
+                _context.AccessLevelDoor.RemoveRange(old);
                 await _context.SaveChangesAsync();
             }
             else
             {
                 // Details key on Level alone, so the number must be globally unique.
                 level = await NextAccessLevel();
-                header = new TAccessLevelHeader
+                header = new AccessLevels
                 {
                     AccessLevel = level,
                     Site = dto.Site,
@@ -123,13 +123,13 @@ namespace DoorsWeb.API.Services
                     TimeZone = dto.TimeZone,
                     LocalLevel = await NextLocalLevel(dto.Site),
                 };
-                _context.TAccessLevelHeader.Add(header);
+                _context.AccessLevels.Add(header);
                 await _context.SaveChangesAsync();
             }
 
             foreach (var d in dto.Doors.Where(x => x.Selected))
             {
-                _context.TAccessLevelDetails.Add(new TAccessLevelDetails
+                _context.AccessLevelDoor.Add(new AccessLevelDoor
                 {
                     Level = level,
                     Door = d.Door,
@@ -144,14 +144,14 @@ namespace DoorsWeb.API.Services
         // Globally unique level number (details key on Level without Site).
         private async Task<int> NextAccessLevel()
         {
-            var max = await _context.TAccessLevelHeader.Select(a => (int?)a.AccessLevel).MaxAsync();
+            var max = await _context.AccessLevels.Select(a => (int?)a.AccessLevel).MaxAsync();
             return (max ?? 0) + 1;
         }
 
         // Per-site 1-based display index the legacy client shows.
         private async Task<int> NextLocalLevel(int site)
         {
-            var max = await _context.TAccessLevelHeader.Where(a => a.Site == site).Select(a => a.LocalLevel).MaxAsync();
+            var max = await _context.AccessLevels.Where(a => a.Site == site).Select(a => a.LocalLevel).MaxAsync();
             return (max ?? 0) + 1;
         }
     }

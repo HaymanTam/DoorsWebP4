@@ -17,13 +17,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TApbzoneHeader>>> GetAll()
+        public async Task<ActionResult<List<ApbZone>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TApbzoneHeader>> GetById(int id)
+        public async Task<ActionResult<ApbZone>> GetById(int id)
         {
             var result = await _service.GetById(id);
             if (result is null)
@@ -41,19 +41,19 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TApbzoneHeader>>> Create(TApbzoneHeader entity)
+        public async Task<ActionResult<List<ApbZone>>> Create(ApbZone entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPost("save")]
-        public async Task<ActionResult<TApbzoneHeader>> Save(ApbZoneSaveDto dto)
+        public async Task<ActionResult<ApbZone>> Save(ApbZoneSaveDto dto)
         {
             return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<TApbzoneHeader>?>> Update(int id, TApbzoneHeader entity)
+        public async Task<ActionResult<List<ApbZone>?>> Update(int id, ApbZone entity)
         {
             var result = await _service.Update(id, entity);
             if (result is null)
@@ -64,7 +64,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<List<TApbzoneHeader>?>> Delete(int id)
+        public async Task<ActionResult<List<ApbZone>?>> Delete(int id)
         {
             var result = await _service.Delete(id);
             if (result is null)

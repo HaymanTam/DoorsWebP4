@@ -9,21 +9,21 @@ namespace DoorsWeb.API.Legacy.Dtos
     //     </Zones>
     //   </Site>
     //
-    // Scaffolded entities: TTimeZoneHeader (TimeZone, Site, Name, ...), TSites.
+    // Scaffolded entities: TimeZones (TimeZone, Site, Name, ...), Sites.
 
     /// <summary>One time zone joined to its owning site.</summary>
     public class TimeZoneDto
     {
-        /// <summary>Time-zone code. Source: Zone/@Code (TTimeZoneHeader.TimeZone).</summary>
+        /// <summary>Time-zone code. Source: Zone/@Code (TimeZones.TimeZone).</summary>
         public int Code { get; set; }
 
-        /// <summary>Time-zone name. Source: Zone/@Name (TTimeZoneHeader.Name).</summary>
+        /// <summary>Time-zone name. Source: Zone/@Name (TimeZones.Name).</summary>
         public string? Name { get; set; }
 
-        /// <summary>Owning site code. Source: Site/@Code (TSites.Site).</summary>
+        /// <summary>Owning site code. Source: Site/@Code (Sites.Site).</summary>
         public int SiteCode { get; set; }
 
-        /// <summary>Owning site name. Source: Site/@Name (TSites.Name).</summary>
+        /// <summary>Owning site name. Source: Site/@Name (Sites.Name).</summary>
         public string? SiteName { get; set; }
     }
 }

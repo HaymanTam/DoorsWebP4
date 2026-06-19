@@ -7,15 +7,15 @@ namespace DoorsWeb.API.Legacy.Dtos
     //     <Record Code="..." Name="..." />
     //   </Records></XMLData>
     //
-    // Scaffolded entity: TTimeSheetHeader (Code, Name, ...).
+    // Scaffolded entity: TimeSheet (Code, Name, ...).
 
     /// <summary>One time-sheet definition.</summary>
     public class TimeSheetDto
     {
-        /// <summary>Time-sheet code. Source: Record/@Code (TTimeSheetHeader.Code).</summary>
+        /// <summary>Time-sheet code. Source: Record/@Code (TimeSheet.Code).</summary>
         public int Code { get; set; }
 
-        /// <summary>Time-sheet name. Source: Record/@Name (TTimeSheetHeader.Name).</summary>
+        /// <summary>Time-sheet name. Source: Record/@Name (TimeSheet.Name).</summary>
         public string? Name { get; set; }
     }
 }

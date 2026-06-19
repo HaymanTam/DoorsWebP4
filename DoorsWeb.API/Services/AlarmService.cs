@@ -14,7 +14,7 @@ namespace DoorsWeb.API.Services
 
         public async Task<List<AlarmListDto>> GetAll()
         {
-            return await _context.TAlarms
+            return await _context.Alarms
                 .AsNoTracking()
                 .OrderByDescending(a => a.AlarmDate)
                 .Select(a => new AlarmListDto

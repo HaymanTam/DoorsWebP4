@@ -11,40 +11,40 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<TTimeSheetHeader>> GetAll()
+        public async Task<List<TimeSheet>> GetAll()
         {
-            return await _context.TTimeSheetHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeSheet.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TTimeSheetHeader?> GetById(int id)
+        public async Task<TimeSheet?> GetById(int id)
         {
-            return await _context.TTimeSheetHeader.FindAsync(id);
+            return await _context.TimeSheet.FindAsync(id);
         }
 
-        public async Task<List<TTimeSheetHeader>> Create(TTimeSheetHeader entity)
+        public async Task<List<TimeSheet>> Create(TimeSheet entity)
         {
-            _context.TTimeSheetHeader.Add(entity);
+            _context.TimeSheet.Add(entity);
             await _context.SaveChangesAsync();
-            return await _context.TTimeSheetHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeSheet.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TTimeSheetHeader>?> Update(int id, TTimeSheetHeader entity)
+        public async Task<List<TimeSheet>?> Update(int id, TimeSheet entity)
         {
-            var result = await _context.TTimeSheetHeader.FindAsync(id);
+            var result = await _context.TimeSheet.FindAsync(id);
             if (result is null) return null;
             entity.Code = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
-            return await _context.TTimeSheetHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeSheet.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TTimeSheetHeader>?> Delete(int id)
+        public async Task<List<TimeSheet>?> Delete(int id)
         {
-            var result = await _context.TTimeSheetHeader.FindAsync(id);
+            var result = await _context.TimeSheet.FindAsync(id);
             if (result is null) return null;
-            _context.TTimeSheetHeader.Remove(result);
+            _context.TimeSheet.Remove(result);
             await _context.SaveChangesAsync();
-            return await _context.TTimeSheetHeader.AsNoTracking().ToListAsync();
+            return await _context.TimeSheet.AsNoTracking().ToListAsync();
         }
     }
 }

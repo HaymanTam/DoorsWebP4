@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace DoorsWeb.Shared.DTO
@@ -11,6 +12,9 @@ namespace DoorsWeb.Shared.DTO
         public string? Surname { get; set; }                // Last name
         public string? Forname { get; set; }                // First name
         public bool? Enabled { get; set; }                  // card enabled flag
+        public bool? Void { get; set; }                     // card voided flag
+        public DateTime? ValidFrom { get; set; }            // start of card validity
+        public DateTime? ValidTo { get; set; }              // end of card validity
 
         // Names of the access levels this card is tied to (joined through T_Name_AccessLevels).
         public List<string> AccessLevels { get; set; } = new();

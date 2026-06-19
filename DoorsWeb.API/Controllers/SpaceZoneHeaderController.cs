@@ -17,13 +17,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TSpaceZoneHeader>>> GetAll()
+        public async Task<ActionResult<List<SpaceZone>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TSpaceZoneHeader>> GetById(int id)
+        public async Task<ActionResult<SpaceZone>> GetById(int id)
         {
             var result = await _service.GetById(id);
             if (result is null)
@@ -41,19 +41,19 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TSpaceZoneHeader>>> Create(TSpaceZoneHeader entity)
+        public async Task<ActionResult<List<SpaceZone>>> Create(SpaceZone entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPost("save")]
-        public async Task<ActionResult<TSpaceZoneHeader>> Save(SpaceZoneSaveDto dto)
+        public async Task<ActionResult<SpaceZone>> Save(SpaceZoneSaveDto dto)
         {
             return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<TSpaceZoneHeader>?>> Update(int id, TSpaceZoneHeader entity)
+        public async Task<ActionResult<List<SpaceZone>?>> Update(int id, SpaceZone entity)
         {
             var result = await _service.Update(id, entity);
             if (result is null)
@@ -64,7 +64,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<List<TSpaceZoneHeader>?>> Delete(int id)
+        public async Task<ActionResult<List<SpaceZone>?>> Delete(int id)
         {
             var result = await _service.Delete(id);
             if (result is null)

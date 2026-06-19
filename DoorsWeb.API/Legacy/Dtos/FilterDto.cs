@@ -11,19 +11,19 @@ namespace DoorsWeb.API.Legacy.Dtos
     //   0 = All, 1 = Standard (built-in, protected; description is translated),
     //   2 = My, 3 = Public.
     //
-    // Scaffolded entity: TCardManagerHeader (Code, Description, ViewType, ...).
+    // Scaffolded entity: CardManager (Code, Description, ViewType, ...).
 
     /// <summary>One Card Manager filter (saved view).</summary>
     public class FilterDto
     {
-        /// <summary>Filter code. Source: Filter/@Code (TCardManagerHeader.Code).</summary>
+        /// <summary>Filter code. Source: Filter/@Code (CardManager.Code).</summary>
         public int Code { get; set; }
 
-        /// <summary>Filter description. Source: Filter/@Description (TCardManagerHeader.Description).</summary>
+        /// <summary>Filter description. Source: Filter/@Description (CardManager.Description).</summary>
         public string? Description { get; set; }
 
         /// <summary>
-        /// View type. Source: Filter/@ViewType (TCardManagerHeader.ViewType).
+        /// View type. Source: Filter/@ViewType (CardManager.ViewType).
         /// 1 = Standard (built-in), 2 = My, 3 = Public.
         /// </summary>
         public int ViewType { get; set; }

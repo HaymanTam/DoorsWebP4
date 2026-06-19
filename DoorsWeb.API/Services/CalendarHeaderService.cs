@@ -12,51 +12,51 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<TCalendarHeader>> GetAll()
+        public async Task<List<Calendar>> GetAll()
         {
-            return await _context.TCalendarHeader.AsNoTracking().ToListAsync();
+            return await _context.Calendar.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TCalendarHeader?> GetById(int id)
+        public async Task<Calendar?> GetById(int id)
         {
-            return await _context.TCalendarHeader.FindAsync(id);
+            return await _context.Calendar.FindAsync(id);
         }
 
-        public async Task<List<TCalendarHeader>> Create(TCalendarHeader entity)
+        public async Task<List<Calendar>> Create(Calendar entity)
         {
-            _context.TCalendarHeader.Add(entity);
+            _context.Calendar.Add(entity);
             await _context.SaveChangesAsync();
-            return await _context.TCalendarHeader.AsNoTracking().ToListAsync();
+            return await _context.Calendar.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TCalendarHeader>?> Update(int id, TCalendarHeader entity)
+        public async Task<List<Calendar>?> Update(int id, Calendar entity)
         {
-            var result = await _context.TCalendarHeader.FindAsync(id);
+            var result = await _context.Calendar.FindAsync(id);
             if (result is null) return null;
             entity.Code = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
-            return await _context.TCalendarHeader.AsNoTracking().ToListAsync();
+            return await _context.Calendar.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TCalendarHeader>?> Delete(int id)
+        public async Task<List<Calendar>?> Delete(int id)
         {
-            var result = await _context.TCalendarHeader.FindAsync(id);
+            var result = await _context.Calendar.FindAsync(id);
             if (result is null) return null;
 
-            var details = await _context.TCalendarDetails.Where(d => d.Code == id).ToListAsync();
-            _context.TCalendarDetails.RemoveRange(details);
-            _context.TCalendarHeader.Remove(result);
+            var details = await _context.CalendarException.Where(d => d.Code == id).ToListAsync();
+            _context.CalendarException.RemoveRange(details);
+            _context.Calendar.Remove(result);
             await _context.SaveChangesAsync();
-            return await _context.TCalendarHeader.AsNoTracking().ToListAsync();
+            return await _context.Calendar.AsNoTracking().ToListAsync();
         }
 
         public async Task<CalendarSaveDto?> GetWithHolidays(int id)
         {
-            var header = await _context.TCalendarHeader.AsNoTracking().FirstOrDefaultAsync(c => c.Code == id);
+            var header = await _context.Calendar.AsNoTracking().FirstOrDefaultAsync(c => c.Code == id);
             if (header is null) return null;
 
-            var holidays = await _context.TCalendarDetails.AsNoTracking()
+            var holidays = await _context.CalendarException.AsNoTracking()
                 .Where(d => d.Code == id)
                 .Select(d => d.ExceptionDate)
                 .ToListAsync();
@@ -70,34 +70,34 @@ namespace DoorsWeb.API.Services
             };
         }
 
-        public async Task<TCalendarHeader> Save(CalendarSaveDto dto)
+        public async Task<Calendar> Save(CalendarSaveDto dto)
         {
-            TCalendarHeader header;
-            if (dto.Code is int code && await _context.TCalendarHeader.FindAsync(code) is { } existing)
+            Calendar header;
+            if (dto.Code is int code && await _context.Calendar.FindAsync(code) is { } existing)
             {
                 existing.Description = dto.Description;
                 header = existing;
 
                 // Replace the holiday set: drop the old rows, then re-insert below.
-                var old = await _context.TCalendarDetails.Where(d => d.Code == code).ToListAsync();
-                _context.TCalendarDetails.RemoveRange(old);
+                var old = await _context.CalendarException.Where(d => d.Code == code).ToListAsync();
+                _context.CalendarException.RemoveRange(old);
                 await _context.SaveChangesAsync();
             }
             else
             {
-                header = new TCalendarHeader
+                header = new Calendar
                 {
                     Site = dto.Site,
                     Description = dto.Description,
                     LocalNumber = await NextLocalNumber(dto.Site),
                 };
-                _context.TCalendarHeader.Add(header);
+                _context.Calendar.Add(header);
                 await _context.SaveChangesAsync(); // assigns the identity Code
             }
 
             foreach (var date in dto.Holidays.Select(d => d.Date).Distinct())
             {
-                _context.TCalendarDetails.Add(new TCalendarDetails { Code = header.Code, ExceptionDate = date });
+                _context.CalendarException.Add(new CalendarException { Code = header.Code, ExceptionDate = date });
             }
             await _context.SaveChangesAsync();
             return header;
@@ -106,7 +106,7 @@ namespace DoorsWeb.API.Services
         // Per-site 1-based index legacy callers expect alongside the global identity Code.
         private async Task<int> NextLocalNumber(int site)
         {
-            var max = await _context.TCalendarHeader
+            var max = await _context.Calendar
                 .Where(c => c.Site == site)
                 .Select(c => (int?)c.LocalNumber)
                 .MaxAsync();

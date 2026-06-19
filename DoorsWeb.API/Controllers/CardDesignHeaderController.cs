@@ -16,13 +16,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TCardDesignHeader>>> GetAll()
+        public async Task<ActionResult<List<CardDesign>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TCardDesignHeader>> GetById(int id)
+        public async Task<ActionResult<CardDesign>> GetById(int id)
         {
             var result = await _service.GetById(id);
             if (result is null)
@@ -33,13 +33,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TCardDesignHeader>>> Create(TCardDesignHeader entity)
+        public async Task<ActionResult<List<CardDesign>>> Create(CardDesign entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<TCardDesignHeader>?>> Update(int id, TCardDesignHeader entity)
+        public async Task<ActionResult<List<CardDesign>?>> Update(int id, CardDesign entity)
         {
             var result = await _service.Update(id, entity);
             if (result is null)
@@ -50,7 +50,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<List<TCardDesignHeader>?>> Delete(int id)
+        public async Task<ActionResult<List<CardDesign>?>> Delete(int id)
         {
             var result = await _service.Delete(id);
             if (result is null)

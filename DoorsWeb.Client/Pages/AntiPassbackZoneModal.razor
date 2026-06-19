@@ -258,7 +258,7 @@
     // The door whose behaviour popup is currently open (null = closed).
     private DoorRow? editing;
 
-    // Role / reader encodings shared with TApbzoneDetails (see DoorRow).
+    // Role / reader encodings shared with ApbZoneDoor (see DoorRow).
     private const int RoleBorder = 1, RoleInternal = 2, RoleExternal = 3;
     private const int ReaderEntry = 1, ReaderExit = 2;
 
@@ -268,7 +268,7 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            var url = $"api/ApbzoneHeader/{SiteId}/doors";
+            var url = $"api/ApbZone/{SiteId}/doors";
             if (Apbnumber is int apb) url += $"?apb={apb}";
 
             var dto = await client.GetFromJsonAsync<ApbZoneSaveDto>(url);
@@ -344,7 +344,7 @@
             };
 
             var client = ClientFactory.CreateClient("WebAPI");
-            var response = await client.PostAsJsonAsync("api/ApbzoneHeader/save", dto);
+            var response = await client.PostAsJsonAsync("api/ApbZone/save", dto);
             if (response.IsSuccessStatusCode)
             {
                 ModalService.Close(ModalResult.Ok());

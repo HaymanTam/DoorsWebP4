@@ -12,48 +12,48 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<TApbzoneHeader>> GetAll()
+        public async Task<List<ApbZone>> GetAll()
         {
-            return await _context.TApbzoneHeader.AsNoTracking().ToListAsync();
+            return await _context.ApbZone.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TApbzoneHeader?> GetById(int id)
+        public async Task<ApbZone?> GetById(int id)
         {
-            return await _context.TApbzoneHeader.FindAsync(id);
+            return await _context.ApbZone.FindAsync(id);
         }
 
-        public async Task<List<TApbzoneHeader>> Create(TApbzoneHeader entity)
+        public async Task<List<ApbZone>> Create(ApbZone entity)
         {
-            _context.TApbzoneHeader.Add(entity);
+            _context.ApbZone.Add(entity);
             await _context.SaveChangesAsync();
-            return await _context.TApbzoneHeader.AsNoTracking().ToListAsync();
+            return await _context.ApbZone.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TApbzoneHeader>?> Update(int id, TApbzoneHeader entity)
+        public async Task<List<ApbZone>?> Update(int id, ApbZone entity)
         {
-            var result = await _context.TApbzoneHeader.FindAsync(id);
+            var result = await _context.ApbZone.FindAsync(id);
             if (result is null) return null;
             entity.Apbnumber = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
-            return await _context.TApbzoneHeader.AsNoTracking().ToListAsync();
+            return await _context.ApbZone.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TApbzoneHeader>?> Delete(int id)
+        public async Task<List<ApbZone>?> Delete(int id)
         {
-            var result = await _context.TApbzoneHeader.FindAsync(id);
+            var result = await _context.ApbZone.FindAsync(id);
             if (result is null) return null;
 
-            var details = await _context.TApbzoneDetails.Where(d => d.Apbnumber == id).ToListAsync();
-            _context.TApbzoneDetails.RemoveRange(details);
-            _context.TApbzoneHeader.Remove(result);
+            var details = await _context.ApbZoneDoor.Where(d => d.Apbnumber == id).ToListAsync();
+            _context.ApbZoneDoor.RemoveRange(details);
+            _context.ApbZone.Remove(result);
             await _context.SaveChangesAsync();
-            return await _context.TApbzoneHeader.AsNoTracking().ToListAsync();
+            return await _context.ApbZone.AsNoTracking().ToListAsync();
         }
 
         public async Task<ApbZoneSaveDto> GetForEdit(int site, int? apbnumber)
         {
-            var doors = await _context.TDoors.AsNoTracking()
+            var doors = await _context.Doors.AsNoTracking()
                 .Where(d => d.Site == site)
                 .OrderBy(d => d.Name)
                 .Select(d => new { d.Door, d.Name })
@@ -61,10 +61,10 @@ namespace DoorsWeb.API.Services
 
             var dto = new ApbZoneSaveDto { Site = site };
 
-            var details = new Dictionary<int, TApbzoneDetails>();
+            var details = new Dictionary<int, ApbZoneDoor>();
             if (apbnumber is int apb)
             {
-                var header = await _context.TApbzoneHeader.AsNoTracking()
+                var header = await _context.ApbZone.AsNoTracking()
                     .FirstOrDefaultAsync(a => a.Apbnumber == apb && a.Site == site);
                 if (header is not null)
                 {
@@ -79,7 +79,7 @@ namespace DoorsWeb.API.Services
                     dto.LogOutDaily = header.AutoLogOut ?? false;
                     dto.LogOutTime = header.NextAutoLogout?.ToString("HH:mm");
                 }
-                details = (await _context.TApbzoneDetails.AsNoTracking()
+                details = (await _context.ApbZoneDoor.AsNoTracking()
                     .Where(d => d.Apbnumber == apb)
                     .ToListAsync())
                     .GroupBy(d => d.DoorNumber)
@@ -105,26 +105,26 @@ namespace DoorsWeb.API.Services
             return dto;
         }
 
-        public async Task<TApbzoneHeader> Save(ApbZoneSaveDto dto)
+        public async Task<ApbZone> Save(ApbZoneSaveDto dto)
         {
-            TApbzoneHeader header;
+            ApbZone header;
             int apb;
-            if (dto.Apbnumber is int an && await _context.TApbzoneHeader.FindAsync(an) is { } existing)
+            if (dto.Apbnumber is int an && await _context.ApbZone.FindAsync(an) is { } existing)
             {
                 ApplyHeader(existing, dto);
                 header = existing;
                 apb = an;
 
-                var old = await _context.TApbzoneDetails.Where(d => d.Apbnumber == an).ToListAsync();
-                _context.TApbzoneDetails.RemoveRange(old);
+                var old = await _context.ApbZoneDoor.Where(d => d.Apbnumber == an).ToListAsync();
+                _context.ApbZoneDoor.RemoveRange(old);
                 await _context.SaveChangesAsync();
             }
             else
             {
                 apb = await NextApbnumber();
-                header = new TApbzoneHeader { Apbnumber = apb, Site = dto.Site };
+                header = new ApbZone { Apbnumber = apb, Site = dto.Site };
                 ApplyHeader(header, dto);
-                _context.TApbzoneHeader.Add(header);
+                _context.ApbZone.Add(header);
                 await _context.SaveChangesAsync();
             }
 
@@ -132,7 +132,7 @@ namespace DoorsWeb.API.Services
             // properties popup; an unconfigured but included door defaults to a Border door.
             foreach (var d in dto.Doors.Where(x => x.Included))
             {
-                _context.TApbzoneDetails.Add(new TApbzoneDetails
+                _context.ApbZoneDoor.Add(new ApbZoneDoor
                 {
                     Apbnumber = apb,
                     DoorNumber = d.Door,
@@ -147,7 +147,7 @@ namespace DoorsWeb.API.Services
             return header;
         }
 
-        private static void ApplyHeader(TApbzoneHeader header, ApbZoneSaveDto dto)
+        private static void ApplyHeader(ApbZone header, ApbZoneSaveDto dto)
         {
             header.Name = dto.Name;
             header.Apbmode = ModeValue(dto.Mode);
@@ -163,7 +163,7 @@ namespace DoorsWeb.API.Services
         // Apbnumber is the global key (details key on Apbnumber without Site).
         private async Task<int> NextApbnumber()
         {
-            var max = await _context.TApbzoneHeader.Select(a => (int?)a.Apbnumber).MaxAsync();
+            var max = await _context.ApbZone.Select(a => (int?)a.Apbnumber).MaxAsync();
             return (max ?? 0) + 1;
         }
 

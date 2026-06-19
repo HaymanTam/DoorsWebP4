@@ -17,14 +17,14 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TAccessLevelHeader>>> GetAll()
+        public async Task<ActionResult<List<AccessLevels>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         // Route key order: { Site, AccessLevel } (EF composite key is { AccessLevel, Site })
         [HttpGet("{site}/{accessLevel}")]
-        public async Task<ActionResult<TAccessLevelHeader>> GetById(int site, int accessLevel)
+        public async Task<ActionResult<AccessLevels>> GetById(int site, int accessLevel)
         {
             var result = await _service.GetById(site, accessLevel);
             if (result is null)
@@ -42,19 +42,19 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TAccessLevelHeader>>> Create(TAccessLevelHeader entity)
+        public async Task<ActionResult<List<AccessLevels>>> Create(AccessLevels entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPost("save")]
-        public async Task<ActionResult<TAccessLevelHeader>> Save(AccessLevelSaveDto dto)
+        public async Task<ActionResult<AccessLevels>> Save(AccessLevelSaveDto dto)
         {
             return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{site}/{accessLevel}")]
-        public async Task<ActionResult<List<TAccessLevelHeader>?>> Update(int site, int accessLevel, TAccessLevelHeader entity)
+        public async Task<ActionResult<List<AccessLevels>?>> Update(int site, int accessLevel, AccessLevels entity)
         {
             var result = await _service.Update(site, accessLevel, entity);
             if (result is null)
@@ -65,7 +65,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{site}/{accessLevel}")]
-        public async Task<ActionResult<List<TAccessLevelHeader>?>> Delete(int site, int accessLevel)
+        public async Task<ActionResult<List<AccessLevels>?>> Delete(int site, int accessLevel)
         {
             var result = await _service.Delete(site, accessLevel);
             if (result is null)

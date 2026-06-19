@@ -104,8 +104,15 @@
         <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
             <Icon class="icon flex-shrink-0 me-2" IconType="@TablerIcons.Alert_triangle" />
             <div>
-                Connectors are deprecated — this system is <strong>IP only</strong>.<br />
-                On import, all UDP connectors are merged into a single connector and every door is repointed to it.
+                Connectors are obsolete and no longer used — this system is <strong>IP only</strong>.<br />
+                Doors connect directly by their own IP address; any connector data in a legacy backup is irrelevant.
+            </div>
+        </div>
+        <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
+            <Icon class="icon flex-shrink-0 me-2" IconType="@TablerIcons.Alert_triangle" />
+            <div>
+                <strong>Card Design</strong> and <strong>Floor Plan</strong> are obsolete and no longer supported.<br />
+                Any such data in the backup is ignored on import and will not be restored.
             </div>
         </div>
 
@@ -163,6 +170,49 @@
             @if (legacyResult.Skipped.Count > 0)
             {
                 <p class="text-muted small mt-2 mb-0">Skipped (no matching table): @string.Join(", ", legacyResult.Skipped)</p>
+            }
+            @if (legacyResult.Findings.Count > 0)
+            {
+                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                    <div class="d-flex">
+                        <div class="me-2"><Icon class="icon" IconType="@TablerIcons.Alert_triangle" /></div>
+                        <div>
+                            <h4 class="alert-title">Data-integrity findings (review only — nothing was changed)</h4>
+                            <div class="text-secondary small">
+                                The backup loaded with foreign-key enforcement off, so these rows were imported as-is.
+                                Orphans reference a parent row that doesn't exist; blank names crash the legacy client.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-2" style="max-height: 220px; overflow-y: auto;">
+                        <table class="table table-sm table-vcenter mb-0">
+                            <thead>
+                                <tr><th>Kind</th><th>Table</th><th>Reference</th><th>Detail</th><th class="text-end">Rows</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var f in legacyResult.Findings)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (f.Kind == "orphan")
+                                            {
+                                                <span class="badge bg-red-lt">orphan</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-orange-lt">blank-name</span>
+                                            }
+                                        </td>
+                                        <td>@f.Table</td>
+                                        <td>@f.Reference</td>
+                                        <td class="text-muted small">@f.Detail</td>
+                                        <td class="text-end">@f.Count.ToString("N0")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             }
         }
     </CardBody>
@@ -412,8 +462,8 @@
         {
             MainText = $"Restore from legacy backup {legacyFile.Name}?",
             SubText = "Matching tables will be cleared and reloaded from the backup. "
-                + "Connectors are deprecated — this system is IP only, so all UDP connectors will be "
-                + "merged into a single connector and every door repointed to it. "
+                + "Connectors are obsolete and no longer used — this system is IP only, so any "
+                + "connector data in the backup is irrelevant to the new system. "
                 + "This overwrites the current data and cannot be undone!",
             IconType = TablerIcons.Alert_triangle,
             StatusColor = TablerColor.Danger

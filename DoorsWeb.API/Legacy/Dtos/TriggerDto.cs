@@ -12,27 +12,27 @@ namespace DoorsWeb.API.Legacy.Dtos
     // TriggerType matches the legacy TriggerTypeConstants enum (mdlMain.bas):
     //   0 = Unknown, 1 = Door, 2 = SIM (obsolete), 3 = SpaceZone.
     //
-    // Scaffolded entities: TTriggersHeader (Code, Site, Name, TriggerType, ...), TSites.
+    // Scaffolded entities: Trigger (Code, Site, Name, TriggerType, ...), Sites.
 
     /// <summary>One trigger joined to its owning site.</summary>
     public class TriggerDto
     {
-        /// <summary>Trigger code. Source: Trigger/@Code (TTriggersHeader.Code).</summary>
+        /// <summary>Trigger code. Source: Trigger/@Code (Trigger.Code).</summary>
         public int Code { get; set; }
 
-        /// <summary>Trigger name. Source: Trigger/@Name (TTriggersHeader.Name).</summary>
+        /// <summary>Trigger name. Source: Trigger/@Name (Trigger.Name).</summary>
         public string? Name { get; set; }
 
         /// <summary>
-        /// Trigger type. Source: Trigger/@TriggerType (TTriggersHeader.TriggerType).
+        /// Trigger type. Source: Trigger/@TriggerType (Trigger.TriggerType).
         /// 1 = Door, 3 = SpaceZone.
         /// </summary>
         public int TriggerType { get; set; }
 
-        /// <summary>Owning site code. Source: Site/@Code (TSites.Site).</summary>
+        /// <summary>Owning site code. Source: Site/@Code (Sites.Site).</summary>
         public int SiteCode { get; set; }
 
-        /// <summary>Owning site name. Source: Site/@Name (TSites.Name).</summary>
+        /// <summary>Owning site name. Source: Site/@Name (Sites.Name).</summary>
         public string? SiteName { get; set; }
     }
 }

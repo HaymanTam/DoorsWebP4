@@ -21,296 +21,296 @@ namespace DoorsWeb.Shared.Entities;
 //   * Reference navigations append "Navigation" to the FK column name when a
 //     scalar property of that name already exists (e.g. SiteNavigation for the
 //     "Site" FK column). Header/detail and other unambiguous references use a
-//     descriptive principal-type name (e.g. CalendarHeader, NameHeader).
+//     descriptive principal-type name (e.g. Calendar, Cardholder).
 //   * Collection navigations are plural and initialised to new List<>().
 // -----------------------------------------------------------------------------
 
-public partial class TSites
+public partial class Sites
 {
-    public ICollection<TConnectors> Connectors { get; set; } = new List<TConnectors>();
-    public ICollection<TDoors> Doors { get; set; } = new List<TDoors>();
-    public ICollection<TAccessLevelHeader> AccessLevelHeaders { get; set; } = new List<TAccessLevelHeader>();
-    public ICollection<TApbzoneHeader> ApbzoneHeaders { get; set; } = new List<TApbzoneHeader>();
-    public ICollection<TSpaceZoneHeader> SpaceZoneHeaders { get; set; } = new List<TSpaceZoneHeader>();
-    public ICollection<TCalendarHeader> CalendarHeaders { get; set; } = new List<TCalendarHeader>();
-    public ICollection<TTimeZoneHeader> TimeZoneHeaders { get; set; } = new List<TTimeZoneHeader>();
-    public ICollection<TAlarms> Alarms { get; set; } = new List<TAlarms>();
-    public ICollection<TFloorPlans> FloorPlans { get; set; } = new List<TFloorPlans>();
-    public ICollection<TTriggersHeader> TriggersHeaders { get; set; } = new List<TTriggersHeader>();
-    public ICollection<TCardPackDetails> CardPackDetails { get; set; } = new List<TCardPackDetails>();
-    public ICollection<TNameAccessLevels> NameAccessLevels { get; set; } = new List<TNameAccessLevels>();
-    public ICollection<TSpaceZoneDetails> SpaceZoneDetails { get; set; } = new List<TSpaceZoneDetails>();
-    public ICollection<TUserSites> UserSites { get; set; } = new List<TUserSites>();
+    public ICollection<Connectors> Connectors { get; set; } = new List<Connectors>();
+    public ICollection<Doors> Doors { get; set; } = new List<Doors>();
+    public ICollection<AccessLevels> AccessLevels { get; set; } = new List<AccessLevels>();
+    public ICollection<ApbZone> ApbZones { get; set; } = new List<ApbZone>();
+    public ICollection<SpaceZone> SpaceZones { get; set; } = new List<SpaceZone>();
+    public ICollection<Calendar> Calendars { get; set; } = new List<Calendar>();
+    public ICollection<TimeZones> TimeZones { get; set; } = new List<TimeZones>();
+    public ICollection<Alarms> Alarms { get; set; } = new List<Alarms>();
+    public ICollection<FloorPlans> FloorPlans { get; set; } = new List<FloorPlans>();
+    public ICollection<Trigger> Triggers { get; set; } = new List<Trigger>();
+    public ICollection<CardPackSite> CardPackSites { get; set; } = new List<CardPackSite>();
+    public ICollection<CardholderAccessLevel> CardholderAccessLevels { get; set; } = new List<CardholderAccessLevel>();
+    public ICollection<SpaceZoneDoor> SpaceZoneDoors { get; set; } = new List<SpaceZoneDoor>();
+    public ICollection<UserSites> UserSites { get; set; } = new List<UserSites>();
 }
 
-public partial class TDoors
+public partial class Doors
 {
-    public TSites? SiteNavigation { get; set; }
-    public TConnectors? ConnectorNavigation { get; set; }
-    public TDoorTechnology? TechnologyANavigation { get; set; }
-    public TDoorTechnology? TechnologyBNavigation { get; set; }
-    public TDoorTechnology? KeyboardTechNavigation { get; set; }
-    public TFloorPlans? FloorPlanNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
+    public Connectors? ConnectorNavigation { get; set; }
+    public DoorTechnology? TechnologyANavigation { get; set; }
+    public DoorTechnology? TechnologyBNavigation { get; set; }
+    public DoorTechnology? KeyboardTechNavigation { get; set; }
+    public FloorPlans? FloorPlanNavigation { get; set; }
 
-    public ICollection<TAccessLevelDetails> AccessLevelDetails { get; set; } = new List<TAccessLevelDetails>();
-    public ICollection<TApbzoneDetails> ApbzoneDetails { get; set; } = new List<TApbzoneDetails>();
-    public ICollection<TEvents> Events { get; set; } = new List<TEvents>();
-    public ICollection<TSpaceZoneDetails> SpaceZoneDetails { get; set; } = new List<TSpaceZoneDetails>();
+    public ICollection<AccessLevelDoor> AccessLevelDoors { get; set; } = new List<AccessLevelDoor>();
+    public ICollection<ApbZoneDoor> ApbZoneDoors { get; set; } = new List<ApbZoneDoor>();
+    public ICollection<Events> Events { get; set; } = new List<Events>();
+    public ICollection<SpaceZoneDoor> SpaceZoneDoors { get; set; } = new List<SpaceZoneDoor>();
 }
 
-public partial class TConnectors
+public partial class Connectors
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 
-    public ICollection<TDoors> Doors { get; set; } = new List<TDoors>();
-    public ICollection<TIocontrollerHeader> IocontrollerHeaders { get; set; } = new List<TIocontrollerHeader>();
-    public ICollection<TCommands> Commands { get; set; } = new List<TCommands>();
+    public ICollection<Doors> Doors { get; set; } = new List<Doors>();
+    public ICollection<IoController> IoControllers { get; set; } = new List<IoController>();
+    public ICollection<Commands> Commands { get; set; } = new List<Commands>();
 }
 
-public partial class TIocontrollerHeader
+public partial class IoController
 {
-    public TConnectors? ConnectorNavigation { get; set; }
+    public Connectors? ConnectorNavigation { get; set; }
 
-    public ICollection<TIocontrollerDetails> IocontrollerDetails { get; set; } = new List<TIocontrollerDetails>();
+    public ICollection<IoControllerInput> IoControllerInputs { get; set; } = new List<IoControllerInput>();
 }
 
-public partial class TIocontrollerDetails
+public partial class IoControllerInput
 {
-    public TIocontrollerHeader? IocontrollerHeader { get; set; }
-    public TFloorPlans? FloorPlanNavigation { get; set; }
+    public IoController? IoController { get; set; }
+    public FloorPlans? FloorPlanNavigation { get; set; }
 }
 
-public partial class TNameHeader
+public partial class Cardholder
 {
-    public TDoors? LastDoorNavigation { get; set; }
-    public TEventTypes? LastEventNavigation { get; set; }
-    public TApbzoneHeader? ApbzoneNavigation { get; set; }
-    public TCardDesignHeader? CardDesignNavigation { get; set; }
-    public TNameCustomFields? CustomFields { get; set; }
+    public Doors? LastDoorNavigation { get; set; }
+    public EventTypes? LastEventNavigation { get; set; }
+    public ApbZone? ApbzoneNavigation { get; set; }
+    public CardDesign? CardDesignNavigation { get; set; }
+    public CardholderCustomFields? CustomFields { get; set; }
 
-    public ICollection<TNameAccessLevels> NameAccessLevels { get; set; } = new List<TNameAccessLevels>();
-    public ICollection<TEvents> Events { get; set; } = new List<TEvents>();
-    public ICollection<TSpaceZoneAttendance> SpaceZoneAttendances { get; set; } = new List<TSpaceZoneAttendance>();
-    public ICollection<TSpaceZoneCardholders> SpaceZoneCardholders { get; set; } = new List<TSpaceZoneCardholders>();
+    public ICollection<CardholderAccessLevel> CardholderAccessLevels { get; set; } = new List<CardholderAccessLevel>();
+    public ICollection<Events> Events { get; set; } = new List<Events>();
+    public ICollection<SpaceZoneAttendance> SpaceZoneAttendances { get; set; } = new List<SpaceZoneAttendance>();
+    public ICollection<SpaceZoneCardholder> SpaceZoneCardholders { get; set; } = new List<SpaceZoneCardholder>();
 }
 
-public partial class TNameCustomFields
+public partial class CardholderCustomFields
 {
-    public TNameHeader? NameHeader { get; set; }
+    public Cardholder? Cardholder { get; set; }
 }
 
-public partial class TNameAccessLevels
+public partial class CardholderAccessLevel
 {
-    public TSites? SiteNavigation { get; set; }
-    public TNameHeader? NameHeader { get; set; }
-    public TAccessLevelHeader? AccessLevelHeader { get; set; }
+    public Sites? SiteNavigation { get; set; }
+    public Cardholder? Cardholder { get; set; }
+    public AccessLevels? AccessLevel { get; set; }
 }
 
-public partial class TEvents
+public partial class Events
 {
-    public TDoors? DoorNavigation { get; set; }
-    public TNameHeader? CardNumberNavigation { get; set; }
-    public TEventTypes? EventTypeNavigation { get; set; }
+    public Doors? DoorNavigation { get; set; }
+    public Cardholder? CardNumberNavigation { get; set; }
+    public EventTypes? EventTypeNavigation { get; set; }
 }
 
-public partial class TEventTypes
+public partial class EventTypes
 {
-    public ICollection<TEvents> Events { get; set; } = new List<TEvents>();
+    public ICollection<Events> Events { get; set; } = new List<Events>();
 }
 
-public partial class TAccessLevelHeader
+public partial class AccessLevels
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 
-    public ICollection<TNameAccessLevels> NameAccessLevels { get; set; } = new List<TNameAccessLevels>();
+    public ICollection<CardholderAccessLevel> CardholderAccessLevels { get; set; } = new List<CardholderAccessLevel>();
 }
 
-public partial class TAccessLevelDetails
+public partial class AccessLevelDoor
 {
-    public TDoors? DoorNavigation { get; set; }
+    public Doors? DoorNavigation { get; set; }
 }
 
-public partial class TApbzoneHeader
+public partial class ApbZone
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 
-    public ICollection<TApbzoneDetails> ApbzoneDetails { get; set; } = new List<TApbzoneDetails>();
+    public ICollection<ApbZoneDoor> ApbZoneDoors { get; set; } = new List<ApbZoneDoor>();
 }
 
-public partial class TApbzoneDetails
+public partial class ApbZoneDoor
 {
-    public TApbzoneHeader? ApbzoneHeader { get; set; }
-    public TDoors? DoorNavigation { get; set; }
+    public ApbZone? ApbZone { get; set; }
+    public Doors? DoorNavigation { get; set; }
 }
 
-public partial class TSpaceZoneHeader
+public partial class SpaceZone
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 
-    public ICollection<TSpaceZoneDetails> SpaceZoneDetails { get; set; } = new List<TSpaceZoneDetails>();
-    public ICollection<TSpaceZoneAttendance> SpaceZoneAttendances { get; set; } = new List<TSpaceZoneAttendance>();
-    public ICollection<TSpaceZoneCardholders> SpaceZoneCardholders { get; set; } = new List<TSpaceZoneCardholders>();
-    public ICollection<TTimeSheetZones> TimeSheetZones { get; set; } = new List<TTimeSheetZones>();
+    public ICollection<SpaceZoneDoor> SpaceZoneDoors { get; set; } = new List<SpaceZoneDoor>();
+    public ICollection<SpaceZoneAttendance> SpaceZoneAttendances { get; set; } = new List<SpaceZoneAttendance>();
+    public ICollection<SpaceZoneCardholder> SpaceZoneCardholders { get; set; } = new List<SpaceZoneCardholder>();
+    public ICollection<TimeSheetZone> TimeSheetZones { get; set; } = new List<TimeSheetZone>();
 }
 
-public partial class TSpaceZoneDetails
+public partial class SpaceZoneDoor
 {
-    public TSites? SiteNavigation { get; set; }
-    public TDoors? DoorNavigation { get; set; }
-    public TSpaceZoneHeader? ZoneNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
+    public Doors? DoorNavigation { get; set; }
+    public SpaceZone? ZoneNavigation { get; set; }
 }
 
-public partial class TSpaceZoneAttendance
+public partial class SpaceZoneAttendance
 {
-    public TNameHeader? CardIndexNavigation { get; set; }
-    public TSpaceZoneHeader? ZoneNumberNavigation { get; set; }
+    public Cardholder? CardIndexNavigation { get; set; }
+    public SpaceZone? ZoneNumberNavigation { get; set; }
 }
 
-public partial class TSpaceZoneCardholders
+public partial class SpaceZoneCardholder
 {
-    public TNameHeader? NameHeader { get; set; }
-    public TSpaceZoneHeader? SpaceZoneNavigation { get; set; }
+    public Cardholder? Cardholder { get; set; }
+    public SpaceZone? SpaceZoneNavigation { get; set; }
 }
 
-public partial class TCalendarHeader
+public partial class Calendar
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 
-    public ICollection<TCalendarDetails> CalendarDetails { get; set; } = new List<TCalendarDetails>();
+    public ICollection<CalendarException> CalendarExceptions { get; set; } = new List<CalendarException>();
 }
 
-public partial class TCalendarDetails
+public partial class CalendarException
 {
-    public TCalendarHeader? CalendarHeader { get; set; }
+    public Calendar? Calendar { get; set; }
 }
 
-public partial class TTimeZoneHeader
+public partial class TimeZones
 {
-    public TSites? SiteNavigation { get; set; }
-    public TCalendarHeader? CalendarNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
+    public Calendar? CalendarNavigation { get; set; }
 }
 
-public partial class TTimeZoneDetails
+public partial class TimeZoneInterval
 {
-    public TCalendarHeader? CalendarNavigation { get; set; }
+    public Calendar? CalendarNavigation { get; set; }
 }
 
-public partial class TAlarms
+public partial class Alarms
 {
-    public TSites? SiteNavigation { get; set; }
-    public TEventTypes? EventTypeNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
+    public EventTypes? EventTypeNavigation { get; set; }
 }
 
-public partial class TFloorPlans
+public partial class FloorPlans
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 }
 
-public partial class TTriggersHeader
+public partial class Trigger
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 
-    public ICollection<TTriggersControllers> TriggersControllers { get; set; } = new List<TTriggersControllers>();
-    public ICollection<TTriggersEvents> TriggersEvents { get; set; } = new List<TTriggersEvents>();
+    public ICollection<TriggerController> TriggerControllers { get; set; } = new List<TriggerController>();
+    public ICollection<TriggerEvent> TriggerEvents { get; set; } = new List<TriggerEvent>();
 }
 
-public partial class TTriggersControllers
+public partial class TriggerController
 {
-    public TTriggersHeader? TriggersHeader { get; set; }
+    public Trigger? Trigger { get; set; }
 }
 
-public partial class TTriggersEvents
+public partial class TriggerEvent
 {
-    public TTriggersHeader? TriggersHeader { get; set; }
-    public TEventTypes? EventTypeNavigation { get; set; }
+    public Trigger? Trigger { get; set; }
+    public EventTypes? EventTypeNavigation { get; set; }
 }
 
-public partial class TCommands
+public partial class Commands
 {
-    public TConnectors? ConnectorNavigation { get; set; }
+    public Connectors? ConnectorNavigation { get; set; }
 }
 
-public partial class TCardManagerHeader
+public partial class CardManager
 {
-    public ICollection<TCardManagerDefault> CardManagerDefaults { get; set; } = new List<TCardManagerDefault>();
-    public ICollection<TCardManagerOrderByFields> OrderByFields { get; set; } = new List<TCardManagerOrderByFields>();
-    public ICollection<TCardManagerSelectFields> SelectFields { get; set; } = new List<TCardManagerSelectFields>();
-    public ICollection<TCardManagerWhereFields> WhereFields { get; set; } = new List<TCardManagerWhereFields>();
+    public ICollection<CardManagerDefault> CardManagerDefaults { get; set; } = new List<CardManagerDefault>();
+    public ICollection<CardManagerOrderByField> OrderByFields { get; set; } = new List<CardManagerOrderByField>();
+    public ICollection<CardManagerSelectField> SelectFields { get; set; } = new List<CardManagerSelectField>();
+    public ICollection<CardManagerWhereField> WhereFields { get; set; } = new List<CardManagerWhereField>();
 }
 
-public partial class TCardManagerDefault
+public partial class CardManagerDefault
 {
-    public TCardManagerHeader? CardManagerHeader { get; set; }
+    public CardManager? CardManager { get; set; }
 }
 
-public partial class TCardManagerOrderByFields
+public partial class CardManagerOrderByField
 {
-    public TCardManagerHeader? CardManagerHeader { get; set; }
+    public CardManager? CardManager { get; set; }
 }
 
-public partial class TCardManagerSelectFields
+public partial class CardManagerSelectField
 {
-    public TCardManagerHeader? CardManagerHeader { get; set; }
+    public CardManager? CardManager { get; set; }
 }
 
-public partial class TCardManagerWhereFields
+public partial class CardManagerWhereField
 {
-    public TCardManagerHeader? CardManagerHeader { get; set; }
+    public CardManager? CardManager { get; set; }
 }
 
-public partial class TCustomFieldTypes
+public partial class CustomFieldTypes
 {
-    public ICollection<TCustom> Customs { get; set; } = new List<TCustom>();
+    public ICollection<Custom> Customs { get; set; } = new List<Custom>();
 }
 
-public partial class TCustom
+public partial class Custom
 {
-    public TCustomFieldTypes? CustomFieldType { get; set; }
+    public CustomFieldTypes? CustomFieldType { get; set; }
 }
 
-public partial class TDisplayTypes
+public partial class DisplayTypes
 {
-    public ICollection<TDisplay> Displays { get; set; } = new List<TDisplay>();
+    public ICollection<Display> Displays { get; set; } = new List<Display>();
 }
 
-public partial class TDisplay
+public partial class Display
 {
-    public TDisplayTypes? DisplayType { get; set; }
+    public DisplayTypes? DisplayType { get; set; }
 }
 
-public partial class TCardDesignHeader
+public partial class CardDesign
 {
-    public ICollection<TCardDesignDetails> CardDesignDetails { get; set; } = new List<TCardDesignDetails>();
+    public ICollection<CardDesignField> CardDesignFields { get; set; } = new List<CardDesignField>();
 }
 
-public partial class TCardDesignDetails
+public partial class CardDesignField
 {
-    public TCardDesignHeader? CardDesignHeader { get; set; }
+    public CardDesign? CardDesign { get; set; }
 }
 
-public partial class TCardPackHeader
+public partial class CardPack
 {
-    public ICollection<TCardPackDetails> CardPackDetails { get; set; } = new List<TCardPackDetails>();
+    public ICollection<CardPackSite> CardPackSites { get; set; } = new List<CardPackSite>();
 }
 
-public partial class TCardPackDetails
+public partial class CardPackSite
 {
-    public TSites? SiteNavigation { get; set; }
-    public TCardPackHeader? CardPackNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
+    public CardPack? CardPackNavigation { get; set; }
 }
 
-public partial class TTimeSheetHeader
+public partial class TimeSheet
 {
-    public ICollection<TTimeSheetZones> TimeSheetZones { get; set; } = new List<TTimeSheetZones>();
+    public ICollection<TimeSheetZone> TimeSheetZones { get; set; } = new List<TimeSheetZone>();
 }
 
-public partial class TTimeSheetZones
+public partial class TimeSheetZone
 {
-    public TTimeSheetHeader? TimeSheetHeader { get; set; }
-    public TSpaceZoneHeader? ZoneNavigation { get; set; }
+    public TimeSheet? TimeSheet { get; set; }
+    public SpaceZone? ZoneNavigation { get; set; }
 }
 
-public partial class TUserSites
+public partial class UserSites
 {
-    public TSites? SiteNavigation { get; set; }
+    public Sites? SiteNavigation { get; set; }
 }

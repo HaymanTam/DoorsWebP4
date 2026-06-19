@@ -33,7 +33,7 @@ namespace DoorsWeb.API.Services
 
         public async Task<JwtPair?> SignInAsync(AdminLoginDto dto, CancellationToken ct = default)
         {
-            var user = await _context.TUsers
+            var user = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Description == dto.Username, ct);
 
@@ -73,7 +73,7 @@ namespace DoorsWeb.API.Services
             if (username is null)
                 return null;
 
-            var user = await _context.TUsers
+            var user = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Description == username, ct);
 
@@ -82,7 +82,7 @@ namespace DoorsWeb.API.Services
 
         public async Task<JwtPair?> ChangePasswordAsync(string username, string newPassword, CancellationToken ct = default)
         {
-            var user = await _context.TUsers
+            var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Description == username, ct);
 
             if (user is null)
@@ -98,7 +98,7 @@ namespace DoorsWeb.API.Services
         // it; null once the user has set their own password.
         public async Task<string?> GetDefaultPasswordHintAsync(string username, CancellationToken ct = default)
         {
-            var user = await _context.TUsers
+            var user = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Description == username, ct);
 
@@ -123,7 +123,7 @@ namespace DoorsWeb.API.Services
         private bool RequiresPasswordReset(string stored) =>
             !IsBcryptHash(stored) || StoredIsDefault(stored);
 
-        private JwtPair GenerateJwtPair(TUsers user)
+        private JwtPair GenerateJwtPair(Users user)
         {
             var mustChangePassword = RequiresPasswordReset(user.Password);
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]!));

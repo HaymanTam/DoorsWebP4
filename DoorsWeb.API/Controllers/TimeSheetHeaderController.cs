@@ -16,13 +16,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TTimeSheetHeader>>> GetAll()
+        public async Task<ActionResult<List<TimeSheet>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TTimeSheetHeader>> GetById(int id)
+        public async Task<ActionResult<TimeSheet>> GetById(int id)
         {
             var result = await _service.GetById(id);
             if (result is null)
@@ -33,13 +33,13 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TTimeSheetHeader>>> Create(TTimeSheetHeader entity)
+        public async Task<ActionResult<List<TimeSheet>>> Create(TimeSheet entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<TTimeSheetHeader>?>> Update(int id, TTimeSheetHeader entity)
+        public async Task<ActionResult<List<TimeSheet>?>> Update(int id, TimeSheet entity)
         {
             var result = await _service.Update(id, entity);
             if (result is null)
@@ -50,7 +50,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<List<TTimeSheetHeader>?>> Delete(int id)
+        public async Task<ActionResult<List<TimeSheet>?>> Delete(int id)
         {
             var result = await _service.Delete(id);
             if (result is null)

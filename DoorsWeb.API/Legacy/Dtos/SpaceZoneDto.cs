@@ -9,21 +9,21 @@ namespace DoorsWeb.API.Legacy.Dtos
     //     </Zones>
     //   </Site>
     //
-    // Scaffolded entities: TSpaceZoneHeader (ZoneNumber, Site, Name, ...), TSites.
+    // Scaffolded entities: SpaceZone (ZoneNumber, Site, Name, ...), Sites.
 
     /// <summary>One space zone joined to its owning site.</summary>
     public class SpaceZoneDto
     {
-        /// <summary>Space-zone code. Source: Zone/@Code (TSpaceZoneHeader.ZoneNumber).</summary>
+        /// <summary>Space-zone code. Source: Zone/@Code (SpaceZone.ZoneNumber).</summary>
         public int Code { get; set; }
 
-        /// <summary>Space-zone name. Source: Zone/@Name (TSpaceZoneHeader.Name).</summary>
+        /// <summary>Space-zone name. Source: Zone/@Name (SpaceZone.Name).</summary>
         public string? Name { get; set; }
 
-        /// <summary>Owning site code. Source: Site/@Code (TSites.Site).</summary>
+        /// <summary>Owning site code. Source: Site/@Code (Sites.Site).</summary>
         public int SiteCode { get; set; }
 
-        /// <summary>Owning site name. Source: Site/@Name (TSites.Name).</summary>
+        /// <summary>Owning site name. Source: Site/@Name (Sites.Name).</summary>
         public string? SiteName { get; set; }
     }
 }

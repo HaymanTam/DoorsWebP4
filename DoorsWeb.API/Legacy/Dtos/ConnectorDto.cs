@@ -9,21 +9,21 @@ namespace DoorsWeb.API.Legacy.Dtos
     //     </Connectors>
     //   </Site>
     //
-    // Scaffolded entities: TConnectors (Connector, Site, Name, ...), TSites.
+    // Scaffolded entities: Connectors (Connector, Site, Name, ...), Sites.
 
     /// <summary>One connector joined to its owning site.</summary>
     public class ConnectorDto
     {
-        /// <summary>Connector code. Source: Connector/@Code (TConnectors.Connector).</summary>
+        /// <summary>Connector code. Source: Connector/@Code (Connectors.Connector).</summary>
         public int Code { get; set; }
 
-        /// <summary>Connector name. Source: Connector/@Name (TConnectors.Name).</summary>
+        /// <summary>Connector name. Source: Connector/@Name (Connectors.Name).</summary>
         public string? Name { get; set; }
 
-        /// <summary>Owning site code. Source: Site/@Code (TSites.Site).</summary>
+        /// <summary>Owning site code. Source: Site/@Code (Sites.Site).</summary>
         public int SiteCode { get; set; }
 
-        /// <summary>Owning site name. Source: Site/@Name (TSites.Name).</summary>
+        /// <summary>Owning site name. Source: Site/@Name (Sites.Name).</summary>
         public string? SiteName { get; set; }
     }
 }

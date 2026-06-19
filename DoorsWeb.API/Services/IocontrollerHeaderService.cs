@@ -11,40 +11,40 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<TIocontrollerHeader>> GetAll()
+        public async Task<List<IoController>> GetAll()
         {
-            return await _context.TIocontrollerHeader.AsNoTracking().ToListAsync();
+            return await _context.IoController.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TIocontrollerHeader?> GetById(int id)
+        public async Task<IoController?> GetById(int id)
         {
-            return await _context.TIocontrollerHeader.FindAsync(id);
+            return await _context.IoController.FindAsync(id);
         }
 
-        public async Task<List<TIocontrollerHeader>> Create(TIocontrollerHeader entity)
+        public async Task<List<IoController>> Create(IoController entity)
         {
-            _context.TIocontrollerHeader.Add(entity);
+            _context.IoController.Add(entity);
             await _context.SaveChangesAsync();
-            return await _context.TIocontrollerHeader.AsNoTracking().ToListAsync();
+            return await _context.IoController.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TIocontrollerHeader>?> Update(int id, TIocontrollerHeader entity)
+        public async Task<List<IoController>?> Update(int id, IoController entity)
         {
-            var result = await _context.TIocontrollerHeader.FindAsync(id);
+            var result = await _context.IoController.FindAsync(id);
             if (result is null) return null;
             entity.ControllerId = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
-            return await _context.TIocontrollerHeader.AsNoTracking().ToListAsync();
+            return await _context.IoController.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TIocontrollerHeader>?> Delete(int id)
+        public async Task<List<IoController>?> Delete(int id)
         {
-            var result = await _context.TIocontrollerHeader.FindAsync(id);
+            var result = await _context.IoController.FindAsync(id);
             if (result is null) return null;
-            _context.TIocontrollerHeader.Remove(result);
+            _context.IoController.Remove(result);
             await _context.SaveChangesAsync();
-            return await _context.TIocontrollerHeader.AsNoTracking().ToListAsync();
+            return await _context.IoController.AsNoTracking().ToListAsync();
         }
     }
 }

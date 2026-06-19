@@ -12,48 +12,48 @@ namespace DoorsWeb.API.Services
             _context = context;
         }
 
-        public async Task<List<TSpaceZoneHeader>> GetAll()
+        public async Task<List<SpaceZone>> GetAll()
         {
-            return await _context.TSpaceZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.SpaceZone.AsNoTracking().ToListAsync();
         }
 
-        public async Task<TSpaceZoneHeader?> GetById(int id)
+        public async Task<SpaceZone?> GetById(int id)
         {
-            return await _context.TSpaceZoneHeader.FindAsync(id);
+            return await _context.SpaceZone.FindAsync(id);
         }
 
-        public async Task<List<TSpaceZoneHeader>> Create(TSpaceZoneHeader entity)
+        public async Task<List<SpaceZone>> Create(SpaceZone entity)
         {
-            _context.TSpaceZoneHeader.Add(entity);
+            _context.SpaceZone.Add(entity);
             await _context.SaveChangesAsync();
-            return await _context.TSpaceZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.SpaceZone.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TSpaceZoneHeader>?> Update(int id, TSpaceZoneHeader entity)
+        public async Task<List<SpaceZone>?> Update(int id, SpaceZone entity)
         {
-            var result = await _context.TSpaceZoneHeader.FindAsync(id);
+            var result = await _context.SpaceZone.FindAsync(id);
             if (result is null) return null;
             entity.ZoneNumber = id; // keep route and body key aligned
             _context.Entry(result).CurrentValues.SetValues(entity);
             await _context.SaveChangesAsync();
-            return await _context.TSpaceZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.SpaceZone.AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<TSpaceZoneHeader>?> Delete(int id)
+        public async Task<List<SpaceZone>?> Delete(int id)
         {
-            var result = await _context.TSpaceZoneHeader.FindAsync(id);
+            var result = await _context.SpaceZone.FindAsync(id);
             if (result is null) return null;
 
-            var details = await _context.TSpaceZoneDetails.Where(d => d.Zone == id).ToListAsync();
-            _context.TSpaceZoneDetails.RemoveRange(details);
-            _context.TSpaceZoneHeader.Remove(result);
+            var details = await _context.SpaceZoneDoor.Where(d => d.Zone == id).ToListAsync();
+            _context.SpaceZoneDoor.RemoveRange(details);
+            _context.SpaceZone.Remove(result);
             await _context.SaveChangesAsync();
-            return await _context.TSpaceZoneHeader.AsNoTracking().ToListAsync();
+            return await _context.SpaceZone.AsNoTracking().ToListAsync();
         }
 
         public async Task<SpaceZoneSaveDto> GetForEdit(int site, int? zoneNumber)
         {
-            var doors = await _context.TDoors.AsNoTracking()
+            var doors = await _context.Doors.AsNoTracking()
                 .Where(d => d.Site == site)
                 .OrderBy(d => d.Name)
                 .Select(d => new { d.Door, d.Name })
@@ -61,10 +61,10 @@ namespace DoorsWeb.API.Services
 
             var dto = new SpaceZoneSaveDto { Site = site };
 
-            var selected = new Dictionary<int, TSpaceZoneDetails>();
+            var selected = new Dictionary<int, SpaceZoneDoor>();
             if (zoneNumber is int zn)
             {
-                var header = await _context.TSpaceZoneHeader.AsNoTracking()
+                var header = await _context.SpaceZone.AsNoTracking()
                     .FirstOrDefaultAsync(z => z.ZoneNumber == zn && z.Site == site);
                 if (header is not null)
                 {
@@ -75,7 +75,7 @@ namespace DoorsWeb.API.Services
                     dto.FireZone = header.FireZone ?? false;
                     dto.RestrictZoneAccess = header.RestrictCardholders ?? true;
                 }
-                selected = await _context.TSpaceZoneDetails.AsNoTracking()
+                selected = await _context.SpaceZoneDoor.AsNoTracking()
                     .Where(d => d.Zone == zn)
                     .ToDictionaryAsync(d => d.Door);
             }
@@ -95,11 +95,11 @@ namespace DoorsWeb.API.Services
             return dto;
         }
 
-        public async Task<TSpaceZoneHeader> Save(SpaceZoneSaveDto dto)
+        public async Task<SpaceZone> Save(SpaceZoneSaveDto dto)
         {
-            TSpaceZoneHeader header;
+            SpaceZone header;
             int zone;
-            if (dto.ZoneNumber is int zn && await _context.TSpaceZoneHeader.FindAsync(zn) is { } existing)
+            if (dto.ZoneNumber is int zn && await _context.SpaceZone.FindAsync(zn) is { } existing)
             {
                 existing.Name = dto.Name;
                 existing.MaxStayOn = dto.RemoveOnExceed;
@@ -109,14 +109,14 @@ namespace DoorsWeb.API.Services
                 header = existing;
                 zone = zn;
 
-                var old = await _context.TSpaceZoneDetails.Where(d => d.Zone == zn).ToListAsync();
-                _context.TSpaceZoneDetails.RemoveRange(old);
+                var old = await _context.SpaceZoneDoor.Where(d => d.Zone == zn).ToListAsync();
+                _context.SpaceZoneDoor.RemoveRange(old);
                 await _context.SaveChangesAsync();
             }
             else
             {
                 zone = await NextZoneNumber();
-                header = new TSpaceZoneHeader
+                header = new SpaceZone
                 {
                     ZoneNumber = zone,
                     Site = dto.Site,
@@ -127,13 +127,13 @@ namespace DoorsWeb.API.Services
                     RestrictCardholders = dto.RestrictZoneAccess,
                     Inuse = true,
                 };
-                _context.TSpaceZoneHeader.Add(header);
+                _context.SpaceZone.Add(header);
                 await _context.SaveChangesAsync();
             }
 
             foreach (var d in dto.Doors.Where(x => x.Included))
             {
-                _context.TSpaceZoneDetails.Add(new TSpaceZoneDetails
+                _context.SpaceZoneDoor.Add(new SpaceZoneDoor
                 {
                     Door = d.Door,
                     Site = dto.Site,
@@ -149,7 +149,7 @@ namespace DoorsWeb.API.Services
         // ZoneNumber is the global key (details key on Zone without Site).
         private async Task<int> NextZoneNumber()
         {
-            var max = await _context.TSpaceZoneHeader.Select(z => (int?)z.ZoneNumber).MaxAsync();
+            var max = await _context.SpaceZone.Select(z => (int?)z.ZoneNumber).MaxAsync();
             return (max ?? 0) + 1;
         }
     }

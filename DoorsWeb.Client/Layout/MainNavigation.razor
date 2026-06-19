@@ -155,6 +155,12 @@
                             </NavLink>
                         </li>
                         <li class="nav-item">
+                            <NavLink class="nav-link" href="audit">
+                                <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Timeline" /></span>
+                                <span class="nav-link-title">Audit Log</span>
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#" @onclick="ShowSystemSettingsModal" @onclick:preventDefault>
                                 <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Adjustments" /></span>
                                 <span class="nav-link-title">System Settings</span>
@@ -245,7 +251,7 @@
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
     }
 
-    // ---- Access Levels: name-only list modal (api/AccessLevelHeader, key { Site, AccessLevel }) ----
+    // ---- Access Levels: name-only list modal (api/AccessLevel, key { Site, AccessLevel }) ----
     private async Task ShowAccessLevelsModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
@@ -267,8 +273,8 @@
     private async Task<List<EntityListRow>> LoadAccessLevelRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TAccessLevelHeader>>("api/AccessLevelHeader") ?? new();
-        // Delete route is api/AccessLevelHeader/{site}/{accessLevel}, so encode both into the row Id.
+        var list = await client.GetFromJsonAsync<List<AccessLevels>>("api/AccessLevel") ?? new();
+        // Delete route is api/AccessLevel/{site}/{accessLevel}, so encode both into the row Id.
         return list.Where(a => a.Site == siteId)
                    .Select(a => new EntityListRow { Id = $"{a.Site}/{a.AccessLevel}", Name = a.Name ?? "" }).ToList();
     }
@@ -294,7 +300,7 @@
     private async Task DeleteAccessLevel(EntityListRow row)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/AccessLevelHeader/" + row.Id);
+        await client.DeleteAsync("api/AccessLevel/" + row.Id);
     }
 
     // ---- Time Zones: name-only list modal (api/TimeZoneHeader, key { Site, TimeZone }) ----
@@ -319,7 +325,7 @@
     private async Task<List<EntityListRow>> LoadTimeZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TTimeZoneHeader>>("api/TimeZoneHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<TimeZones>>("api/TimeZoneHeader") ?? new();
         // Delete route is api/TimeZoneHeader/{site}/{timeZone}, so encode both into the row Id.
         return list.Where(t => t.Site == siteId)
                    .Select(t => new EntityListRow { Id = $"{t.Site}/{t.TimeZone}", Name = t.Name ?? "" }).ToList();
@@ -349,7 +355,7 @@
         await client.DeleteAsync("api/TimeZoneHeader/" + row.Id);
     }
 
-    // ---- Calendars: name-only list modal (api/CalendarHeader, key Code) ----
+    // ---- Calendars: name-only list modal (api/Calendar, key Code) ----
     private async Task ShowCalendarsModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
@@ -371,7 +377,7 @@
     private async Task<List<EntityListRow>> LoadCalendarRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TCalendarHeader>>("api/CalendarHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<Calendar>>("api/Calendar") ?? new();
         return list.Where(c => c.Site == siteId)
                    .Select(c => new EntityListRow { Id = c.Code.ToString(), Name = c.Description ?? "" }).ToList();
     }
@@ -395,7 +401,7 @@
     private async Task DeleteCalendar(EntityListRow row)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/CalendarHeader/" + row.Id);
+        await client.DeleteAsync("api/Calendar/" + row.Id);
     }
 
     // ---- Space Zones: name-only list modal (api/SpaceZoneHeader, key ZoneNumber) ----
@@ -420,7 +426,7 @@
     private async Task<List<EntityListRow>> LoadSpaceZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TSpaceZoneHeader>>("api/SpaceZoneHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<SpaceZone>>("api/SpaceZoneHeader") ?? new();
         return list.Where(z => z.Site == siteId)
                    .Select(z => new EntityListRow { Id = z.ZoneNumber.ToString(), Name = z.Name ?? "" }).ToList();
     }
@@ -449,7 +455,7 @@
         await client.DeleteAsync("api/SpaceZoneHeader/" + row.Id);
     }
 
-    // ---- Anti-Passback Zones: name-only list modal (api/ApbzoneHeader, key Apbnumber) ----
+    // ---- Anti-Passback Zones: name-only list modal (api/ApbZone, key Apbnumber) ----
     private async Task ShowApbZonesModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
@@ -471,7 +477,7 @@
     private async Task<List<EntityListRow>> LoadApbZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TApbzoneHeader>>("api/ApbzoneHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<ApbZone>>("api/ApbZone") ?? new();
         return list.Where(z => z.Site == siteId)
                    .Select(z => new EntityListRow { Id = z.Apbnumber.ToString(), Name = z.Name ?? "" }).ToList();
     }
@@ -497,10 +503,10 @@
     private async Task DeleteApbZone(EntityListRow row)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/ApbzoneHeader/" + row.Id);
+        await client.DeleteAsync("api/ApbZone/" + row.Id);
     }
 
-    // ---- Door Triggers: name-only list modal (api/TriggersHeader where TriggerType == 1) ----
+    // ---- Door Triggers: name-only list modal (api/Trigger where TriggerType == 1) ----
     private async Task ShowDoorTriggerModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
@@ -522,7 +528,7 @@
     private async Task<List<EntityListRow>> LoadDoorTriggerRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TTriggersHeader>>("api/TriggersHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<Trigger>>("api/Trigger") ?? new();
         // TriggerType: 1 = Door, 3 = SpaceZone (legacy TriggerTypeConstants).
         return list.Where(t => t.TriggerType == 1 && t.Site == siteId)
                    .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
@@ -546,7 +552,7 @@
         });
     }
 
-    // ---- Space Zone Triggers: name-only list modal (api/TriggersHeader where TriggerType == 3) ----
+    // ---- Space Zone Triggers: name-only list modal (api/Trigger where TriggerType == 3) ----
     private async Task ShowSpaceZoneTriggerModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
@@ -568,7 +574,7 @@
     private async Task<List<EntityListRow>> LoadSpaceZoneTriggerRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TTriggersHeader>>("api/TriggersHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<Trigger>>("api/Trigger") ?? new();
         return list.Where(t => t.TriggerType == 3 && t.Site == siteId)
                    .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name }).ToList();
     }
@@ -594,7 +600,7 @@
     private async Task DeleteTrigger(EntityListRow row)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/TriggersHeader/" + row.Id);
+        await client.DeleteAsync("api/Trigger/" + row.Id);
     }
 
     private async Task ShowBackupRestoreModal()

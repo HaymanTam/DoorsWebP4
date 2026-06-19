@@ -81,6 +81,9 @@ builder.Services.AddScoped<IUsersService, UsersService>();
 // Alarms (read-only list for the Alarms page)
 builder.Services.AddScoped<IAlarmService, AlarmService>();
 
+// Audit log (read-only list for the Audit Log Viewer page)
+builder.Services.AddScoped<IAuditService, AuditService>();
+
 // Events (read-only list for the Events page)
 builder.Services.AddScoped<IEventService, EventService>();
 
@@ -107,9 +110,8 @@ builder.Services.AddScoped<IBackupService, BackupService>();
 // Legacy DoorsClient backup restore (password-protected ZIP of .sql/.rs table dumps)
 builder.Services.AddScoped<ILegacyBackupService, LegacyBackupService>();
 
-// System Settings dialog: sites (legacy T_Sites) and global connector polling settings.
+// System Settings dialog: sites (legacy T_Sites).
 builder.Services.AddScoped<ISiteService, SiteService>();
-builder.Services.AddSingleton<IConnectorSettingsService, ConnectorSettingsService>();
 
 // User photo storage. Resolved once so DI and the static-file provider agree on the path.
 var userPhotoDirectory = PhotoStorageService.ResolveDirectory(builder.Configuration);

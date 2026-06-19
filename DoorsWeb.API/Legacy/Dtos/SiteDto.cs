@@ -7,15 +7,15 @@ namespace DoorsWeb.API.Legacy.Dtos
     //     <Site Code="..." Name="..."> ... </Site>
     //   </Sites></XMLData>
     //
-    // Scaffolded entity: TSites (Site, Name, Key, Inuse, Status).
+    // Scaffolded entity: Sites (Site, Name, Key, Inuse, Status).
 
     /// <summary>One site (the top level of the legacy system tree).</summary>
     public class SiteDto
     {
-        /// <summary>Site code. Source: Site/@Code (TSites.Site).</summary>
+        /// <summary>Site code. Source: Site/@Code (Sites.Site).</summary>
         public int Code { get; set; }
 
-        /// <summary>Site name. Source: Site/@Name (TSites.Name).</summary>
+        /// <summary>Site name. Source: Site/@Name (Sites.Name).</summary>
         public string? Name { get; set; }
     }
 }

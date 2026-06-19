@@ -123,7 +123,7 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            var dto = await client.GetFromJsonAsync<CalendarSaveDto>($"api/CalendarHeader/{code}/full");
+            var dto = await client.GetFromJsonAsync<CalendarSaveDto>($"api/Calendar/{code}/full");
             if (dto is not null)
             {
                 calendar.Name = dto.Description;
@@ -208,7 +208,7 @@
             };
 
             var client = ClientFactory.CreateClient("WebAPI");
-            var response = await client.PostAsJsonAsync("api/CalendarHeader/save", dto);
+            var response = await client.PostAsJsonAsync("api/Calendar/save", dto);
             if (response.IsSuccessStatusCode)
             {
                 ModalService.Close(ModalResult.Ok());

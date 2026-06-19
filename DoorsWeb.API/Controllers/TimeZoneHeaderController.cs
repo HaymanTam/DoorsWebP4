@@ -17,14 +17,14 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TTimeZoneHeader>>> GetAll()
+        public async Task<ActionResult<List<TimeZones>>> GetAll()
         {
             return Ok(await _service.GetAll());
         }
 
         // Route key order: { Site, TimeZone } (EF composite key is { TimeZone, Site })
         [HttpGet("{site}/{timeZone}")]
-        public async Task<ActionResult<TTimeZoneHeader>> GetById(int site, int timeZone)
+        public async Task<ActionResult<TimeZones>> GetById(int site, int timeZone)
         {
             var result = await _service.GetById(site, timeZone);
             if (result is null)
@@ -46,19 +46,19 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<List<TTimeZoneHeader>>> Create(TTimeZoneHeader entity)
+        public async Task<ActionResult<List<TimeZones>>> Create(TimeZones entity)
         {
             return Ok(await _service.Create(entity));
         }
 
         [HttpPost("save")]
-        public async Task<ActionResult<TTimeZoneHeader>> Save(TimeZoneSaveDto dto)
+        public async Task<ActionResult<TimeZones>> Save(TimeZoneSaveDto dto)
         {
             return Ok(await _service.Save(dto));
         }
 
         [HttpPut("{site}/{timeZone}")]
-        public async Task<ActionResult<List<TTimeZoneHeader>?>> Update(int site, int timeZone, TTimeZoneHeader entity)
+        public async Task<ActionResult<List<TimeZones>?>> Update(int site, int timeZone, TimeZones entity)
         {
             var result = await _service.Update(site, timeZone, entity);
             if (result is null)
@@ -69,7 +69,7 @@ namespace DoorsWeb.API.Controllers
         }
 
         [HttpDelete("{site}/{timeZone}")]
-        public async Task<ActionResult<List<TTimeZoneHeader>?>> Delete(int site, int timeZone)
+        public async Task<ActionResult<List<TimeZones>?>> Delete(int site, int timeZone)
         {
             var result = await _service.Delete(site, timeZone);
             if (result is null)

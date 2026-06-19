@@ -19,7 +19,7 @@ namespace DoorsWeb.API.Services
 
         public IAsyncEnumerable<EventDto> GetAll(DateTime? from = null, DateTime? to = null)
         {
-            return Filter(_context.TEvents.AsNoTracking(), from, to)
+            return Filter(_context.Events.AsNoTracking(), from, to)
                 .OrderByDescending(e => e.EventDate)
                 .Take(MaxRows)
                 .Select(e => new EventDto
@@ -42,11 +42,11 @@ namespace DoorsWeb.API.Services
 
         public async Task<int> GetCount(DateTime? from = null, DateTime? to = null)
         {
-            return Math.Min(await Filter(_context.TEvents, from, to).CountAsync(), MaxRows);
+            return Math.Min(await Filter(_context.Events, from, to).CountAsync(), MaxRows);
         }
 
         // Applies the optional date-range bounds shared by GetAll and GetCount.
-        private static IQueryable<TEvents> Filter(IQueryable<TEvents> query, DateTime? from, DateTime? to)
+        private static IQueryable<Events> Filter(IQueryable<Events> query, DateTime? from, DateTime? to)
         {
             if (from.HasValue)
                 query = query.Where(e => e.EventDate >= from.Value);

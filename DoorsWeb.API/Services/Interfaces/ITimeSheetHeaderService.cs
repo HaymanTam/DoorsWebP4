@@ -4,10 +4,10 @@ namespace DoorsWeb.API.Services.Interfaces
 {
     public interface ITimeSheetHeaderService
     {
-        Task<List<TTimeSheetHeader>> GetAll();
-        Task<TTimeSheetHeader?> GetById(int id);
-        Task<List<TTimeSheetHeader>> Create(TTimeSheetHeader entity);
-        Task<List<TTimeSheetHeader>?> Update(int id, TTimeSheetHeader entity);
-        Task<List<TTimeSheetHeader>?> Delete(int id);
+        Task<List<TimeSheet>> GetAll();
+        Task<TimeSheet?> GetById(int id);
+        Task<List<TimeSheet>> Create(TimeSheet entity);
+        Task<List<TimeSheet>?> Update(int id, TimeSheet entity);
+        Task<List<TimeSheet>?> Delete(int id);
     }
 }

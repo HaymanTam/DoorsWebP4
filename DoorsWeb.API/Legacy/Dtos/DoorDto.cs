@@ -15,24 +15,24 @@ namespace DoorsWeb.API.Legacy.Dtos
     // This DTO carries only the stable identity fields; the dynamic status values
     // are intentionally not modelled here.
     //
-    // Scaffolded entities: TDoors (Door, Name, Connector, Site, ...), TSites.
+    // Scaffolded entities: Doors (Door, Name, Connector, Site, ...), Sites.
 
     /// <summary>One door's core identity, joined to its owning site.</summary>
     public class DoorDto
     {
-        /// <summary>Door code. Source: Door/@Code (TDoors.Door).</summary>
+        /// <summary>Door code. Source: Door/@Code (Doors.Door).</summary>
         public int Code { get; set; }
 
-        /// <summary>Door name. Source: TDoors.Name (shown as the first status column).</summary>
+        /// <summary>Door name. Source: Doors.Name (shown as the first status column).</summary>
         public string? Name { get; set; }
 
-        /// <summary>Owning connector code. Source: Door/@Connector (TDoors.Connector).</summary>
+        /// <summary>Owning connector code. Source: Door/@Connector (Doors.Connector).</summary>
         public int? Connector { get; set; }
 
-        /// <summary>Owning site code. Source: Site/@Code (TSites.Site).</summary>
+        /// <summary>Owning site code. Source: Site/@Code (Sites.Site).</summary>
         public int SiteCode { get; set; }
 
-        /// <summary>Owning site name. Source: Site/@Name (TSites.Name).</summary>
+        /// <summary>Owning site name. Source: Site/@Name (Sites.Name).</summary>
         public string? SiteName { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using DoorsWeb.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,141 +12,141 @@ public partial class DoorsEnterpriseContext : DbContext
     {
     }
 
-    public virtual DbSet<TAccessLevelDetails> TAccessLevelDetails { get; set; }
+    public virtual DbSet<AccessLevelDoor> AccessLevelDoor { get; set; }
 
-    public virtual DbSet<TAccessLevelHeader> TAccessLevelHeader { get; set; }
+    public virtual DbSet<AccessLevels> AccessLevels { get; set; }
 
-    public virtual DbSet<TAlarms> TAlarms { get; set; }
+    public virtual DbSet<Alarms> Alarms { get; set; }
 
-    public virtual DbSet<TApbzoneDetails> TApbzoneDetails { get; set; }
+    public virtual DbSet<ApbZoneDoor> ApbZoneDoor { get; set; }
 
-    public virtual DbSet<TApbzoneHeader> TApbzoneHeader { get; set; }
+    public virtual DbSet<ApbZone> ApbZone { get; set; }
 
-    public virtual DbSet<TArcCustom> TArcCustom { get; set; }
+    public virtual DbSet<ArcCustom> ArcCustom { get; set; }
 
-    public virtual DbSet<TArcCustomFieldTypes> TArcCustomFieldTypes { get; set; }
+    public virtual DbSet<ArcCustomFieldTypes> ArcCustomFieldTypes { get; set; }
 
-    public virtual DbSet<TArcDoors> TArcDoors { get; set; }
+    public virtual DbSet<ArcDoors> ArcDoors { get; set; }
 
-    public virtual DbSet<TArcEvents> TArcEvents { get; set; }
+    public virtual DbSet<ArcEvents> ArcEvents { get; set; }
 
-    public virtual DbSet<TArcNameCustomFields> TArcNameCustomFields { get; set; }
+    public virtual DbSet<ArcNameCustomFields> ArcNameCustomFields { get; set; }
 
-    public virtual DbSet<TArcNameHeader> TArcNameHeader { get; set; }
+    public virtual DbSet<ArcNameHeader> ArcNameHeader { get; set; }
 
-    public virtual DbSet<TArcSites> TArcSites { get; set; }
+    public virtual DbSet<ArcSites> ArcSites { get; set; }
 
-    public virtual DbSet<TAudit> TAudit { get; set; }
+    public virtual DbSet<Audit> Audit { get; set; }
 
-    public virtual DbSet<TBackup> TBackup { get; set; }
+    public virtual DbSet<Backup> Backup { get; set; }
 
-    public virtual DbSet<TBioData> TBioData { get; set; }
+    public virtual DbSet<BioData> BioData { get; set; }
 
-    public virtual DbSet<TCalendarDetails> TCalendarDetails { get; set; }
+    public virtual DbSet<CalendarException> CalendarException { get; set; }
 
-    public virtual DbSet<TCalendarHeader> TCalendarHeader { get; set; }
+    public virtual DbSet<Calendar> Calendar { get; set; }
 
-    public virtual DbSet<TCardDesignDetails> TCardDesignDetails { get; set; }
+    public virtual DbSet<CardDesignField> CardDesignField { get; set; }
 
-    public virtual DbSet<TCardDesignHeader> TCardDesignHeader { get; set; }
+    public virtual DbSet<CardDesign> CardDesign { get; set; }
 
-    public virtual DbSet<TCardManagerDefault> TCardManagerDefault { get; set; }
+    public virtual DbSet<CardManagerDefault> CardManagerDefault { get; set; }
 
-    public virtual DbSet<TCardManagerHeader> TCardManagerHeader { get; set; }
+    public virtual DbSet<CardManager> CardManager { get; set; }
 
-    public virtual DbSet<TCardManagerOrderByFields> TCardManagerOrderByFields { get; set; }
+    public virtual DbSet<CardManagerOrderByField> CardManagerOrderByField { get; set; }
 
-    public virtual DbSet<TCardManagerSelectFields> TCardManagerSelectFields { get; set; }
+    public virtual DbSet<CardManagerSelectField> CardManagerSelectField { get; set; }
 
-    public virtual DbSet<TCardManagerWhereFields> TCardManagerWhereFields { get; set; }
+    public virtual DbSet<CardManagerWhereField> CardManagerWhereField { get; set; }
 
-    public virtual DbSet<TCardPackDetails> TCardPackDetails { get; set; }
+    public virtual DbSet<CardPackSite> CardPackSite { get; set; }
 
-    public virtual DbSet<TCardPackHeader> TCardPackHeader { get; set; }
+    public virtual DbSet<CardPack> CardPack { get; set; }
 
-    public virtual DbSet<TCommands> TCommands { get; set; }
+    public virtual DbSet<Commands> Commands { get; set; }
 
-    public virtual DbSet<TConnectors> TConnectors { get; set; }
+    public virtual DbSet<Connectors> Connectors { get; set; }
 
-    public virtual DbSet<TCustom> TCustom { get; set; }
+    public virtual DbSet<Custom> Custom { get; set; }
 
-    public virtual DbSet<TCustomFieldTypes> TCustomFieldTypes { get; set; }
+    public virtual DbSet<CustomFieldTypes> CustomFieldTypes { get; set; }
 
-    public virtual DbSet<TCustomer> TCustomer { get; set; }
+    public virtual DbSet<Customer> Customer { get; set; }
 
-    public virtual DbSet<TDisplay> TDisplay { get; set; }
+    public virtual DbSet<Display> Display { get; set; }
 
-    public virtual DbSet<TDisplayTypes> TDisplayTypes { get; set; }
+    public virtual DbSet<DisplayTypes> DisplayTypes { get; set; }
 
-    public virtual DbSet<TDoorTechnology> TDoorTechnology { get; set; }
+    public virtual DbSet<DoorTechnology> DoorTechnology { get; set; }
 
-    public virtual DbSet<TDoors> TDoors { get; set; }
+    public virtual DbSet<Doors> Doors { get; set; }
 
-    public virtual DbSet<TEnterpriseData> TEnterpriseData { get; set; }
+    public virtual DbSet<EnterpriseData> EnterpriseData { get; set; }
 
-    public virtual DbSet<TEventTypes> TEventTypes { get; set; }
+    public virtual DbSet<EventTypes> EventTypes { get; set; }
 
-    public virtual DbSet<TEvents> TEvents { get; set; }
+    public virtual DbSet<Events> Events { get; set; }
 
-    public virtual DbSet<TFloorPlans> TFloorPlans { get; set; }
+    public virtual DbSet<FloorPlans> FloorPlans { get; set; }
 
-    public virtual DbSet<TIocontrollerDetails> TIocontrollerDetails { get; set; }
+    public virtual DbSet<IoControllerInput> IoControllerInput { get; set; }
 
-    public virtual DbSet<TIocontrollerHeader> TIocontrollerHeader { get; set; }
+    public virtual DbSet<IoController> IoController { get; set; }
 
-    public virtual DbSet<TModems> TModems { get; set; }
+    public virtual DbSet<Modems> Modems { get; set; }
 
-    public virtual DbSet<TNameAccessLevels> TNameAccessLevels { get; set; }
+    public virtual DbSet<CardholderAccessLevel> CardholderAccessLevel { get; set; }
 
-    public virtual DbSet<TNameCustomFields> TNameCustomFields { get; set; }
+    public virtual DbSet<CardholderCustomFields> CardholderCustomFields { get; set; }
 
-    public virtual DbSet<TNameHeader> TNameHeader { get; set; }
+    public virtual DbSet<Cardholder> Cardholder { get; set; }
 
-    public virtual DbSet<TSites> TSites { get; set; }
+    public virtual DbSet<Sites> Sites { get; set; }
 
-    public virtual DbSet<TSpaceZoneAttendance> TSpaceZoneAttendance { get; set; }
+    public virtual DbSet<SpaceZoneAttendance> SpaceZoneAttendance { get; set; }
 
-    public virtual DbSet<TSpaceZoneCardholders> TSpaceZoneCardholders { get; set; }
+    public virtual DbSet<SpaceZoneCardholder> SpaceZoneCardholder { get; set; }
 
-    public virtual DbSet<TSpaceZoneDetails> TSpaceZoneDetails { get; set; }
+    public virtual DbSet<SpaceZoneDoor> SpaceZoneDoor { get; set; }
 
-    public virtual DbSet<TSpaceZoneHeader> TSpaceZoneHeader { get; set; }
+    public virtual DbSet<SpaceZone> SpaceZone { get; set; }
 
-    public virtual DbSet<TStatusView> TStatusView { get; set; }
+    public virtual DbSet<StatusViews> StatusViews { get; set; }
 
-    public virtual DbSet<TSystem> TSystem { get; set; }
+    public virtual DbSet<SystemInfo> SystemInfo { get; set; }
 
-    public virtual DbSet<TTimeSheetHeader> TTimeSheetHeader { get; set; }
+    public virtual DbSet<TimeSheet> TimeSheet { get; set; }
 
-    public virtual DbSet<TTimeSheetZones> TTimeSheetZones { get; set; }
+    public virtual DbSet<TimeSheetZone> TimeSheetZone { get; set; }
 
-    public virtual DbSet<TTimeZoneDetails> TTimeZoneDetails { get; set; }
+    public virtual DbSet<TimeZoneInterval> TimeZoneInterval { get; set; }
 
-    public virtual DbSet<TTimeZoneHeader> TTimeZoneHeader { get; set; }
+    public virtual DbSet<TimeZones> TimeZones { get; set; }
 
-    public virtual DbSet<TTriggersControllers> TTriggersControllers { get; set; }
+    public virtual DbSet<TriggerController> TriggerController { get; set; }
 
-    public virtual DbSet<TTriggersEvents> TTriggersEvents { get; set; }
+    public virtual DbSet<TriggerEvent> TriggerEvent { get; set; }
 
-    public virtual DbSet<TTriggersHeader> TTriggersHeader { get; set; }
+    public virtual DbSet<Trigger> Trigger { get; set; }
 
-    public virtual DbSet<TUserPermissions> TUserPermissions { get; set; }
+    public virtual DbSet<UserPermissions> UserPermissions { get; set; }
 
-    public virtual DbSet<TUserSites> TUserSites { get; set; }
+    public virtual DbSet<UserSites> UserSites { get; set; }
 
-    public virtual DbSet<TUserlog> TUserlog { get; set; }
+    public virtual DbSet<Userlog> Userlog { get; set; }
 
-    public virtual DbSet<TUsers> TUsers { get; set; }
+    public virtual DbSet<Users> Users { get; set; }
 
-    public virtual DbSet<VNameAccessLevels> VNameAccessLevels { get; set; }
+    public virtual DbSet<NameAccessLevelsView> NameAccessLevelsView { get; set; }
 
-    public virtual DbSet<VNameBlankAccessLevels> VNameBlankAccessLevels { get; set; }
+    public virtual DbSet<NameBlankAccessLevelsView> NameBlankAccessLevelsView { get; set; }
 
-    public virtual DbSet<VNameHeader> VNameHeader { get; set; }
+    public virtual DbSet<NameHeaderView> NameHeaderView { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TAccessLevelDetails>(entity =>
+        modelBuilder.Entity<AccessLevelDoor>(entity =>
         {
             entity.HasKey(e => new { e.Level, e.Door })
                 .HasName("PK_AccessLevel_Details");
@@ -154,7 +154,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_AccessLevel_Details");
         });
 
-        modelBuilder.Entity<TAccessLevelHeader>(entity =>
+        modelBuilder.Entity<AccessLevels>(entity =>
         {
             entity.HasKey(e => new { e.AccessLevel, e.Site })
                 .HasName("PK_AccessLevel_Header");
@@ -165,7 +165,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TAlarms>(entity =>
+        modelBuilder.Entity<Alarms>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_Alarms");
@@ -180,7 +180,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.AlarmDescription).HasMaxLength(50);
         });
 
-        modelBuilder.Entity<TApbzoneDetails>(entity =>
+        modelBuilder.Entity<ApbZoneDoor>(entity =>
         {
             entity.HasKey(e => new { e.Apbnumber, e.DoorNumber })
                 .HasName("PK_APBZone_Details");
@@ -191,7 +191,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Key).HasMaxLength(10);
         });
 
-        modelBuilder.Entity<TApbzoneHeader>(entity =>
+        modelBuilder.Entity<ApbZone>(entity =>
         {
             entity.HasKey(e => e.Apbnumber)
                 .HasName("PK_APBZone_Header");
@@ -209,7 +209,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.NextAutoLogout).HasColumnType("timestamp without time zone");
         });
 
-        modelBuilder.Entity<TArcCustom>(entity =>
+        modelBuilder.Entity<ArcCustom>(entity =>
         {
             entity
                 .HasNoKey()
@@ -218,7 +218,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TArcCustomFieldTypes>(entity =>
+        modelBuilder.Entity<ArcCustomFieldTypes>(entity =>
         {
             entity
                 .HasNoKey()
@@ -227,7 +227,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Literal).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TArcDoors>(entity =>
+        modelBuilder.Entity<ArcDoors>(entity =>
         {
             entity
                 .HasNoKey()
@@ -295,7 +295,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Yplace).HasColumnName("YPlace");
         });
 
-        modelBuilder.Entity<TArcEvents>(entity =>
+        modelBuilder.Entity<ArcEvents>(entity =>
         {
             entity
                 .HasNoKey()
@@ -312,7 +312,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ReaderId).HasColumnName("ReaderID");
         });
 
-        modelBuilder.Entity<TArcNameCustomFields>(entity =>
+        modelBuilder.Entity<ArcNameCustomFields>(entity =>
         {
             entity
                 .HasNoKey()
@@ -345,7 +345,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Custom9).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TArcNameHeader>(entity =>
+        modelBuilder.Entity<ArcNameHeader>(entity =>
         {
             entity
                 .HasNoKey()
@@ -377,7 +377,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ValidTo).HasColumnType("timestamp without time zone");
         });
 
-        modelBuilder.Entity<TArcSites>(entity =>
+        modelBuilder.Entity<ArcSites>(entity =>
         {
             entity
                 .HasNoKey()
@@ -388,7 +388,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(10);
         });
 
-        modelBuilder.Entity<TAudit>(entity =>
+        modelBuilder.Entity<Audit>(entity =>
         {
             entity.HasKey(e => e.Id);
 
@@ -417,7 +417,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<TBackup>(entity =>
+        modelBuilder.Entity<Backup>(entity =>
         {
             entity
                 .HasNoKey()
@@ -427,7 +427,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ScheduleTime).HasMaxLength(8);
         });
 
-        modelBuilder.Entity<TBioData>(entity =>
+        modelBuilder.Entity<BioData>(entity =>
         {
             entity.HasKey(e => e.Slot)
                 .HasName("PK_Bio_Data");
@@ -458,7 +458,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(1);
         });
 
-        modelBuilder.Entity<TCalendarDetails>(entity =>
+        modelBuilder.Entity<CalendarException>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.ExceptionDate })
                 .HasName("PK_Calendar_Details");
@@ -468,7 +468,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ExceptionDate).HasColumnType("timestamp without time zone");
         });
 
-        modelBuilder.Entity<TCalendarHeader>(entity =>
+        modelBuilder.Entity<Calendar>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_Calendar_Header");
@@ -478,7 +478,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCardDesignDetails>(entity =>
+        modelBuilder.Entity<CardDesignField>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Sequence })
                 .HasName("PK_CardDesign_Details");
@@ -496,7 +496,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<TCardDesignHeader>(entity =>
+        modelBuilder.Entity<CardDesign>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_CardDesign_Header");
@@ -508,7 +508,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<TCardManagerDefault>(entity =>
+        modelBuilder.Entity<CardManagerDefault>(entity =>
         {
             entity.HasKey(e => e.User)
                 .HasName("PK_CardManager_Default");
@@ -518,7 +518,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.User).ValueGeneratedNever();
         });
 
-        modelBuilder.Entity<TCardManagerHeader>(entity =>
+        modelBuilder.Entity<CardManager>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_CardManager_Header");
@@ -530,7 +530,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Printer).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCardManagerOrderByFields>(entity =>
+        modelBuilder.Entity<CardManagerOrderByField>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.SortNumber })
                 .HasName("PK_CardManager_OrderByFields");
@@ -541,7 +541,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.TableName).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCardManagerSelectFields>(entity =>
+        modelBuilder.Entity<CardManagerSelectField>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Position })
                 .HasName("PK_CardManager_SelectFields");
@@ -552,7 +552,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.TableName).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCardManagerWhereFields>(entity =>
+        modelBuilder.Entity<CardManagerWhereField>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Sequence })
                 .HasName("PK_CardManager_WhereFields");
@@ -566,7 +566,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Value2).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCardPackDetails>(entity =>
+        modelBuilder.Entity<CardPackSite>(entity =>
         {
             entity.HasKey(e => new { e.Site, e.CardPack })
                 .HasName("PK_CardPack_Details");
@@ -574,7 +574,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_CardPack_Details");
         });
 
-        modelBuilder.Entity<TCardPackHeader>(entity =>
+        modelBuilder.Entity<CardPack>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_CardPack_Header");
@@ -587,7 +587,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCommands>(entity =>
+        modelBuilder.Entity<Commands>(entity =>
         {
             entity.HasKey(e => e.CommandId)
                 .HasName("PK_Commands");
@@ -611,7 +611,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ValidTo).HasMaxLength(12);
         });
 
-        modelBuilder.Entity<TConnectors>(entity =>
+        modelBuilder.Entity<Connectors>(entity =>
         {
             entity.HasKey(e => e.Connector)
                 .HasName("PK_Connectors");
@@ -633,7 +633,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Telnumber).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCustom>(entity =>
+        modelBuilder.Entity<Custom>(entity =>
         {
             entity.HasKey(e => new { e.CustomFieldCode, e.Code })
                 .HasName("PK_Custom");
@@ -643,7 +643,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCustomFieldTypes>(entity =>
+        modelBuilder.Entity<CustomFieldTypes>(entity =>
         {
             entity.HasKey(e => e.CustomField)
                 .HasName("PK_CustomFieldTypes");
@@ -654,7 +654,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Literal).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TCustomer>(entity =>
+        modelBuilder.Entity<Customer>(entity =>
         {
             entity
                 .HasNoKey()
@@ -690,7 +690,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ProductKey).HasMaxLength(9);
         });
 
-        modelBuilder.Entity<TDisplay>(entity =>
+        modelBuilder.Entity<Display>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Position })
                 .HasName("PK_Display");
@@ -700,7 +700,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.PropertyId).HasColumnName("PropertyID");
         });
 
-        modelBuilder.Entity<TDisplayTypes>(entity =>
+        modelBuilder.Entity<DisplayTypes>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.PropertyId })
                 .HasName("PK_DisplayTypes");
@@ -719,7 +719,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<TDoorTechnology>(entity =>
+        modelBuilder.Entity<DoorTechnology>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_Door_Technology");
@@ -730,7 +730,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TDoors>(entity =>
+        modelBuilder.Entity<Doors>(entity =>
         {
             entity.HasKey(e => e.Door)
                 .HasName("PK_Doors");
@@ -802,7 +802,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Yplace).HasColumnName("YPlace");
         });
 
-        modelBuilder.Entity<TEnterpriseData>(entity =>
+        modelBuilder.Entity<EnterpriseData>(entity =>
         {
             entity.HasKey(e => new { e.Property, e.Value })
                 .HasName("PK_EnterpriseData");
@@ -813,7 +813,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Value).HasMaxLength(50);
         });
 
-        modelBuilder.Entity<TEventTypes>(entity =>
+        modelBuilder.Entity<EventTypes>(entity =>
         {
             entity.HasKey(e => e.EventType)
                 .HasName("PK_EventTypes");
@@ -831,7 +831,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<TEvents>(entity =>
+        modelBuilder.Entity<Events>(entity =>
         {
             entity.HasKey(e => new { e.EventDate, e.CardNumber, e.DoorNumber, e.EventType, e.ReaderId, e.EventId })
                 .HasName("PK_Events");
@@ -853,7 +853,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.AlarmId).HasColumnName("AlarmID");
         });
 
-        modelBuilder.Entity<TFloorPlans>(entity =>
+        modelBuilder.Entity<FloorPlans>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_FloorPlans");
@@ -865,7 +865,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<TIocontrollerDetails>(entity =>
+        modelBuilder.Entity<IoControllerInput>(entity =>
         {
             entity.HasKey(e => new { e.ControllerId, e.IoinputIndex })
                 .HasName("PK_IOController_Details");
@@ -878,7 +878,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.OutputName).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TIocontrollerHeader>(entity =>
+        modelBuilder.Entity<IoController>(entity =>
         {
             entity.HasKey(e => e.ControllerId)
                 .HasName("PK_IOController_Header");
@@ -902,7 +902,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasColumnName("RTCTime");
         });
 
-        modelBuilder.Entity<TModems>(entity =>
+        modelBuilder.Entity<Modems>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_Modems");
@@ -914,7 +914,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(255);
         });
 
-        modelBuilder.Entity<TNameAccessLevels>(entity =>
+        modelBuilder.Entity<CardholderAccessLevel>(entity =>
         {
             entity.HasKey(e => new { e.CardNumber, e.Site, e.Level })
                 .HasName("PK_Name_AccessLevels");
@@ -924,7 +924,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Modified).HasColumnType("timestamp without time zone");
         });
 
-        modelBuilder.Entity<TNameCustomFields>(entity =>
+        modelBuilder.Entity<CardholderCustomFields>(entity =>
         {
             entity.HasKey(e => e.CardNumber)
                 .HasName("PK_Name_CustomFields");
@@ -959,7 +959,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Custom9).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TNameHeader>(entity =>
+        modelBuilder.Entity<Cardholder>(entity =>
         {
             entity.HasKey(e => e.CardNumber)
                 .HasName("PK_Name_Header");
@@ -995,7 +995,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ValidTo).HasColumnType("timestamp without time zone");
         });
 
-        modelBuilder.Entity<TSites>(entity =>
+        modelBuilder.Entity<Sites>(entity =>
         {
             entity.HasKey(e => e.Site)
                 .HasName("PK_Sites");
@@ -1010,7 +1010,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(10);
         });
 
-        modelBuilder.Entity<TSpaceZoneAttendance>(entity =>
+        modelBuilder.Entity<SpaceZoneAttendance>(entity =>
         {
             entity.HasKey(e => new { e.ZoneNumber, e.CardIndex, e.DateandTime })
                 .HasName("PK_SpaceZone_Attendance");
@@ -1021,7 +1021,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Keyf).HasMaxLength(60);
         });
 
-        modelBuilder.Entity<TSpaceZoneCardholders>(entity =>
+        modelBuilder.Entity<SpaceZoneCardholder>(entity =>
         {
             entity.HasKey(e => new { e.SpaceZone, e.CardNumber })
                 .HasName("PK_SpaceZone_Cardholders");
@@ -1029,7 +1029,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_SpaceZone_Cardholders");
         });
 
-        modelBuilder.Entity<TSpaceZoneDetails>(entity =>
+        modelBuilder.Entity<SpaceZoneDoor>(entity =>
         {
             entity.HasKey(e => new { e.Door, e.Site, e.Zone })
                 .HasName("PK_SpaceZone_Details");
@@ -1041,7 +1041,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(10);
         });
 
-        modelBuilder.Entity<TSpaceZoneHeader>(entity =>
+        modelBuilder.Entity<SpaceZone>(entity =>
         {
             entity.HasKey(e => e.ZoneNumber)
                 .HasName("PK_SpaceZone_Header");
@@ -1055,7 +1055,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(10);
         });
 
-        modelBuilder.Entity<TStatusView>(entity =>
+        modelBuilder.Entity<StatusViews>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_StatusView");
@@ -1065,7 +1065,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TSystem>(entity =>
+        modelBuilder.Entity<SystemInfo>(entity =>
         {
             entity
                 .HasNoKey()
@@ -1077,7 +1077,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.CurrentVersion).HasMaxLength(10);
         });
 
-        modelBuilder.Entity<TTimeSheetHeader>(entity =>
+        modelBuilder.Entity<TimeSheet>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_TimeSheet_Header");
@@ -1121,7 +1121,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Rollover).HasColumnType("timestamp without time zone");
         });
 
-        modelBuilder.Entity<TTimeSheetZones>(entity =>
+        modelBuilder.Entity<TimeSheetZone>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Zone })
                 .HasName("PK_TimeSheet_Zones");
@@ -1129,7 +1129,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_TimeSheet_Zones");
         });
 
-        modelBuilder.Entity<TTimeZoneDetails>(entity =>
+        modelBuilder.Entity<TimeZoneInterval>(entity =>
         {
             entity.HasKey(e => new { e.TimeZone, e.Sequence })
                 .HasName("PK_TimeZone_Details");
@@ -1140,7 +1140,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.StartTime).HasMaxLength(10);
         });
 
-        modelBuilder.Entity<TTimeZoneHeader>(entity =>
+        modelBuilder.Entity<TimeZones>(entity =>
         {
             entity.HasKey(e => new { e.TimeZone, e.Site })
                 .HasName("PK_TimeZone_Header");
@@ -1151,7 +1151,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(30);
         });
 
-        modelBuilder.Entity<TTriggersControllers>(entity =>
+        modelBuilder.Entity<TriggerController>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.ControllerCode, e.InputIndex })
                 .HasName("PK_Triggers_Controllers");
@@ -1159,7 +1159,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_Triggers_Controllers");
         });
 
-        modelBuilder.Entity<TTriggersEvents>(entity =>
+        modelBuilder.Entity<TriggerEvent>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.EventType })
                 .HasName("PK_Triggers_Events");
@@ -1167,7 +1167,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_Triggers_Events");
         });
 
-        modelBuilder.Entity<TTriggersHeader>(entity =>
+        modelBuilder.Entity<Trigger>(entity =>
         {
             entity.HasKey(e => e.Code)
                 .HasName("PK_Triggers_Header");
@@ -1182,7 +1182,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.ResetRelayBperiod).HasColumnName("ResetRelayBPeriod");
         });
 
-        modelBuilder.Entity<TUserPermissions>(entity =>
+        modelBuilder.Entity<UserPermissions>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Area })
                 .HasName("PK_User_Permissions");
@@ -1194,7 +1194,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<TUserSites>(entity =>
+        modelBuilder.Entity<UserSites>(entity =>
         {
             entity.HasKey(e => new { e.Code, e.Site })
                 .HasName("PK_User_Sites");
@@ -1202,7 +1202,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.ToTable("T_User_Sites");
         });
 
-        modelBuilder.Entity<TUserlog>(entity =>
+        modelBuilder.Entity<Userlog>(entity =>
         {
             entity.HasKey(e => e.Key)
                 .HasName("PK_Userlog");
@@ -1219,7 +1219,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.User).HasMaxLength(28);
         });
 
-        modelBuilder.Entity<TUsers>(entity =>
+        modelBuilder.Entity<Users>(entity =>
         {
             // T_Users has a real identity PK (PK_T_Users on Code); keep the model keyed so the
             // entity can be tracked for insert/update/delete (the Users & Passwords page CRUD and
@@ -1236,7 +1236,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasColumnType("text"); // widened from legacy varchar(50) to hold BCrypt hashes
         });
 
-        modelBuilder.Entity<VNameAccessLevels>(entity =>
+        modelBuilder.Entity<NameAccessLevelsView>(entity =>
         {
             entity
                 .HasNoKey()
@@ -1257,7 +1257,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<VNameBlankAccessLevels>(entity =>
+        modelBuilder.Entity<NameBlankAccessLevelsView>(entity =>
         {
             entity
                 .HasNoKey()
@@ -1279,7 +1279,7 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<VNameHeader>(entity =>
+        modelBuilder.Entity<NameHeaderView>(entity =>
         {
             entity
                 .HasNoKey()

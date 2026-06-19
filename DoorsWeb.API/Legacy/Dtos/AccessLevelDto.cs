@@ -13,27 +13,27 @@ namespace DoorsWeb.API.Legacy.Dtos
     //   INNER JOIN T_Sites ON T_AccessLevel_Header.Site = T_Sites.Site
     //   ORDER BY T_Sites.Name, T_AccessLevel_Header.Name
     //
-    // One instance == one row. Scaffolded entities: TAccessLevelHeader, TSites.
+    // One instance == one row. Scaffolded entities: AccessLevels, Sites.
 
     /// <summary>One access level joined to its owning site.</summary>
     public class AccessLevelDto
     {
-        /// <summary>Global access-level code. Source: TAccessLevelHeader.AccessLevel.</summary>
+        /// <summary>Global access-level code. Source: AccessLevels.AccessLevel.</summary>
         public int Code { get; set; }
 
-        /// <summary>Access-level name. Source: TAccessLevelHeader.Name.</summary>
+        /// <summary>Access-level name. Source: AccessLevels.Name.</summary>
         public string? Name { get; set; }
 
         /// <summary>
-        /// Per-site local code. Source: TAccessLevelHeader.LocalLevel.
+        /// Per-site local code. Source: AccessLevels.LocalLevel.
         /// A value of 0 denotes the "All Doors" level.
         /// </summary>
         public int? LocalCode { get; set; }
 
-        /// <summary>Owning site code. Source: TSites.Site.</summary>
+        /// <summary>Owning site code. Source: Sites.Site.</summary>
         public int SiteCode { get; set; }
 
-        /// <summary>Owning site name. Source: TSites.Name.</summary>
+        /// <summary>Owning site name. Source: Sites.Name.</summary>
         public string? SiteName { get; set; }
     }
 }

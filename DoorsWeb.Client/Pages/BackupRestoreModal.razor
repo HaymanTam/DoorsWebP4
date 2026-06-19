@@ -111,8 +111,8 @@
         <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
             <Icon class="icon flex-shrink-0 me-2" IconType="@TablerIcons.Alert_triangle" />
             <div>
-                <strong>Card Design</strong> and <strong>Floor Plan</strong> are obsolete and no longer supported.<br />
-                Any such data in the backup is ignored on import and will not be restored.
+                <strong>Card Design</strong> and <strong>Floor Plan</strong> features have been removed — this system no longer manages them.<br />
+                Any such data in a legacy backup is still restored (so the import stays consistent), but it is unused and not accessible here.
             </div>
         </div>
         <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
@@ -137,6 +137,18 @@
                     User Settings. Review and lock down user permissions immediately after the import.
                 </div>
             </div>
+        </div>
+
+        @* Gate the restore behind an explicit acknowledgement: the user must confirm they have
+           read the warnings above before the import button becomes enabled. *@
+        <div class="mb-3">
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="legacyAcknowledged" disabled="@busy" />
+                <span class="form-check-label">
+                    I have read and understand the warnings above — this import overwrites current data, drops all
+                    audit history, and grants <strong>every imported user full (Super) access</strong>. This cannot be undone.
+                </span>
+            </label>
         </div>
 
         <div class="mb-2 row align-items-center">
@@ -169,7 +181,7 @@
             </div>
         </div>
         <div>
-            <button type="button" class="btn btn-danger" @onclick="RestoreLegacy" disabled="@(busy || legacyFile is null)">
+            <button type="button" class="btn btn-danger" @onclick="RestoreLegacy" disabled="@(busy || legacyFile is null || !legacyAcknowledged)">
                 @if (busy && busyAction == "legacy") { <span class="spinner-border spinner-border-sm me-2"></span> }
                 Restore Legacy Backup
             </button>
@@ -301,6 +313,7 @@
     private IBrowserFile? legacyFile;
     private string? legacyPassword;
     private bool showLegacyPwd;
+    private bool legacyAcknowledged;
     private LegacyRestoreResult? legacyResult;
 
     private bool _busy;
@@ -489,7 +502,7 @@
 
     private async Task RestoreLegacy()
     {
-        if (legacyFile is null) return;
+        if (legacyFile is null || !legacyAcknowledged) return;
 
         var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
         {

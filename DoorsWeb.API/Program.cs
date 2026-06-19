@@ -115,18 +115,18 @@ builder.Services.AddScoped<IEventService, EventService>();
 // Doors (list + editor, mapped to T_Doors)
 builder.Services.AddScoped<IDoorService, DoorService>();
 
-// Header CRUD services (legacy DoorsEnterprise entities)
-builder.Services.AddScoped<IAccessLevelHeaderService, AccessLevelHeaderService>();
-builder.Services.AddScoped<IApbzoneHeaderService, ApbzoneHeaderService>();
-builder.Services.AddScoped<ICalendarHeaderService, CalendarHeaderService>();
-builder.Services.AddScoped<ICardManagerHeaderService, CardManagerHeaderService>();
-builder.Services.AddScoped<ICardPackHeaderService, CardPackHeaderService>();
-builder.Services.AddScoped<IIocontrollerHeaderService, IocontrollerHeaderService>();
-builder.Services.AddScoped<INameHeaderService, NameHeaderService>();
-builder.Services.AddScoped<ISpaceZoneHeaderService, SpaceZoneHeaderService>();
-builder.Services.AddScoped<ITimeSheetHeaderService, TimeSheetHeaderService>();
-builder.Services.AddScoped<ITimeZoneHeaderService, TimeZoneHeaderService>();
-builder.Services.AddScoped<ITriggersHeaderService, TriggersHeaderService>();
+// CRUD services (legacy DoorsEnterprise entities)
+builder.Services.AddScoped<IAccessLevelService, AccessLevelService>();
+builder.Services.AddScoped<IApbZoneService, ApbZoneService>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
+builder.Services.AddScoped<ICardManagerService, CardManagerService>();
+builder.Services.AddScoped<ICardPackService, CardPackService>();
+builder.Services.AddScoped<IIoControllerService, IoControllerService>();
+builder.Services.AddScoped<ICardholderService, CardholderService>();
+builder.Services.AddScoped<ISpaceZoneService, SpaceZoneService>();
+builder.Services.AddScoped<ITimeSheetService, TimeSheetService>();
+builder.Services.AddScoped<ITimeZoneService, TimeZoneService>();
+builder.Services.AddScoped<ITriggersService, TriggersService>();
 
 // Database backup / restore
 builder.Services.AddScoped<IBackupService, BackupService>();

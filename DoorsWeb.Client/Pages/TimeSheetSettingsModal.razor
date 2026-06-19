@@ -1,0 +1,306 @@
+@* Time Sheet dialog (mirrors LegacyDoorsClient frmTimeSheet General/Who/When/Where/Print tabs).
+   These are *saved settings*; the report is run fresh each time via the "Run report" button,
+   which executes the legacy sp_TimeSheet algorithm on the server. OK saves; Cancel discards. *@
+
+@using DoorsWeb.Shared.DTO
+@using DoorsWeb.Shared.Entities
+
+<TablerForm Model="@model" OnValidSubmit="OK">
+    <Tabs>
+        @* ============================= GENERAL ============================= *@
+        <Tab Title="General">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Time Sheet</CardTitle>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-3 text-end">
+                            <label class="form-label mb-0">Name</label>
+                        </div>
+                        <div class="col-lg-9">
+                            <InputText class="form-control" @bind-Value="model.Name" disabled="@busy" />
+                        </div>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* =============================== WHO =============================== *@
+        <Tab Title="Who">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Cardholder filters</CardTitle>
+                    <p class="text-muted small">Leave a field blank to include everyone. First/last name match the start of the name.</p>
+
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-3 text-end"><label class="form-label mb-0">Card ID</label></div>
+                        <div class="col-lg-9"><InputText class="form-control" @bind-Value="model.CardId" disabled="@busy" /></div>
+                    </div>
+                    <div class="mb-2 row align-items-center">
+                        <div class="col-lg-3 text-end"><label class="form-label mb-0">First name</label></div>
+                        <div class="col-lg-9"><InputText class="form-control" @bind-Value="model.FirstName" disabled="@busy" /></div>
+                    </div>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-3 text-end"><label class="form-label mb-0">Last name</label></div>
+                        <div class="col-lg-9"><InputText class="form-control" @bind-Value="model.LastName" disabled="@busy" /></div>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* =============================== WHEN ============================== *@
+        <Tab Title="When">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Period</CardTitle>
+                    <InputRadioGroup @bind-Value="model.DateSearch">
+                        @* 1 = single day *@
+                        <div class="row align-items-center mb-2">
+                            <div class="col-lg-3">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@(1)" />
+                                    <span class="form-check-label">On</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-4">
+                                <input type="date" class="form-control" @bind="model.DateFrom" disabled="@(busy || model.DateSearch != 1)" />
+                            </div>
+                        </div>
+
+                        @* 2 = between two dates *@
+                        <div class="row align-items-center mb-2">
+                            <div class="col-lg-3">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@(2)" />
+                                    <span class="form-check-label">Between</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-4">
+                                <input type="date" class="form-control" @bind="model.DateFrom" disabled="@(busy || model.DateSearch != 2)" />
+                            </div>
+                            <div class="col-lg-1 text-center"><label class="form-label mb-0">and</label></div>
+                            <div class="col-lg-4">
+                                <input type="date" class="form-control" @bind="model.DateTo" disabled="@(busy || model.DateSearch != 2)" />
+                            </div>
+                        </div>
+
+                        @* 3 = in the last N periods *@
+                        <div class="row align-items-center mb-1">
+                            <div class="col-lg-3">
+                                <label class="form-check mb-0">
+                                    <InputRadio class="form-check-input" Value="@(3)" />
+                                    <span class="form-check-label">In the last</span>
+                                </label>
+                            </div>
+                            <div class="col-lg-3">
+                                <InputNumber class="form-control" @bind-Value="model.InLastNumber" disabled="@(busy || model.DateSearch != 3)" />
+                            </div>
+                            <div class="col-lg-4">
+                                <InputSelect class="form-select" @bind-Value="model.InLastPeriod" disabled="@(busy || model.DateSearch != 3)">
+                                    <option value="1">days</option>
+                                    <option value="4">weeks</option>
+                                    <option value="5">months</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+                    </InputRadioGroup>
+                </CardBody>
+            </Card>
+
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Day rollover</CardTitle>
+                    <div class="mb-1 row align-items-center">
+                        <div class="col-lg-3 text-end"><label class="form-label mb-0">Working day starts at</label></div>
+                        <div class="col-lg-4">
+                            <input type="time" class="form-control" @bind="model.Rollover" @bind:format="HH:mm" disabled="@busy" />
+                        </div>
+                        <div class="col-lg-5"><em class="text-muted small">Shifts that cross midnight are grouped into the day they started.</em></div>
+                    </div>
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* ============================== WHERE ============================== *@
+        <Tab Title="Where">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Space zones</CardTitle>
+                    <p class="text-muted small">Restrict the report to selected zones. With none ticked, all zones are included.</p>
+
+                    @if (model.Zones.Count == 0)
+                    {
+                        <div class="text-muted">No space zones are defined.</div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            @foreach (var z in model.Zones)
+                            {
+                                <div class="col-lg-6 mb-1">
+                                    <label class="form-check mb-0">
+                                        <InputCheckbox class="form-check-input" @bind-Value="z.Included" disabled="@busy" />
+                                        <span class="form-check-label">@(string.IsNullOrWhiteSpace(z.Name) ? $"Zone {z.Zone}" : z.Name)</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                </CardBody>
+            </Card>
+        </Tab>
+
+        @* ============================== PRINT ============================== *@
+        <Tab Title="Print">
+            <Card Size="CardSize.Default">
+                <CardBody>
+                    <CardTitle>Page breaks</CardTitle>
+                    <label class="form-check mb-1">
+                        <InputCheckbox class="form-check-input" @bind-Value="model.DatePageBreak" disabled="@busy" />
+                        <span class="form-check-label">Start a new page for each date</span>
+                    </label>
+                    <label class="form-check mb-0">
+                        <InputCheckbox class="form-check-input" @bind-Value="model.CardIdPageBreak" disabled="@busy" />
+                        <span class="form-check-label">Start a new page for each cardholder</span>
+                    </label>
+                </CardBody>
+            </Card>
+        </Tab>
+    </Tabs>
+
+    @if (status is not null)
+    {
+        <div class="alert alert-danger py-2 px-3 small mt-3 mb-0" role="alert">@status</div>
+    }
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+        <button type="button" class="btn btn-azure" @onclick="RunReport" disabled="@busy">
+            <Icon class="icon me-1" IconType="@TablerIcons.Player_play" />Run report
+        </button>
+        <button type="submit" class="btn btn-primary" disabled="@busy">OK</button>
+    </div>
+</TablerForm>
+
+@code {
+
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+    [Inject] IHttpClientFactory ClientFactory { get; set; } = null!;
+
+    /// <summary>Existing time sheet's code; null when creating a new one.</summary>
+    [Parameter] public int? TimeSheetId { get; set; }
+
+    private TimeSheetSaveDto model = new();
+    private bool busy;
+    private string? status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var url = TimeSheetId is int id ? $"api/TimeSheet/edit?code={id}" : "api/TimeSheet/edit";
+            model = await client.GetFromJsonAsync<TimeSheetSaveDto>(url) ?? new();
+        }
+        catch
+        {
+            // Leave defaults; the user can still enter values.
+            model = new();
+        }
+    }
+
+    private async Task OK(EditContext context)
+    {
+        if (await Save() is not null)
+        {
+            ModalService.Close(ModalResult.Ok());
+        }
+    }
+
+    // Saves the current settings, then runs the report from those saved settings (run fresh every time).
+    private async Task RunReport()
+    {
+        var code = await Save();
+        if (code is not int id) return;
+
+        busy = true;
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var rows = await client.GetFromJsonAsync<List<TimeSheetReportRowDto>>($"api/TimeSheet/{id}/run") ?? new();
+
+            var component = new RenderComponent<TimeSheetResultsModal>()
+                .Set(c => c.Rows, rows)
+                .Set(c => c.Heading, string.IsNullOrWhiteSpace(model.Name) ? "Time sheet" : model.Name);
+
+            await ModalService.ShowAsync($"Time sheet - {model.Name}", component, new ModalOptions
+            {
+                Size = ModalSize.Large,
+                ShowHeader = true,
+                Scrollable = true,
+                CloseOnEsc = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            status = $"Run failed: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    // Persists the settings and returns the saved code, or null if validation/save failed.
+    private async Task<int?> Save()
+    {
+        status = Validate();
+        if (status is not null) return null;
+
+        busy = true;
+        try
+        {
+            model.Name = model.Name?.Trim() ?? "";
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = await client.PostAsJsonAsync("api/TimeSheet/save", model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var saved = await response.Content.ReadFromJsonAsync<TimeSheet>();
+                if (saved is not null)
+                {
+                    model.Code = saved.Code; // keep the form bound to the now-persisted record
+                    TimeSheetId = saved.Code;
+                    return saved.Code;
+                }
+            }
+
+            status = $"Save failed ({(int)response.StatusCode}). {await response.Content.ReadAsStringAsync()}";
+            return null;
+        }
+        catch (Exception ex)
+        {
+            status = $"Save failed: {ex.Message}";
+            return null;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private string? Validate()
+    {
+        if (string.IsNullOrWhiteSpace(model.Name))
+            return "Please enter a name for the time sheet.";
+
+        if (model.DateSearch == 2 && model.DateTo.Date < model.DateFrom.Date)
+            return "The end date must be on or after the start date.";
+
+        if (model.DateSearch == 3 && model.InLastNumber < 1)
+            return "The number of periods must be at least 1.";
+
+        return null;
+    }
+
+    private void Cancel() => ModalService.Close(ModalResult.Cancel());
+}

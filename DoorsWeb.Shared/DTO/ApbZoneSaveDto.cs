@@ -19,6 +19,9 @@ namespace DoorsWeb.Shared.DTO
         public DateTime? DiscoveryExpiry { get; set; }
 
         public bool FireAlarmReset { get; set; }
+        /// <summary>Door whose input is wired to the fire-alarm panel ("use fire alarm input from").
+        /// Null = none. Maps to T_APBZone_Header.FireInterfaceDoor.</summary>
+        public int? FireInterfaceDoor { get; set; }
         public int FireAlarmDiscoveryMinutes { get; set; }
 
         public bool LogOutDaily { get; set; }

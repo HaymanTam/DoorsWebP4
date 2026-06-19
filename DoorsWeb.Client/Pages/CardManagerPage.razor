@@ -30,6 +30,9 @@
             <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick="ShowCardPacksModal">
                 <Icon class="icon me-1" IconType="@TablerIcons.Stack_2" />Card Packs
             </Button>
+            <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick="ShowTimeSheetsModal">
+                <Icon class="icon me-1" IconType="@TablerIcons.Calendar_clock" />Time Sheets
+            </Button>
             <Button BackgroundColor="TablerColor.Secondary" OnClick="Refresh">
                 <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
             </Button>
@@ -496,7 +499,7 @@
         }
     }
 
-    // ---- Card Packs: name-only list modal (api/CardPackHeader, key Code) ----
+    // ---- Card Packs: name-only list modal (api/CardPack, key Code) ----
     private async Task ShowCardPacksModal()
     {
         var component = new RenderComponent<EntityListModal>()
@@ -519,7 +522,7 @@
 
     private async Task<List<EntityListRow>> LoadCardPackRows()
     {
-        var list = await client.GetFromJsonAsync<List<CardPack>>("api/CardPackHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<CardPack>>("api/CardPack") ?? new();
         return list.OrderBy(p => p.Name)
                    .Select(p => new EntityListRow { Id = p.Code.ToString(), Name = p.Name ?? "" }).ToList();
     }
@@ -541,7 +544,56 @@
 
     private async Task DeleteCardPack(EntityListRow row)
     {
-        await client.DeleteAsync($"api/CardPackHeader/{row.Id}");
+        await client.DeleteAsync($"api/CardPack/{row.Id}");
+    }
+
+    // ---- Time Sheets: saved report settings (api/TimeSheet, key Code). Editing opens the settings
+    //      modal, which can run the hours-worked report fresh from those settings. ----
+    private async Task ShowTimeSheetsModal()
+    {
+        var component = new RenderComponent<EntityListModal>()
+            .Set(e => e.ItemNoun, "Time Sheet")
+            .Set(e => e.Load, LoadTimeSheetRows);
+        // Read-only users get a view-only list (EntityListModal hides Add/Edit/Delete when these are null).
+        if (canWrite)
+            component.Set(e => e.OnAdd, () => ShowTimeSheetEdit(null))
+                     .Set(e => e.OnEdit, (EntityListRow row) => ShowTimeSheetEdit(row))
+                     .Set(e => e.OnDelete, DeleteTimeSheet);
+
+        await ModalService.ShowAsync("Time Sheets", component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+            CloseOnEsc = true,
+        });
+    }
+
+    private async Task<List<EntityListRow>> LoadTimeSheetRows()
+    {
+        var list = await client.GetFromJsonAsync<List<TimeSheet>>("api/TimeSheet") ?? new();
+        return list.OrderBy(t => t.Name)
+                   .Select(t => new EntityListRow { Id = t.Code.ToString(), Name = t.Name ?? "" }).ToList();
+    }
+
+    private async Task ShowTimeSheetEdit(EntityListRow? row)
+    {
+        var title = row is null ? "Time sheets - New time sheet" : "Time sheets - Edit time sheet";
+        var component = new RenderComponent<TimeSheetSettingsModal>();
+        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
+        if (row is not null) component.Set(e => e.TimeSheetId, int.Parse(row.Id));
+
+        await ModalService.ShowAsync(title, component, new ModalOptions
+        {
+            Size = ModalSize.Large,
+            ShowHeader = true,
+            Scrollable = true,
+        });
+    }
+
+    private async Task DeleteTimeSheet(EntityListRow row)
+    {
+        await client.DeleteAsync($"api/TimeSheet/{row.Id}");
     }
 
     private async Task ConfirmDeleteCard(int cardNumber)

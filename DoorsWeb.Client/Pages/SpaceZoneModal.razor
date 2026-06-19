@@ -233,7 +233,7 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            var url = $"api/SpaceZoneHeader/{SiteId}/doors";
+            var url = $"api/SpaceZone/{SiteId}/doors";
             if (ZoneNumber is int zn) url += $"?zone={zn}";
 
             var dto = await client.GetFromJsonAsync<SpaceZoneSaveDto>(url);
@@ -283,7 +283,7 @@
             };
 
             var client = ClientFactory.CreateClient("WebAPI");
-            var response = await client.PostAsJsonAsync("api/SpaceZoneHeader/save", dto);
+            var response = await client.PostAsJsonAsync("api/SpaceZone/save", dto);
             if (response.IsSuccessStatusCode)
             {
                 ModalService.Close(ModalResult.Ok());

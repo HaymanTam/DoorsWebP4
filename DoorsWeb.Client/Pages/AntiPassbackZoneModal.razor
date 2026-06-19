@@ -115,8 +115,12 @@
                             <label class="form-label mb-0">Use fire alarm input from</label>
                         </div>
                         <div class="col-lg-7">
-                            <InputSelect class="form-select" @bind-Value="zone.FireAlarmInput" disabled="@(!zone.FireAlarmReset)">
-                                <option value="(none)">(none)</option>
+                            <InputSelect class="form-select" @bind-Value="zone.FireInterfaceDoor" disabled="@(!zone.FireAlarmReset)">
+                                <option value="">(none)</option>
+                                @foreach (var d in zone.Doors)
+                                {
+                                    <option value="@d.Door">@d.Name</option>
+                                }
                             </InputSelect>
                         </div>
                     </div>
@@ -284,6 +288,7 @@
                     zone.SetUntilTime = TimeOnly.FromDateTime(exp);
                 }
                 zone.FireAlarmReset = dto.FireAlarmReset;
+                zone.FireInterfaceDoor = dto.FireInterfaceDoor;
                 zone.FireAlarmDiscoveryMinutes = dto.FireAlarmDiscoveryMinutes;
                 zone.LogOutDaily = dto.LogOutDaily;
                 if (!string.IsNullOrWhiteSpace(dto.LogOutTime)
@@ -328,6 +333,7 @@
                     ? zone.SetUntilDate.ToDateTime(zone.SetUntilTime)
                     : null,
                 FireAlarmReset = zone.FireAlarmReset,
+                FireInterfaceDoor = zone.FireInterfaceDoor,
                 FireAlarmDiscoveryMinutes = zone.FireAlarmDiscoveryMinutes,
                 LogOutDaily = zone.LogOutDaily,
                 LogOutTime = zone.LogOutDaily ? zone.LogOutTime.ToString("HH:mm") : null,
@@ -461,7 +467,8 @@
 
         // Fire alarm reset
         public bool FireAlarmReset { get; set; } = false;
-        public string FireAlarmInput { get; set; } = "(none)";
+        // Door whose input is wired to the fire-alarm panel; null = none.
+        public int? FireInterfaceDoor { get; set; }
         public int FireAlarmDiscoveryMinutes { get; set; } = 0;
 
         // Auto correction

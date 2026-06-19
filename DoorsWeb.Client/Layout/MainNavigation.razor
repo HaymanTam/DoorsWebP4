@@ -330,7 +330,7 @@
         await client.DeleteAsync("api/AccessLevel/" + row.Id);
     }
 
-    // ---- Time Zones: name-only list modal (api/TimeZoneHeader, key { Site, TimeZone }) ----
+    // ---- Time Zones: name-only list modal (api/TimeZone, key { Site, TimeZone }) ----
     private async Task ShowTimeZonesModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
@@ -353,8 +353,8 @@
     private async Task<List<EntityListRow>> LoadTimeZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<TimeZones>>("api/TimeZoneHeader") ?? new();
-        // Delete route is api/TimeZoneHeader/{site}/{timeZone}, so encode both into the row Id.
+        var list = await client.GetFromJsonAsync<List<TimeZones>>("api/TimeZone") ?? new();
+        // Delete route is api/TimeZone/{site}/{timeZone}, so encode both into the row Id.
         return list.Where(t => t.Site == siteId)
                    .Select(t => new EntityListRow { Id = $"{t.Site}/{t.TimeZone}", Name = t.Name ?? "" }).ToList();
     }
@@ -380,7 +380,7 @@
     private async Task DeleteTimeZone(EntityListRow row)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/TimeZoneHeader/" + row.Id);
+        await client.DeleteAsync("api/TimeZone/" + row.Id);
     }
 
     // ---- Calendars: name-only list modal (api/Calendar, key Code) ----
@@ -433,7 +433,7 @@
         await client.DeleteAsync("api/Calendar/" + row.Id);
     }
 
-    // ---- Space Zones: name-only list modal (api/SpaceZoneHeader, key ZoneNumber) ----
+    // ---- Space Zones: name-only list modal (api/SpaceZone, key ZoneNumber) ----
     private async Task ShowSpaceZonesModal(SiteDto site)
     {
         var component = new RenderComponent<EntityListModal>()
@@ -456,7 +456,7 @@
     private async Task<List<EntityListRow>> LoadSpaceZoneRows(int siteId)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        var list = await client.GetFromJsonAsync<List<SpaceZone>>("api/SpaceZoneHeader") ?? new();
+        var list = await client.GetFromJsonAsync<List<SpaceZone>>("api/SpaceZone") ?? new();
         return list.Where(z => z.Site == siteId)
                    .Select(z => new EntityListRow { Id = z.ZoneNumber.ToString(), Name = z.Name ?? "" }).ToList();
     }
@@ -482,7 +482,7 @@
     private async Task DeleteSpaceZone(EntityListRow row)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/SpaceZoneHeader/" + row.Id);
+        await client.DeleteAsync("api/SpaceZone/" + row.Id);
     }
 
     // ---- Anti-Passback Zones: name-only list modal (api/ApbZone, key Apbnumber) ----

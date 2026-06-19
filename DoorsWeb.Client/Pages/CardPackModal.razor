@@ -72,7 +72,7 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            var pack = await client.GetFromJsonAsync<CardPack>($"api/CardPackHeader/{id}");
+            var pack = await client.GetFromJsonAsync<CardPack>($"api/CardPack/{id}");
             if (pack is not null)
             {
                 model.Name = pack.Name;
@@ -106,8 +106,8 @@
 
             var client = ClientFactory.CreateClient("WebAPI");
             var response = CardPackId is int id
-                ? await client.PutAsJsonAsync($"api/CardPackHeader/{id}", entity)
-                : await client.PostAsJsonAsync("api/CardPackHeader", entity);
+                ? await client.PutAsJsonAsync($"api/CardPack/{id}", entity)
+                : await client.PostAsJsonAsync("api/CardPack", entity);
 
             if (response.IsSuccessStatusCode)
             {

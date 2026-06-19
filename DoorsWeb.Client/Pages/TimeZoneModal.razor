@@ -122,7 +122,7 @@
         try
         {
             var client = ClientFactory.CreateClient("WebAPI");
-            var dto = await client.GetFromJsonAsync<TimeZoneSaveDto>($"api/TimeZoneHeader/{SiteId}/{tz}/full");
+            var dto = await client.GetFromJsonAsync<TimeZoneSaveDto>($"api/TimeZone/{SiteId}/{tz}/full");
             if (dto is not null)
             {
                 timeZone.Name = dto.Name;
@@ -150,7 +150,7 @@
             };
 
             var client = ClientFactory.CreateClient("WebAPI");
-            var response = await client.PostAsJsonAsync("api/TimeZoneHeader/save", dto);
+            var response = await client.PostAsJsonAsync("api/TimeZone/save", dto);
             if (response.IsSuccessStatusCode)
             {
                 ModalService.Close(ModalResult.Ok());

@@ -9,8 +9,6 @@ public partial class IoController
 
     public int? ControllerIndex { get; set; }
 
-    public int? Connector { get; set; }
-
     public string? Name { get; set; }
 
     public string? Ipaddress { get; set; }

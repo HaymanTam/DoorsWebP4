@@ -1,0 +1,129 @@
+@* Reusable Custom Card Format section: Site code / Card number digit weights, read Direction
+   and reader Interface. Mirrors the legacy DoorsClient dialog. Embedded in the System Settings
+   dialog (these are global settings).
+
+   Note: the InputNumber/InputRadioGroup controls require a cascading EditContext, so this
+   component must be placed inside an EditForm/TablerForm by its host. *@
+
+<div class="row">
+    <div class="col-lg-6">
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <CardTitle>Site code</CardTitle>
+                <div class="mb-2 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 4</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.SiteDigit4"></InputNumber></div>
+                </div>
+                <div class="mb-2 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 3</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.SiteDigit3"></InputNumber></div>
+                </div>
+                <div class="mb-2 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 2</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.SiteDigit2"></InputNumber></div>
+                </div>
+                <div class="mb-1 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 1</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.SiteDigit1"></InputNumber></div>
+                </div>
+            </CardBody>
+        </Card>
+    </div>
+    <div class="col-lg-6">
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <CardTitle>Card number</CardTitle>
+                <div class="mb-2 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 4</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.CardDigit4"></InputNumber></div>
+                </div>
+                <div class="mb-2 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 3</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.CardDigit3"></InputNumber></div>
+                </div>
+                <div class="mb-2 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 2</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.CardDigit2"></InputNumber></div>
+                </div>
+                <div class="mb-1 row align-items-center">
+                    <div class="col-6 text-end"><label class="form-label mb-0">Digit 1</label></div>
+                    <div class="col-6"><InputNumber class="form-control" @bind-Value="Format.CardDigit1"></InputNumber></div>
+                </div>
+            </CardBody>
+        </Card>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <CardTitle>Direction</CardTitle>
+                <InputRadioGroup @bind-Value="Format.Direction">
+                    <label class="form-check">
+                        <InputRadio class="form-check-input" Value="@("Read From Left")"></InputRadio>
+                        <span class="form-check-label">Read From Left</span>
+                    </label>
+                    <label class="form-check">
+                        <InputRadio class="form-check-input" Value="@("Read From Right")"></InputRadio>
+                        <span class="form-check-label">Read From Right</span>
+                    </label>
+                </InputRadioGroup>
+            </CardBody>
+        </Card>
+    </div>
+    <div class="col-lg-6">
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <CardTitle>Interface</CardTitle>
+                <InputRadioGroup @bind-Value="Format.Interface">
+                    <label class="form-check">
+                        <InputRadio class="form-check-input" Value="@("Wiegand")"></InputRadio>
+                        <span class="form-check-label">Wiegand</span>
+                    </label>
+                    <label class="form-check">
+                        <InputRadio class="form-check-input" Value="@("Clock & Data")"></InputRadio>
+                        <span class="form-check-label">Clock &amp; Data</span>
+                    </label>
+                </InputRadioGroup>
+            </CardBody>
+        </Card>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <Card Size="CardSize.Default">
+            <CardBody>
+                <div class="row align-items-center">
+                    <div class="col-lg-4 text-lg-end"><label class="form-label mb-0">Corporate 1000 code</label></div>
+                    <div class="col-lg-4"><InputText class="form-control" @bind-Value="Format.Corporate1000Code"></InputText></div>
+                </div>
+            </CardBody>
+        </Card>
+    </div>
+</div>
+
+@code {
+
+    /// <summary>The format model these fields edit (two-way bound by the host).</summary>
+    [Parameter, EditorRequired] public CustomCardFormatModel Format { get; set; } = new();
+
+    public class CustomCardFormatModel
+    {
+        public int SiteDigit4 { get; set; } = 50;
+        public int SiteDigit3 { get; set; } = 50;
+        public int SiteDigit2 { get; set; } = 50;
+        public int SiteDigit1 { get; set; } = 50;
+
+        public int CardDigit4 { get; set; } = 50;
+        public int CardDigit3 { get; set; } = 50;
+        public int CardDigit2 { get; set; } = 50;
+        public int CardDigit1 { get; set; } = 50;
+
+        public string Direction { get; set; } = "Read From Right";
+        public string Interface { get; set; } = "Clock & Data";
+
+        public string? Corporate1000Code { get; set; }
+    }
+}

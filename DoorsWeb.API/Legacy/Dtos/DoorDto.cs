@@ -1,11 +1,11 @@
 namespace DoorsWeb.API.Legacy.Dtos
 {
     // Mirrors frmMain.LoadDoors -> FillDoorStatus (LegacyDoorsClient\frmMain.frm).
-    // Doors are grouped per site (and optionally filtered by connector):
+    // Doors are grouped per site:
     //
     //   <Site Code="..." Name="...">
     //     <Doors>
-    //       <Door Code="..." Connector="..." Door1="..." Door2="..." ... />
+    //       <Door Code="..." Door1="..." Door2="..." ... />
     //     </Doors>
     //   </Site>
     //
@@ -15,7 +15,7 @@ namespace DoorsWeb.API.Legacy.Dtos
     // This DTO carries only the stable identity fields; the dynamic status values
     // are intentionally not modelled here.
     //
-    // Scaffolded entities: Doors (Door, Name, Connector, Site, ...), Sites.
+    // Scaffolded entities: Doors (Door, Name, Site, ...), Sites.
 
     /// <summary>One door's core identity, joined to its owning site.</summary>
     public class DoorDto
@@ -25,9 +25,6 @@ namespace DoorsWeb.API.Legacy.Dtos
 
         /// <summary>Door name. Source: Doors.Name (shown as the first status column).</summary>
         public string? Name { get; set; }
-
-        /// <summary>Owning connector code. Source: Door/@Connector (Doors.Connector).</summary>
-        public int? Connector { get; set; }
 
         /// <summary>Owning site code. Source: Site/@Code (Sites.Site).</summary>
         public int SiteCode { get; set; }

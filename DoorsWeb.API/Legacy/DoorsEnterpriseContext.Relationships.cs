@@ -12,7 +12,7 @@ namespace DoorsWeb.API.Legacy;
 // model how the tables relate so navigations and Include() work.
 //
 // Every relationship is configured explicitly because the legacy column names do
-// not follow EF conventions (e.g. "Site", "Connector", "Apbnumber" rather than
+// not follow EF conventions (e.g. "Site", "Apbnumber" rather than
 // "...Id"), and several entity pairs have multiple relationships (e.g. T_Doors
 // has three FKs into T_DoorTechnology). Explicit config also prevents EF's
 // by-convention discovery from inventing shadow FK columns.
@@ -39,11 +39,6 @@ public partial class DoorsEnterpriseContext
                 .HasForeignKey(d => d.Site)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            entity.HasOne(d => d.ConnectorNavigation)
-                .WithMany(p => p.Doors)
-                .HasForeignKey(d => d.Connector)
-                .OnDelete(DeleteBehavior.NoAction);
-
             entity.HasOne(d => d.TechnologyANavigation)
                 .WithMany()
                 .HasForeignKey(d => d.TechnologyA)
@@ -62,24 +57,6 @@ public partial class DoorsEnterpriseContext
             entity.HasOne(d => d.FloorPlanNavigation)
                 .WithMany()
                 .HasForeignKey(d => d.FloorPlan)
-                .OnDelete(DeleteBehavior.NoAction);
-        });
-
-        // ---- T_Connectors -----------------------------------------------------
-        modelBuilder.Entity<Connectors>(entity =>
-        {
-            entity.HasOne(d => d.SiteNavigation)
-                .WithMany(p => p.Connectors)
-                .HasForeignKey(d => d.Site)
-                .OnDelete(DeleteBehavior.NoAction);
-        });
-
-        // ---- T_IOController_Header -------------------------------------------
-        modelBuilder.Entity<IoController>(entity =>
-        {
-            entity.HasOne(d => d.ConnectorNavigation)
-                .WithMany(p => p.IoControllers)
-                .HasForeignKey(d => d.Connector)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
@@ -354,15 +331,6 @@ public partial class DoorsEnterpriseContext
             entity.HasOne(d => d.EventTypeNavigation)
                 .WithMany()
                 .HasForeignKey(d => d.EventType)
-                .OnDelete(DeleteBehavior.NoAction);
-        });
-
-        // ---- T_Commands -------------------------------------------------------
-        modelBuilder.Entity<Commands>(entity =>
-        {
-            entity.HasOne(d => d.ConnectorNavigation)
-                .WithMany(p => p.Commands)
-                .HasForeignKey(d => d.Connector)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

@@ -238,14 +238,13 @@ namespace DoorsWeb.API.Migrations
                 {
                     ID = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CardID = table.Column<string>(type: "character varying(8)", unicode: false, maxLength: 8, nullable: false),
-                    SaveDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    SavedBy = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: false),
-                    Workstation = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: false),
-                    Forename = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: false),
-                    Surname = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: false),
-                    Enabled = table.Column<bool>(type: "boolean", nullable: false),
-                    AccessLevels = table.Column<string>(type: "character varying(1000)", unicode: false, maxLength: 1000, nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UserName = table.Column<string>(type: "character varying(60)", unicode: false, maxLength: 60, nullable: false),
+                    ClientIp = table.Column<string>(type: "character varying(45)", unicode: false, maxLength: 45, nullable: true),
+                    Action = table.Column<string>(type: "character varying(10)", unicode: false, maxLength: 10, nullable: false),
+                    EntityType = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    EntityKey = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    EntityName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -291,20 +290,6 @@ namespace DoorsWeb.API.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Bio_Data", x => x.Slot);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "T_CardDesign_Header",
-                columns: table => new
-                {
-                    Code = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Description = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: false),
-                    Orientation = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CardDesign_Header", x => x.Code);
                 });
 
             migrationBuilder.CreateTable(
@@ -595,41 +580,14 @@ namespace DoorsWeb.API.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Description = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     Password = table.Column<string>(type: "text", nullable: false),
-                    Administrator = table.Column<bool>(type: "boolean", nullable: false)
+                    Administrator = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    CardManagerAccess = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    SiteSettingsAccess = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    UserSettingsAccess = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_T_Users", x => x.Code);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "T_CardDesign_Details",
-                columns: table => new
-                {
-                    Code = table.Column<int>(type: "integer", nullable: false),
-                    Sequence = table.Column<int>(type: "integer", nullable: false),
-                    Type = table.Column<int>(type: "integer", nullable: false),
-                    Left = table.Column<int>(type: "integer", nullable: false),
-                    Top = table.Column<int>(type: "integer", nullable: false),
-                    Height = table.Column<int>(type: "integer", nullable: false),
-                    Width = table.Column<int>(type: "integer", nullable: false),
-                    Text = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: false),
-                    FontName = table.Column<string>(type: "character varying(30)", unicode: false, maxLength: 30, nullable: false),
-                    FontSize = table.Column<string>(type: "character varying(10)", unicode: false, maxLength: 10, nullable: false),
-                    Alignment = table.Column<int>(type: "integer", nullable: false),
-                    Bold = table.Column<bool>(type: "boolean", nullable: false),
-                    Italic = table.Column<bool>(type: "boolean", nullable: false),
-                    Underline = table.Column<bool>(type: "boolean", nullable: false),
-                    Colour = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CardDesign_Details", x => new { x.Code, x.Sequence });
-                    table.ForeignKey(
-                        name: "FK_T_CardDesign_Details_T_CardDesign_Header_Code",
-                        column: x => x.Code,
-                        principalTable: "T_CardDesign_Header",
-                        principalColumn: "Code");
                 });
 
             migrationBuilder.CreateTable(
@@ -1478,11 +1436,6 @@ namespace DoorsWeb.API.Migrations
                         principalTable: "T_APBZone_Header",
                         principalColumn: "APBNumber");
                     table.ForeignKey(
-                        name: "FK_T_Name_Header_T_CardDesign_Header_CardDesign",
-                        column: x => x.CardDesign,
-                        principalTable: "T_CardDesign_Header",
-                        principalColumn: "Code");
-                    table.ForeignKey(
                         name: "FK_T_Name_Header_T_Doors_LastDoor",
                         column: x => x.LastDoor,
                         principalTable: "T_Doors",
@@ -1726,6 +1679,11 @@ namespace DoorsWeb.API.Migrations
                 column: "Site");
 
             migrationBuilder.CreateIndex(
+                name: "IX_T_Audit_Timestamp",
+                table: "T_Audit",
+                column: "Timestamp");
+
+            migrationBuilder.CreateIndex(
                 name: "IND_Slot",
                 table: "T_Bio_Data",
                 column: "Slot",
@@ -1871,11 +1829,6 @@ namespace DoorsWeb.API.Migrations
                 column: "APBNumber");
 
             migrationBuilder.CreateIndex(
-                name: "IX_T_Name_Header_CardDesign",
-                table: "T_Name_Header",
-                column: "CardDesign");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_T_Name_Header_LastDoor",
                 table: "T_Name_Header",
                 column: "LastDoor");
@@ -1996,9 +1949,6 @@ namespace DoorsWeb.API.Migrations
 
             migrationBuilder.DropTable(
                 name: "T_Calendar_Details");
-
-            migrationBuilder.DropTable(
-                name: "T_CardDesign_Details");
 
             migrationBuilder.DropTable(
                 name: "T_CardManager_Default");
@@ -2122,9 +2072,6 @@ namespace DoorsWeb.API.Migrations
 
             migrationBuilder.DropTable(
                 name: "T_APBZone_Header");
-
-            migrationBuilder.DropTable(
-                name: "T_CardDesign_Header");
 
             migrationBuilder.DropTable(
                 name: "T_Doors");

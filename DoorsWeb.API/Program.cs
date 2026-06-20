@@ -137,6 +137,11 @@ builder.Services.AddScoped<ILegacyBackupService, LegacyBackupService>();
 // System Settings dialog: sites (legacy T_Sites).
 builder.Services.AddScoped<ISiteService, SiteService>();
 
+// System Settings dialog: global settings (controller communication) persisted as a JSON
+// file on the settings volume. Singleton: the file is the single source of truth.
+var settingsDirectory = SystemSettingsService.ResolveDirectory(builder.Configuration);
+builder.Services.AddSingleton<ISystemSettingsService>(new SystemSettingsService(settingsDirectory));
+
 // User photo storage. Resolved once so DI and the static-file provider agree on the path.
 var userPhotoDirectory = PhotoStorageService.ResolveDirectory(builder.Configuration);
 builder.Services.AddSingleton<IPhotoStorageService>(new PhotoStorageService(userPhotoDirectory));

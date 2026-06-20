@@ -62,8 +62,6 @@ public partial class DoorsEnterpriseContext : DbContext
 
     public virtual DbSet<Commands> Commands { get; set; }
 
-    public virtual DbSet<Connectors> Connectors { get; set; }
-
     public virtual DbSet<Custom> Custom { get; set; }
 
     public virtual DbSet<CustomFieldTypes> CustomFieldTypes { get; set; }
@@ -565,28 +563,6 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasColumnName("OldID");
             entity.Property(e => e.ValidFrom).HasMaxLength(12);
             entity.Property(e => e.ValidTo).HasMaxLength(12);
-        });
-
-        modelBuilder.Entity<Connectors>(entity =>
-        {
-            entity.HasKey(e => e.Connector)
-                .HasName("PK_Connectors");
-
-            entity.ToTable("T_Connectors");
-
-            entity.Property(e => e.Connector).ValueGeneratedNever();
-            entity.Property(e => e.Ipaddress)
-                .HasMaxLength(30)
-                .HasColumnName("IPAddress");
-            entity.Property(e => e.Key).HasMaxLength(30);
-            entity.Property(e => e.ModemConnectionTime).HasMaxLength(5);
-            entity.Property(e => e.Name).HasMaxLength(30);
-            entity.Property(e => e.Pabx)
-                .HasMaxLength(30)
-                .HasColumnName("PABX");
-            entity.Property(e => e.Path).HasMaxLength(255);
-            entity.Property(e => e.Status).HasMaxLength(10);
-            entity.Property(e => e.Telnumber).HasMaxLength(30);
         });
 
         modelBuilder.Entity<Custom>(entity =>
@@ -1190,6 +1166,16 @@ public partial class DoorsEnterpriseContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.Password)
                 .HasColumnType("text"); // widened from legacy varchar(50) to hold BCrypt hashes
+
+            // These permission columns don't exist in a legacy DoorsEnterprise schema, so a legacy
+            // restore COPYs the users table WITHOUT them. Give each a DB default so those inserts
+            // succeed (NOT NULL would otherwise be violated): no access (0) / not-Super (false). The
+            // legacy importer then promotes every imported user to full access — see
+            // LegacyBackupService.GrantFullAccessToAllUsers, which sets these to 2 / true.
+            entity.Property(e => e.Administrator).HasDefaultValue(false);
+            entity.Property(e => e.CardManagerAccess).HasDefaultValue(0);
+            entity.Property(e => e.SiteSettingsAccess).HasDefaultValue(0);
+            entity.Property(e => e.UserSettingsAccess).HasDefaultValue(0);
         });
 
         modelBuilder.Entity<NameAccessLevelsView>(entity =>

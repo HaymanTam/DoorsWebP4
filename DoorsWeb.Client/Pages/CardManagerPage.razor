@@ -58,29 +58,6 @@
                    Everything here refines the already-streamed set client-side via ApplyFilters. *@
                 <HeaderTemplate>
                     <div class="d-flex flex-wrap align-items-end gap-3">
-                        @* Text criterion: field + operator + value (case-insensitive). *@
-                        <div class="d-flex flex-column">
-                            <label class="form-label mb-1 small">Search field</label>
-                            <div class="d-flex gap-1">
-                                <select class="form-select form-select-sm" style="width: auto;"
-                                        @bind="textField" @bind:after="ApplyFilters">
-                                    <option value="Surname">Last Name</option>
-                                    <option value="Forname">First Name</option>
-                                    <option value="CardId">Card Number</option>
-                                </select>
-                                <select class="form-select form-select-sm" style="width: auto;"
-                                        @bind="textOp" @bind:after="ApplyFilters">
-                                    <option value="contains">contains</option>
-                                    <option value="begins">begins with</option>
-                                    <option value="ends">ends with</option>
-                                    <option value="equals">equals</option>
-                                    <option value="notequals">not equals</option>
-                                </select>
-                                <input class="form-control form-control-sm" style="width: 11rem;" placeholder="value…"
-                                       @bind="textValue" @bind:event="oninput" @bind:after="DebouncedApplyFilters" />
-                            </div>
-                        </div>
-
                         @* Access level. *@
                         <div class="d-flex flex-column">
                             <label class="form-label mb-1 small">Access Level</label>
@@ -228,11 +205,6 @@
     private List<string> accessLevelOptions = new();  // distinct access-level names for the dropdown
     private string? selectedAccessLevel;              // null / "" = all access levels
 
-    // Text criterion: which field, which operator, and the (case-insensitive) needle.
-    private string textField = "Surname";             // "Surname" | "Forname" | "CardId"
-    private string textOp = "contains";               // contains | begins | ends | equals | notequals
-    private string textValue = "";
-
     // Status toggles: "" = all, "yes" / "no" otherwise.
     private string enabledFilter = "";
     private string voidFilter = "";
@@ -240,12 +212,6 @@
     // Valid-date range bounds (null = unbounded on that side).
     private DateTime? validFromAfter;
     private DateTime? validToBefore;
-
-    // Debounce for the live text filter: a fast typist would otherwise trigger a full O(n)
-    // re-filter on every keystroke. We wait FilterDebounceMs after the last keystroke and
-    // cancel any pending run, so only the final value is applied.
-    private const int FilterDebounceMs = 250;
-    private CancellationTokenSource? filterDebounceCts;
 
     // True while rows are still streaming in after the first batch has painted (drives the header chip).
     private bool isLoadingMore;
@@ -388,28 +354,6 @@
             .ToList();
     }
 
-    // Coalesce rapid keystrokes in the text box: each call cancels the previous pending filter and
-    // schedules a fresh one FilterDebounceMs later, so only the last keystroke triggers ApplyFilters.
-    private async Task DebouncedApplyFilters()
-    {
-        filterDebounceCts?.Cancel();
-        filterDebounceCts?.Dispose();
-        var cts = new CancellationTokenSource();
-        filterDebounceCts = cts;
-
-        try
-        {
-            await Task.Delay(FilterDebounceMs, cts.Token);
-        }
-        catch (TaskCanceledException)
-        {
-            return; // superseded by a newer keystroke
-        }
-
-        ApplyFilters();
-        StateHasChanged();
-    }
-
     // All filters are client-side refinements over the streamed set, AND-combined (each is skipped
     // when left at its "all" default). Repaints happen via @bind:after as the user changes a control.
     private void ApplyFilters()
@@ -418,12 +362,6 @@
 
         if (!string.IsNullOrEmpty(selectedAccessLevel))
             q = q.Where(c => c.AccessLevels.Contains(selectedAccessLevel));
-
-        if (!string.IsNullOrWhiteSpace(textValue))
-        {
-            var needle = textValue.Trim();
-            q = q.Where(c => MatchesText(FieldValue(c, textField), needle, textOp));
-        }
 
         if (enabledFilter == "yes") q = q.Where(c => c.Enabled == true);
         else if (enabledFilter == "no") q = q.Where(c => c.Enabled != true);
@@ -440,34 +378,9 @@
         filteredCards = q.ToList();
     }
 
-    // Pick the column the text criterion targets.
-    private static string? FieldValue(CardDto c, string field) => field switch
-    {
-        "Forname" => c.Forname,
-        "CardId" => c.CardId,
-        _ => c.Surname,
-    };
-
-    // Case-insensitive text match mirroring the legacy operators (contains/begins/ends/=/<>).
-    private static bool MatchesText(string? value, string needle, string op)
-    {
-        var v = value ?? "";
-        return op switch
-        {
-            "begins" => v.StartsWith(needle, StringComparison.OrdinalIgnoreCase),
-            "ends" => v.EndsWith(needle, StringComparison.OrdinalIgnoreCase),
-            "equals" => string.Equals(v, needle, StringComparison.OrdinalIgnoreCase),
-            "notequals" => !string.Equals(v, needle, StringComparison.OrdinalIgnoreCase),
-            _ => v.Contains(needle, StringComparison.OrdinalIgnoreCase), // contains (default)
-        };
-    }
-
     // Reset every filter control back to "all" and repaint.
     private void ClearFilters()
     {
-        textField = "Surname";
-        textOp = "contains";
-        textValue = "";
         selectedAccessLevel = null;
         enabledFilter = "";
         voidFilter = "";
@@ -613,9 +526,6 @@
 
     public async ValueTask DisposeAsync()
     {
-        filterDebounceCts?.Cancel();
-        filterDebounceCts?.Dispose();
-
         if (viewportModule is not null)
         {
             try

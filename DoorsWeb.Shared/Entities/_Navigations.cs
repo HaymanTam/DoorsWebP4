@@ -27,7 +27,6 @@ namespace DoorsWeb.Shared.Entities;
 
 public partial class Sites
 {
-    public ICollection<Connectors> Connectors { get; set; } = new List<Connectors>();
     public ICollection<Doors> Doors { get; set; } = new List<Doors>();
     public ICollection<AccessLevels> AccessLevels { get; set; } = new List<AccessLevels>();
     public ICollection<ApbZone> ApbZones { get; set; } = new List<ApbZone>();
@@ -46,7 +45,6 @@ public partial class Sites
 public partial class Doors
 {
     public Sites? SiteNavigation { get; set; }
-    public Connectors? ConnectorNavigation { get; set; }
     public DoorTechnology? TechnologyANavigation { get; set; }
     public DoorTechnology? TechnologyBNavigation { get; set; }
     public DoorTechnology? KeyboardTechNavigation { get; set; }
@@ -58,19 +56,8 @@ public partial class Doors
     public ICollection<SpaceZoneDoor> SpaceZoneDoors { get; set; } = new List<SpaceZoneDoor>();
 }
 
-public partial class Connectors
-{
-    public Sites? SiteNavigation { get; set; }
-
-    public ICollection<Doors> Doors { get; set; } = new List<Doors>();
-    public ICollection<IoController> IoControllers { get; set; } = new List<IoController>();
-    public ICollection<Commands> Commands { get; set; } = new List<Commands>();
-}
-
 public partial class IoController
 {
-    public Connectors? ConnectorNavigation { get; set; }
-
     public ICollection<IoControllerInput> IoControllerInputs { get; set; } = new List<IoControllerInput>();
 }
 
@@ -222,11 +209,6 @@ public partial class TriggerEvent
 {
     public Trigger? Trigger { get; set; }
     public EventTypes? EventTypeNavigation { get; set; }
-}
-
-public partial class Commands
-{
-    public Connectors? ConnectorNavigation { get; set; }
 }
 
 public partial class CardManager

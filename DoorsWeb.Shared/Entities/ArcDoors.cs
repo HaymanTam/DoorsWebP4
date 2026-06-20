@@ -15,8 +15,6 @@ public partial class ArcDoors
 
     public int? Site { get; set; }
 
-    public int? Connector { get; set; }
-
     public int? LocalDoorNumber { get; set; }
 
     public bool? Inuse { get; set; }

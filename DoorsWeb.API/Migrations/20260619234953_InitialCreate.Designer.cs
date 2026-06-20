@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DoorsWeb.API.Migrations
 {
     [DbContext(typeof(DoorsEnterpriseContext))]
-    [Migration("20260619223814_DropCardDesign")]
-    partial class DropCardDesign
+    [Migration("20260619234953_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -3356,10 +3356,14 @@ namespace DoorsWeb.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<bool>("Administrator")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("CardManagerAccess")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -3372,10 +3376,14 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("SiteSettingsAccess")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<int>("UserSettingsAccess")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.HasKey("Code")
                         .HasName("PK_T_Users");

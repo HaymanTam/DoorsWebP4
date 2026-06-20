@@ -138,8 +138,7 @@ namespace DoorsWeb.API.Services
             e.ControllerId = dto.ControllerId.ToString();
             e.Name = dto.Name;
             e.DoorIpaddress = dto.IPAddressString;
-            // Connectors are obsolete in this IP-only system; Doors.Connector is left untouched
-            // (null on new doors, preserved on existing ones).
+            // This is an IP-only system: doors connect directly by their own IP address.
 
             e.AutoRelock = dto.AutoRelockEnable;
             e.ReleaseDelay = dto.RelayA_Delay;

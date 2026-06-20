@@ -320,9 +320,6 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("CON_FB_Volume");
 
-                    b.Property<int?>("Connector")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ControllerId")
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)")
@@ -1539,9 +1536,6 @@ namespace DoorsWeb.API.Migrations
                     b.Property<int?>("Command")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("Connector")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ControllerId")
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)")
@@ -1596,112 +1590,9 @@ namespace DoorsWeb.API.Migrations
                     b.HasKey("CommandId")
                         .HasName("PK_Commands");
 
-                    b.HasIndex("Connector");
-
                     b.HasIndex(new[] { "ControllerId" }, "IND_ControllerID");
 
                     b.ToTable("T_Commands", (string)null);
-                });
-
-            modelBuilder.Entity("DoorsWeb.Shared.Entities.Connectors", b =>
-                {
-                    b.Property<int>("Connector")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ComPort")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("CommandFrequency")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ConnType")
-                        .HasColumnType("integer");
-
-                    b.Property<bool?>("DownloadLogsWhenUpdating")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool?>("Encrypted")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool?>("ForceDistrib")
-                        .HasColumnType("boolean");
-
-                    b.Property<int?>("ForcePing")
-                        .HasColumnType("integer");
-
-                    b.Property<bool?>("ForceTimeSync")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool?>("Inuse")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Ipaddress")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasColumnName("IPAddress");
-
-                    b.Property<string>("Key")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<int?>("ModemConnectionFrequency")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ModemConnectionPeriod")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ModemConnectionTime")
-                        .HasMaxLength(5)
-                        .HasColumnType("character varying(5)");
-
-                    b.Property<bool?>("ModemDownloadLogs")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool?>("ModemStayConnected")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool?>("ModemUploadCommands")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("Pabx")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasColumnName("PABX");
-
-                    b.Property<string>("Path")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<int?>("PingFrequency")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("Retries")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("RetryInterval")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("Site")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<string>("Telnumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.HasKey("Connector")
-                        .HasName("PK_Connectors");
-
-                    b.HasIndex("Site");
-
-                    b.ToTable("T_Connectors", (string)null);
                 });
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.Custom", b =>
@@ -2028,9 +1919,6 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("CON_FB_Volume");
 
-                    b.Property<int?>("Connector")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ControllerId")
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)")
@@ -2256,8 +2144,6 @@ namespace DoorsWeb.API.Migrations
                     b.HasKey("Door")
                         .HasName("PK_Doors");
 
-                    b.HasIndex("Connector");
-
                     b.HasIndex("FloorPlan");
 
                     b.HasIndex("KeyboardTech");
@@ -2397,9 +2283,6 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("ControllerID");
 
-                    b.Property<int?>("Connector")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ControllerDay")
                         .HasMaxLength(4)
                         .HasColumnType("character varying(4)");
@@ -2432,8 +2315,6 @@ namespace DoorsWeb.API.Migrations
 
                     b.HasKey("ControllerId")
                         .HasName("PK_IOController_Header");
-
-                    b.HasIndex("Connector");
 
                     b.ToTable("T_IOController_Header", (string)null);
                 });
@@ -3353,10 +3234,14 @@ namespace DoorsWeb.API.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Code"));
 
                     b.Property<bool>("Administrator")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("CardManagerAccess")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -3369,10 +3254,14 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("SiteSettingsAccess")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<int>("UserSettingsAccess")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.HasKey("Code")
                         .HasName("PK_T_Users");
@@ -3606,26 +3495,6 @@ namespace DoorsWeb.API.Migrations
                     b.Navigation("Cardholder");
                 });
 
-            modelBuilder.Entity("DoorsWeb.Shared.Entities.Commands", b =>
-                {
-                    b.HasOne("DoorsWeb.Shared.Entities.Connectors", "ConnectorNavigation")
-                        .WithMany("Commands")
-                        .HasForeignKey("Connector")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("ConnectorNavigation");
-                });
-
-            modelBuilder.Entity("DoorsWeb.Shared.Entities.Connectors", b =>
-                {
-                    b.HasOne("DoorsWeb.Shared.Entities.Sites", "SiteNavigation")
-                        .WithMany("Connectors")
-                        .HasForeignKey("Site")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("SiteNavigation");
-                });
-
             modelBuilder.Entity("DoorsWeb.Shared.Entities.Custom", b =>
                 {
                     b.HasOne("DoorsWeb.Shared.Entities.CustomFieldTypes", "CustomFieldType")
@@ -3650,11 +3519,6 @@ namespace DoorsWeb.API.Migrations
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.Doors", b =>
                 {
-                    b.HasOne("DoorsWeb.Shared.Entities.Connectors", "ConnectorNavigation")
-                        .WithMany("Doors")
-                        .HasForeignKey("Connector")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("DoorsWeb.Shared.Entities.FloorPlans", "FloorPlanNavigation")
                         .WithMany()
                         .HasForeignKey("FloorPlan")
@@ -3679,8 +3543,6 @@ namespace DoorsWeb.API.Migrations
                         .WithMany()
                         .HasForeignKey("TechnologyB")
                         .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("ConnectorNavigation");
 
                     b.Navigation("FloorPlanNavigation");
 
@@ -3729,16 +3591,6 @@ namespace DoorsWeb.API.Migrations
                         .IsRequired();
 
                     b.Navigation("SiteNavigation");
-                });
-
-            modelBuilder.Entity("DoorsWeb.Shared.Entities.IoController", b =>
-                {
-                    b.HasOne("DoorsWeb.Shared.Entities.Connectors", "ConnectorNavigation")
-                        .WithMany("IoControllers")
-                        .HasForeignKey("Connector")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("ConnectorNavigation");
                 });
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.IoControllerInput", b =>
@@ -3977,15 +3829,6 @@ namespace DoorsWeb.API.Migrations
                     b.Navigation("SpaceZoneCardholders");
                 });
 
-            modelBuilder.Entity("DoorsWeb.Shared.Entities.Connectors", b =>
-                {
-                    b.Navigation("Commands");
-
-                    b.Navigation("Doors");
-
-                    b.Navigation("IoControllers");
-                });
-
             modelBuilder.Entity("DoorsWeb.Shared.Entities.CustomFieldTypes", b =>
                 {
                     b.Navigation("Customs");
@@ -4030,8 +3873,6 @@ namespace DoorsWeb.API.Migrations
                     b.Navigation("CardPackSites");
 
                     b.Navigation("CardholderAccessLevels");
-
-                    b.Navigation("Connectors");
 
                     b.Navigation("Doors");
 

@@ -109,6 +109,45 @@
     </CardBody>
 </Card>
 
+@* Controller Communication: global protocol-polling settings (no connectors — IP only).
+   Persisted to the settings JSON via api/SystemSettings; saved when the dialog's OK is clicked. *@
+<h3 class="mt-3 mb-2">Controller Communication</h3>
+<Card Size="CardSize.Default">
+    <CardBody>
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-5 text-lg-end"><label class="form-label mb-0">Ping controllers every</label></div>
+            <div class="col-auto" style="width: 6rem;">
+                <input type="number" min="1" class="form-control text-center" disabled="@(!canWrite || busy)"
+                       @bind="settings.ControllerCommunication.PingIntervalSeconds" />
+            </div>
+            <div class="col-auto"><span class="form-label mb-0">seconds</span></div>
+        </div>
+        <div class="mb-2 row align-items-center">
+            <div class="col-lg-5 text-lg-end"><label class="form-label mb-0">Check for commands every</label></div>
+            <div class="col-auto" style="width: 6rem;">
+                <input type="number" min="1" class="form-control text-center" disabled="@(!canWrite || busy)"
+                       @bind="settings.ControllerCommunication.CommandCheckIntervalSeconds" />
+            </div>
+            <div class="col-auto"><span class="form-label mb-0">seconds</span></div>
+        </div>
+        <div class="row align-items-center">
+            <div class="col-lg-5 text-lg-end"><label class="form-label mb-0">Force a ping after</label></div>
+            <div class="col-auto" style="width: 6rem;">
+                <input type="number" min="1" class="form-control text-center" disabled="@(!canWrite || busy)"
+                       @bind="settings.ControllerCommunication.ForcePingAfterCommands" />
+            </div>
+            <div class="col-auto"><span class="form-label mb-0">commands</span></div>
+        </div>
+    </CardBody>
+</Card>
+
+@* Custom Card Format (mirrors the legacy DoorsClient dialog). The fields use Blazor input
+   components, which need an ambient EditContext — hence the wrapping EditForm. *@
+<h3 class="mt-3 mb-2">Custom Card Format</h3>
+<EditForm Model="cardFormat">
+    <CustomCardFormatFields Format="cardFormat" />
+</EditForm>
+
 @if (status is not null)
 {
     <div class="alert @(statusOk ? "alert-success" : "alert-danger") mb-0 mt-3" role="alert">
@@ -133,6 +172,13 @@
     private List<SiteDto>? sites;
     private string? newSiteName;
 
+    // Custom Card Format section. UI-only for now (no API/persistence yet — mirrors the
+    // legacy dialog), so OK/Cancel don't save these values.
+    private CustomCardFormatFields.CustomCardFormatModel cardFormat = new();
+
+    // Global settings (controller communication). Loaded on init, saved on OK.
+    private SystemSettings settings = new();
+
     // Inline rename state: the site currently being edited and its working name.
     private int? editingSite;
     private string? editName;
@@ -152,6 +198,21 @@
 
         client = ClientFactory.CreateClient("WebAPI");
         await LoadSites();
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        try
+        {
+            settings = await client.GetFromJsonAsync<SystemSettings>("api/SystemSettings") ?? new();
+            settings.ControllerCommunication ??= new();
+        }
+        catch (Exception ex)
+        {
+            settings = new();
+            SetStatus(false, $"Could not load settings: {ex.Message}");
+        }
     }
 
     private async Task LoadSites()
@@ -282,8 +343,36 @@
         }
     }
 
-    // Sites persist immediately as they are edited, so OK has nothing to save - just close.
-    private void Save() => ModalService.Close(ModalResult.Ok());
+    // Sites persist immediately as they are edited; OK additionally saves the global settings
+    // (controller communication). On failure the dialog stays open so the error is visible.
+    private async Task Save()
+    {
+        if (canWrite)
+        {
+            busy = true;
+            status = null;
+            try
+            {
+                var response = await client.PutAsJsonAsync("api/SystemSettings", settings);
+                if (!response.IsSuccessStatusCode)
+                {
+                    SetStatus(false, await ReadError(response));
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                SetStatus(false, $"Could not save settings: {ex.Message}");
+                return;
+            }
+            finally
+            {
+                busy = false;
+            }
+        }
+
+        ModalService.Close(ModalResult.Ok());
+    }
 
     private void Cancel()
     {

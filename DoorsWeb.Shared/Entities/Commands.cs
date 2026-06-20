@@ -11,8 +11,6 @@ public partial class Commands
 
     public string? ControllerId { get; set; }
 
-    public int? Connector { get; set; }
-
     public int? Command { get; set; }
 
     public int? EngFunctionNumber { get; set; }

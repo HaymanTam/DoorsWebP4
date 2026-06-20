@@ -106,6 +106,10 @@
             <div>
                 Connectors are obsolete and no longer used — this system is <strong>IP only</strong>.<br />
                 Doors connect directly by their own IP address; any connector data in a legacy backup is irrelevant.
+                <label class="form-check mt-2 mb-0">
+                    <input class="form-check-input" type="checkbox" @bind="ackConnectors" @bind:after="OnAckChanged" disabled="@busy" />
+                    <span class="form-check-label fw-bold">I understand</span>
+                </label>
             </div>
         </div>
         <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
@@ -113,6 +117,10 @@
             <div>
                 <strong>Card Design</strong> and <strong>Floor Plan</strong> features have been removed — this system no longer manages them.<br />
                 Any such data in a legacy backup is still restored (so the import stays consistent), but it is unused and not accessible here.
+                <label class="form-check mt-2 mb-0">
+                    <input class="form-check-input" type="checkbox" @bind="ackCardDesign" @bind:after="OnAckChanged" disabled="@busy" />
+                    <span class="form-check-label fw-bold">I understand</span>
+                </label>
             </div>
         </div>
         <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
@@ -121,6 +129,10 @@
                 <strong>All previous audit history will be dropped.</strong><br />
                 The audit log is cleared on import — the restored data is from a different point in time,
                 so existing audit entries no longer apply. The legacy backup carries no audit data to replace it.
+                <label class="form-check mt-2 mb-0">
+                    <input class="form-check-input" type="checkbox" @bind="ackAudit" @bind:after="OnAckChanged" disabled="@busy" />
+                    <span class="form-check-label fw-bold">I understand</span>
+                </label>
             </div>
         </div>
 
@@ -136,19 +148,28 @@
                     promoted to Super</strong> — full read/write access to Card Manager, Site Settings and
                     User Settings. Review and lock down user permissions immediately after the import.
                 </div>
+                <label class="form-check mt-2 mb-0">
+                    <input class="form-check-input" type="checkbox" @bind="ackFullAccess" @bind:after="OnAckChanged" disabled="@busy" />
+                    <span class="form-check-label fw-bold">I understand</span>
+                </label>
             </div>
         </div>
 
-        @* Gate the restore behind an explicit acknowledgement: the user must confirm they have
-           read the warnings above before the import button becomes enabled. *@
+        @* Final gate: only unlocks once every individual warning above has been acknowledged,
+           forcing the user to tick each one before this overall confirmation enables the import button. *@
         <div class="mb-3">
             <label class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="legacyAcknowledged" disabled="@busy" />
+                <input class="form-check-input" type="checkbox" @bind="legacyAcknowledged"
+                       disabled="@(busy || !individualWarningsAcknowledged)" />
                 <span class="form-check-label">
                     I have read and understand the warnings above — this import overwrites current data, drops all
                     audit history, and grants <strong>every imported user full (Super) access</strong>. This cannot be undone.
                 </span>
             </label>
+            @if (!individualWarningsAcknowledged)
+            {
+                <div class="form-text">Tick each warning above to enable this final confirmation.</div>
+            }
         </div>
 
         <div class="mb-2 row align-items-center">
@@ -181,7 +202,7 @@
             </div>
         </div>
         <div>
-            <button type="button" class="btn btn-danger" @onclick="RestoreLegacy" disabled="@(busy || legacyFile is null || !legacyAcknowledged)">
+            <button type="button" class="btn btn-danger" @onclick="RestoreLegacy" disabled="@(busy || legacyFile is null || !allWarningsAcknowledged)">
                 @if (busy && busyAction == "legacy") { <span class="spinner-border spinner-border-sm me-2"></span> }
                 Restore Legacy Backup
             </button>
@@ -315,6 +336,23 @@
     private bool showLegacyPwd;
     private bool legacyAcknowledged;
     private LegacyRestoreResult? legacyResult;
+
+    // Per-warning acknowledgements: each warning box above has its own checkbox. The final overall
+    // confirmation (legacyAcknowledged) only unlocks once all four are ticked, and the import button
+    // requires every gate (see allWarningsAcknowledged).
+    private bool ackConnectors;
+    private bool ackCardDesign;
+    private bool ackAudit;
+    private bool ackFullAccess;
+
+    // Un-ticking any warning clears the final confirmation, so the user must re-affirm it.
+    private void OnAckChanged()
+    {
+        if (!individualWarningsAcknowledged) legacyAcknowledged = false;
+    }
+
+    private bool individualWarningsAcknowledged => ackConnectors && ackCardDesign && ackAudit && ackFullAccess;
+    private bool allWarningsAcknowledged => individualWarningsAcknowledged && legacyAcknowledged;
 
     private bool _busy;
     private bool busy
@@ -502,7 +540,7 @@
 
     private async Task RestoreLegacy()
     {
-        if (legacyFile is null || !legacyAcknowledged) return;
+        if (legacyFile is null || !allWarningsAcknowledged) return;
 
         var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
         {

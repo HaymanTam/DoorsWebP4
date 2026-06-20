@@ -458,20 +458,39 @@ ORDER BY child.relname, con.conname;";
 
             // Resolve recordset columns to the real (case-correct) destination column names and pick
             // an explicit PostgreSQL type per column so the binary COPY stream is unambiguous.
+            //
+            // A backup column that no longer exists in the current schema (e.g. the dropped legacy
+            // "Connector" FK) is skipped rather than fatal: a legacy backup can legitimately carry
+            // columns this IP-only system no longer models, and that data is irrelevant here. Only
+            // the matched columns are streamed into the COPY.
             var dbColumns = await GetTableColumns(connection, table, ct);
-            int count = recordset.Columns.Count;
-            var targetNames = new string[count];
-            var types = new NpgsqlDbType[count];
-            for (int i = 0; i < count; i++)
+            int sourceCount = recordset.Columns.Count;
+            var sourceIndexes = new List<int>(sourceCount);
+            var targetNames = new List<string>(sourceCount);
+            var types = new List<NpgsqlDbType>(sourceCount);
+            var skippedColumns = new List<string>();
+            for (int i = 0; i < sourceCount; i++)
             {
                 var col = recordset.Columns[i];
                 if (!dbColumns.TryGetValue(col.Name, out var actual))
-                    throw new InvalidOperationException(
-                        $"Column '{col.Name}' from the backup does not exist in table '{table}'.");
-                targetNames[i] = actual;
-                types[i] = NpgsqlTypeOf(col);
+                {
+                    skippedColumns.Add(col.Name);
+                    continue;
+                }
+                sourceIndexes.Add(i);
+                targetNames.Add(actual);
+                types.Add(NpgsqlTypeOf(col));
             }
 
+            if (skippedColumns.Count > 0)
+                _logger.LogInformation(
+                    "Legacy import: {Count} backup column(s) not present in {Table} were skipped: {Columns}.",
+                    skippedColumns.Count, table, string.Join(", ", skippedColumns));
+
+            // Every backup column was dropped from this table — nothing to load (it was already cleared).
+            if (targetNames.Count == 0) return 0;
+
+            int count = targetNames.Count;
             var columnList = string.Join(", ", targetNames.Select(Quote));
             var copyCommand = $"COPY {QualifiedTable(table)} ({columnList}) FROM STDIN (FORMAT BINARY)";
 
@@ -486,10 +505,11 @@ ORDER BY child.relname, con.conname;";
                 await importer.StartRowAsync(ct);
                 for (int i = 0; i < count; i++)
                 {
-                    if (dataReader.IsDBNull(i))
+                    int src = sourceIndexes[i];
+                    if (dataReader.IsDBNull(src))
                         await importer.WriteNullAsync(ct);
                     else
-                        await importer.WriteAsync(dataReader.GetValue(i), types[i], ct);
+                        await importer.WriteAsync(dataReader.GetValue(src), types[i], ct);
                 }
 
                 rows++;

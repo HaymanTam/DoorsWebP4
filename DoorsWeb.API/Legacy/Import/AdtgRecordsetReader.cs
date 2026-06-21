@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace DoorsWeb.API.Legacy.Adtg
+namespace DoorsWeb.API.Legacy.Import
 {
     /// <summary>
     /// A single column of a persisted ADO recordset, as described by the ADTG metadata.

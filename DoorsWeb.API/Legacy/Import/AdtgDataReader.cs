@@ -1,12 +1,12 @@
 using System.Collections;
 using System.Data.Common;
 
-namespace DoorsWeb.API.Legacy.Adtg
+namespace DoorsWeb.API.Legacy.Import
 {
     /// <summary>
     /// Adapts an <see cref="AdtgRecordsetReader"/> to <see cref="DbDataReader"/> so the parsed rows
-    /// can be streamed straight into SQL Server via <c>SqlBulkCopy</c> without ever materializing the
-    /// whole table in memory (important for the multi-million-row T_Events table).
+    /// can be streamed straight into PostgreSQL via the binary <c>COPY</c> protocol without ever
+    /// materializing the whole table in memory (important for the multi-million-row T_Events table).
     /// </summary>
     public sealed class AdtgDataReader : DbDataReader
     {

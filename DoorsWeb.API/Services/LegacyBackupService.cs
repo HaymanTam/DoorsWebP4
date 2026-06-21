@@ -23,6 +23,14 @@ namespace DoorsWeb.API.Services
     /// into the card-photo store renamed to the new system's convention (<c>&lt;CardNumber&gt;.jpg</c>),
     /// replacing any existing photos. A backup with no <c>Photos/</c> folder leaves photos untouched.
     ///
+    /// It may also contain a <c>Floors/</c> folder holding one floorplan background image per legacy
+    /// floorplan, named <c>Floors/&lt;PlanCode&gt;.jpg</c> (matching <c>T_FloorPlans.Code</c>). Because
+    /// this system keeps a single floorplan per site, exactly one plan per site (the lowest-coded one)
+    /// is imported into the floorplan image store via <see cref="IFloorPlanService"/>. Door placements
+    /// are <i>not</i> carried over — the legacy positions use a vector-design coordinate model that does
+    /// not map onto this system's resolution-independent percentages — so the restored layout holds just
+    /// the image and the operator re-pins doors from the floorplan editor.
+    ///
     /// Referential-integrity triggers are disabled for the duration (<c>session_replication_role =
     /// replica</c>) so tables can be cleared and reloaded in any order, then re-enabled afterwards.
     /// Because explicit identity values are loaded, each table's identity sequence is bumped past its
@@ -48,14 +56,16 @@ namespace DoorsWeb.API.Services
         private readonly IHubContext<BackupHub> _hub;
         private readonly ILogger<LegacyBackupService> _logger;
         private readonly ICardPhotoService _cardPhoto;
+        private readonly IFloorPlanService _floorPlan;
 
         public LegacyBackupService(
             IConfiguration configuration, IHubContext<BackupHub> hub, ILogger<LegacyBackupService> logger,
-            ICardPhotoService cardPhoto)
+            ICardPhotoService cardPhoto, IFloorPlanService floorPlan)
         {
             _hub = hub;
             _logger = logger;
             _cardPhoto = cardPhoto;
+            _floorPlan = floorPlan;
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         }
@@ -73,6 +83,7 @@ namespace DoorsWeb.API.Services
                 //    PH<CardNumber>.jpg and are processed (renamed + copied) after the table load.
                 var entries = new List<(string table, string tempPath, long size)>();
                 var photos = new List<(int cardNumber, string ext, string tempPath)>();
+                var floors = new List<(int planCode, string ext, string tempPath)>();
                 using (var zip = new ZipFile(zipFilePath) { Password = password })
                 {
                     foreach (ZipEntry entry in zip)
@@ -106,6 +117,19 @@ namespace DoorsWeb.API.Services
                                 await input.CopyToAsync(output, cancellationToken);
                             }
                             photos.Add((cardNumber, ext, tempPath));
+                        }
+                        else if (IsFloorImage(entry, out var planCode, out var floorExt))
+                        {
+                            var tempPath = Path.Combine(
+                                Path.GetTempPath(), $"doorsweb_floor_{Guid.NewGuid():N}{floorExt}");
+                            tempFiles.Add(tempPath);
+
+                            await using (var input = zip.GetInputStream(entry))
+                            await using (var output = File.Create(tempPath))
+                            {
+                                await input.CopyToAsync(output, cancellationToken);
+                            }
+                            floors.Add((planCode, floorExt, tempPath));
                         }
                     }
                 }
@@ -202,6 +226,13 @@ namespace DoorsWeb.API.Services
                     // independent of the DB). No-op when the backup carried no photos.
                     result.PhotosRestored = await RestorePhotos(photos, cancellationToken);
 
+                    // Restore floorplan background images from the backup's Floors/ folder. One plan
+                    // per site is imported into the floorplan store (this system keeps a single
+                    // floorplan per site). Uses the just-loaded T_FloorPlans rows to map each image to
+                    // its site. No-op when the backup carried no floor images.
+                    result.FloorPlansRestored =
+                        await RestoreFloorPlans(connection, existingTables, floors, cancellationToken);
+
                     // Read-only integrity scan. The bulk COPY ran with FK enforcement off
                     // (session_replication_role = replica), and PostgreSQL does NOT retro-validate
                     // rows loaded that way, so a legacy backup can leave orphans behind even though the
@@ -222,8 +253,9 @@ namespace DoorsWeb.API.Services
                 result.TablesLoaded = result.Tables.Count;
                 var skippedNote = result.Skipped.Count > 0 ? $" Skipped {result.Skipped.Count} unmatched table(s)." : "";
                 var photoNote = result.PhotosRestored > 0 ? $" Restored {result.PhotosRestored:N0} photo(s)." : "";
+                var floorNote = result.FloorPlansRestored > 0 ? $" Restored {result.FloorPlansRestored:N0} floorplan(s)." : "";
                 result.Message =
-                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{photoNote}{skippedNote}";
+                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{photoNote}{floorNote}{skippedNote}";
                 return result;
             }
             catch (Exception ex)
@@ -419,6 +451,112 @@ END $$;";
             }
 
             _logger.LogInformation("Legacy import: restored {Count} cardholder photo(s).", restored);
+            return restored;
+        }
+
+        // Recognises a floorplan background-image entry: an image file in the archive's top-level
+        // "Floors" folder named <PlanCode>[.ext] (e.g. Floors/1.jpg, Floors/2.jpg). The number is the
+        // legacy floorplan's Code (T_FloorPlans.Code), which links it to a site. Yields the parsed plan
+        // code and the lower-cased extension. Entries outside Floors/, with an unknown extension, or
+        // without a positive plan code are rejected.
+        private static bool IsFloorImage(ZipEntry entry, out int planCode, out string ext)
+        {
+            planCode = 0;
+            ext = string.Empty;
+
+            var normalized = entry.Name.Replace('\\', '/');
+            if (!normalized.StartsWith("Floors/", StringComparison.OrdinalIgnoreCase)) return false;
+
+            var fileExt = Path.GetExtension(normalized);
+            if (string.IsNullOrEmpty(fileExt) || !PhotoExtensions.Contains(fileExt)) return false;
+
+            var name = Path.GetFileNameWithoutExtension(normalized).Trim();
+            if (!int.TryParse(name, out var n) || n <= 0) return false;
+
+            planCode = n;
+            ext = fileExt.ToLowerInvariant();
+            return true;
+        }
+
+        // Restores floorplan background images (already extracted to temp files) into the floorplan
+        // store. Legacy keeps multiple floorplans per site; this system keeps exactly one, so a single
+        // plan per site is imported — the lowest-coded one (typically the ground/first floor). Each
+        // image is mapped to a site through the just-loaded T_FloorPlans rows (Floors/<Code>.jpg →
+        // T_FloorPlans.Code → Site); if a backup has no T_FloorPlans table but the database has exactly
+        // one site, a lone floor image is attached to that site. Door placements are NOT imported (the
+        // legacy positions use a vector-design coordinate model that doesn't map onto this system's
+        // resolution-independent percentages), so the saved layout is image-only and the operator
+        // re-pins doors in the floorplan editor. Filesystem only, independent of the DB transaction.
+        // Returns the number of floorplan images restored.
+        private async Task<long> RestoreFloorPlans(
+            NpgsqlConnection connection,
+            IReadOnlyDictionary<string, string> existingTables,
+            IReadOnlyList<(int planCode, string ext, string tempPath)> floors,
+            CancellationToken ct)
+        {
+            if (floors.Count == 0) return 0;
+
+            // Map each legacy floorplan (by its Code) to the site it belongs to.
+            var planToSite = new Dictionary<int, int>();
+            if (existingTables.TryGetValue("T_FloorPlans", out var fpTable))
+            {
+                await using var cmd = new NpgsqlCommand(
+                    $"SELECT \"Code\", \"Site\" FROM {QualifiedTable(fpTable)};", connection);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                {
+                    if (reader.IsDBNull(0) || reader.IsDBNull(1)) continue;
+                    planToSite[reader.GetInt32(0)] = reader.GetInt32(1);
+                }
+            }
+
+            // Fallback site for a floor image with no matching T_FloorPlans row — only safe to guess
+            // when the database holds exactly one site.
+            int? soleSite = null;
+            if (existingTables.TryGetValue("T_Sites", out var sitesTable))
+            {
+                var ids = new List<int>();
+                await using var cmd = new NpgsqlCommand(
+                    $"SELECT \"Site\" FROM {QualifiedTable(sitesTable)};", connection);
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                while (await reader.ReadAsync(ct))
+                    if (!reader.IsDBNull(0)) ids.Add(reader.GetInt32(0));
+                if (ids.Count == 1) soleSite = ids[0];
+            }
+
+            // Resolve each floor image to a site, then keep one plan per site (one-to-one). Iterating in
+            // ascending plan-code order means the lowest code wins when a site has several floors.
+            var chosen = new Dictionary<int, (int planCode, string ext, string tempPath)>();
+            foreach (var f in floors.OrderBy(f => f.planCode))
+            {
+                int? site = planToSite.TryGetValue(f.planCode, out var s) ? s : soleSite;
+                if (site is null || chosen.ContainsKey(site.Value)) continue;
+                chosen[site.Value] = f;
+            }
+
+            long restored = 0;
+            foreach (var (site, f) in chosen)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                FloorPlanLayoutDto layout;
+                await using (var input = File.OpenRead(f.tempPath))
+                {
+                    layout = await _floorPlan.SaveImageAsync(site, input, $"floor{f.ext}", ct);
+                }
+
+                // The whole dataset was just replaced; any door placements carried over from a previous
+                // DoorsWeb layout would reference doors that may no longer exist. Reset to image-only.
+                if (layout.Doors.Count > 0)
+                {
+                    layout.Doors.Clear();
+                    _floorPlan.Save(layout);
+                }
+                restored++;
+            }
+
+            if (restored > 0)
+                _logger.LogInformation("Legacy import: restored {Count} floorplan image(s).", restored);
             return restored;
         }
 

@@ -115,8 +115,14 @@
         <div class="alert alert-warning py-2 px-3 small mb-2" role="alert">
             <Icon class="icon flex-shrink-0 me-2" IconType="@TablerIcons.Alert_triangle" />
             <div>
-                <strong>Card Design</strong> and <strong>Floor Plan</strong> features have been removed — this system no longer manages them.<br />
-                Any such data in a legacy backup is still restored (so the import stays consistent), but it is unused and not accessible here.
+                The <strong>Card Design</strong> feature has been removed — this system no longer manages it.<br />
+                Any card-design data in a legacy backup is still restored (so the import stays consistent), but it is unused and not accessible here.
+                <span class="d-block mt-1">
+                    Floor plans <strong>are</strong> imported: one floorplan image per site is restored automatically.
+                    If a site had several floors in the legacy system, only the first one (lowest plan number, usually the
+                    ground floor) is kept — this system holds a single floorplan per site. Door positions aren't carried
+                    over — re-pin doors on the imported plan from the Floorplan editor.
+                </span>
                 <label class="form-check mt-2 mb-0">
                     <input class="form-check-input" type="checkbox" @bind="ackCardDesign" @bind:after="OnAckChanged" disabled="@busy" />
                     <span class="form-check-label fw-bold">I understand</span>
@@ -233,6 +239,14 @@
                 <p class="text-muted small mt-2 mb-0">
                     <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Photo" />
                     Restored <strong>@legacyResult.PhotosRestored.ToString("N0")</strong> cardholder photo(s) (existing photos were replaced).
+                </p>
+            }
+            @if (legacyResult.FloorPlansRestored > 0)
+            {
+                <p class="text-muted small mt-2 mb-0">
+                    <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Map_pin" />
+                    Restored <strong>@legacyResult.FloorPlansRestored.ToString("N0")</strong> floorplan image(s), one per site.
+                    Re-pin doors on the imported plan from the Floorplan editor.
                 </p>
             }
             @if (legacyResult.UsersGrantedFullAccess > 0)
@@ -412,7 +426,7 @@
         try
         {
             hubConnection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:60879/backupHub")
+                .WithUrl(new Uri(client.BaseAddress!, "backupHub"))
                 .WithAutomaticReconnect()
                 .Build();
 

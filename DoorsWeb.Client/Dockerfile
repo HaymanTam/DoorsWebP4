@@ -26,18 +26,9 @@ WORKDIR /usr/share/nginx/html
 COPY --from=publish /app/publish/wwwroot .
 COPY --from=publish "/src/DoorsWeb.Client/nginx.conf" /etc/nginx/nginx.conf
 
-# Install openssl
-RUN apk add --no-cache openssl
-RUN mkdir /etc/nginx/certs
-
-# Generate self-signed certificate
-# -x509: Create a self-signed certificate
-# -nodes: Don't encrypt the private key
-# -subj: Provide certificate info (Country, State, Locality, Org, Common Name)
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/certs/selfsigned.key \
-    -out /etc/nginx/certs/selfsigned.crt \
-    -subj "/C=UK/S=Lancashire/L=Accrington/O=BSBProgeny/CN=localhost"
+# The TLS certificate is no longer generated at build time. It is mounted at runtime into
+# /etc/nginx/certs (see docker-compose.override.yml) from an mkcert-issued, locally-trusted
+# cert on the host. For deployment, a per-site setup step drops the site's cert there.
 
 CMD ["nginx", "-g", "daemon off;"]
 EXPOSE 443

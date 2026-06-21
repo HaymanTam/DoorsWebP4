@@ -7,6 +7,9 @@
 .env
 !.env.example
 
+# Local TLS certificates (mkcert) — private keys must never be committed
+/certs/
+
 # User-specific files
 *.rsuser
 *.suo

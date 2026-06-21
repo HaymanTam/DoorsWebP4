@@ -10,13 +10,17 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddTransient<JwtAuthorizationHandler>();
+// Same-origin: the app is served by nginx, which reverse-proxies /api, /auth, /eventHub,
+// /backupHub and /media to the API container. Calling through our own origin means one
+// browser-trusted certificate (nginx's) and no CORS — no hardcoded API host to break when
+// the app is reached from another machine.
 builder.Services.AddHttpClient("WebAPI", client =>
-    client.BaseAddress = new Uri("https://localhost:60879"))
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler<JwtAuthorizationHandler>();
 // Plain client without the auth handler, used by the handler itself to call
 // auth/refresh so a refresh 401 can't recurse back into a refresh attempt.
 builder.Services.AddHttpClient("WebAPI-Refresh", client =>
-    client.BaseAddress = new Uri("https://localhost:60879"));
+    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress));
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddTabler();
 

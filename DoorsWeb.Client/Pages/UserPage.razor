@@ -178,12 +178,10 @@
         userList = await client.GetFromJsonAsync<List<UserDto>>("api/User") ?? [];
     }
 
-    // API host that serves the photo files. Mirrors the "WebAPI" client base address.
-    private const string ApiBase = "https://localhost:60879";
-
+    // Photos are served same-origin (nginx proxies /media to the API), so a root-relative
+    // "/media/..." path loads correctly without a hardcoded host.
     private static string PhotoUrl(string? path) =>
-        string.IsNullOrEmpty(path) ? "" :
-        (path!.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? path! : $"{ApiBase}{path}");
+        string.IsNullOrEmpty(path) ? "" : path!;
 
     private async Task OnPhotoSelected(InputFileChangeEventArgs e, UserDto user)
     {

@@ -23,6 +23,15 @@ namespace DoorsWeb.Shared.DTO
         /// </summary>
         public long PhotosRestored { get; set; }
 
+        /// <summary>
+        /// Number of per-site floorplan background images restored from the backup's <c>Floors/</c>
+        /// folder. Legacy stores each floor as <c>Floors/&lt;PlanCode&gt;.jpg</c>; one plan per site is
+        /// imported (one floorplan per site) into the floorplan image store. Door placements are not
+        /// carried over — the legacy positions use a different coordinate model — so doors are re-pinned
+        /// on the restored image from the floorplan editor. 0 when the backup carried no floor images.
+        /// </summary>
+        public long FloorPlansRestored { get; set; }
+
         /// <summary>Per-table row counts, in load order.</summary>
         public List<LegacyTableResult> Tables { get; set; } = new();
 

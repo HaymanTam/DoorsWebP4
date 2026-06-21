@@ -53,6 +53,10 @@ idea is agreed, add it to *Planned*.
 - Live door state broadcast over SignalR.
 - Door command/control API.
 - Floorplan layout persistence with separate **view** and **edit** pages + nav links.
+- **One floorplan per site** (a single background image + door placements per site).
+- Legacy restore imports each site's floorplan background image from the backup's `Floors/` folder
+  (one plan per site, lowest plan code wins). Door positions aren't carried over — the legacy
+  vector-design coordinates don't map onto the percentage model — so doors are re-pinned in the editor.
 
 ### Licensing
 - ECDSA-signed license crypto library (`DoorsWeb.Licensing`); private key never committed/shipped.
@@ -82,3 +86,13 @@ _Backlog — add agreed-on features here; nothing is in flight unless noted._
   `docker compose up -d --build doorsweb.api doorsweb.client`.
 - Dev secrets (connection string, `Jwt:SecretKey`, Kestrel cert) live in .NET user-secrets,
   **not** in committed appsettings.
+- **TLS / same-origin:** the Blazor app and API are served under a single origin — nginx hosts the
+  app and reverse-proxies `/api`, `/auth`, `/eventHub`, `/backupHub`, `/media` to the API container.
+  One browser-trusted certificate (nginx's), no CORS, no hardcoded API host. The cert is **mounted**
+  at runtime into `/etc/nginx/certs` (not baked into the image).
+  - **Dev:** `mkcert -install` once per machine, then
+    `mkcert -cert-file certs/server.crt -key-file certs/server.key localhost 127.0.0.1 ::1`.
+    `certs/` is gitignored — the private key is never committed.
+  - **Per-site deploy (offline-safe):** generate the cert at install time for that site's hostname/IP
+    and drop it in `certs/`; import mkcert's `rootCA.pem` (from `mkcert -CAROOT`) into each client
+    machine's trust store. No internet required at any point.

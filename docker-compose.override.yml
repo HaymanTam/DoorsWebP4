@@ -1,4 +1,12 @@
 services:
+  doorsweb.client:
+    # Browser-trusted TLS cert, mounted from the host (generate with:
+    #   mkcert -cert-file certs/server.crt -key-file certs/server.key localhost 127.0.0.1 ::1
+    # then run `mkcert -install` once on each machine that browses to the app).
+    volumes:
+      - ./certs/server.crt:/etc/nginx/certs/server.crt:ro
+      - ./certs/server.key:/etc/nginx/certs/server.key:ro
+
   doorsweb.api:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development

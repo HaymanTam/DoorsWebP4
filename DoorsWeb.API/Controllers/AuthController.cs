@@ -50,10 +50,18 @@ namespace DoorsWeb.API.Controllers
             if (username is null)
                 return Problem(detail: "Token does not identify a user.", title: "Unauthorized", statusCode: 401);
 
-            var result = await _authService.ChangePasswordAsync(username, dto.NewPassword, ct);
-            if (result is null)
-                return Problem(detail: "User not found.", title: "Not Found", statusCode: 404);
-            return Ok(result);
+            try
+            {
+                var result = await _authService.ChangePasswordAsync(username, dto.NewPassword, ct);
+                if (result is null)
+                    return Problem(detail: "User not found.", title: "Not Found", statusCode: 404);
+                return Ok(result);
+            }
+            catch (PasswordPolicyException ex)
+            {
+                // Password too short or on the breached/common list.
+                return Problem(detail: ex.Message, title: "Password not allowed", statusCode: 400);
+            }
         }
 
         // Exposes the default password as a first-run hint while the account still

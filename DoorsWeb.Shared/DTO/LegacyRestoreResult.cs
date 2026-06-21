@@ -15,6 +15,14 @@ namespace DoorsWeb.Shared.DTO
         /// <summary>Total number of rows inserted across all tables.</summary>
         public long RowsLoaded { get; set; }
 
+        /// <summary>
+        /// Number of cardholder photos restored from the backup's <c>Photos/</c> folder. Legacy
+        /// stores each as <c>PH&lt;CardNumber&gt;.jpg</c>; they are copied into the card-photo store
+        /// named after the card number. 0 when the backup carried no photos (existing photos are then
+        /// left untouched).
+        /// </summary>
+        public long PhotosRestored { get; set; }
+
         /// <summary>Per-table row counts, in load order.</summary>
         public List<LegacyTableResult> Tables { get; set; } = new();
 

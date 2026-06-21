@@ -34,4 +34,13 @@
     <ProjectReference Include="..\DoorsWeb.Licensing\DoorsWeb.Licensing.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Offline breached/common-password list (SecLists xato-net top 1,000,000). Bundled so the
+         breach check works with no outbound network call. Copied next to the build output and read
+         once at startup into a HashSet by BreachedPasswordService. -->
+    <Content Include="Resources\common-passwords.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

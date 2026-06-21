@@ -1,4 +1,5 @@
 using DoorsWeb.API.Authorization;
+using DoorsWeb.API.Services;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -39,7 +40,15 @@ namespace DoorsWeb.API.Controllers
         [HttpPost]
         public async Task<ActionResult<List<Users>>> Create(Users entity)
         {
-            return Ok(await _service.Create(entity));
+            try
+            {
+                return Ok(await _service.Create(entity));
+            }
+            catch (PasswordPolicyException ex)
+            {
+                // Password too short or on the breached/common list.
+                return Problem(detail: ex.Message, title: "Password not allowed", statusCode: 400);
+            }
         }
 
         [Authorize(Policy = AreaPolicies.UserSettingsWrite)]
@@ -54,6 +63,11 @@ namespace DoorsWeb.API.Controllers
                     return Problem(detail: $"Update Failed! User ({id}) was not found.", title: "Not Found", statusCode: 404);
                 }
                 return Ok(result);
+            }
+            catch (PasswordPolicyException ex)
+            {
+                // Password too short or on the breached/common list.
+                return Problem(detail: ex.Message, title: "Password not allowed", statusCode: 400);
             }
             catch (InvalidOperationException ex)
             {

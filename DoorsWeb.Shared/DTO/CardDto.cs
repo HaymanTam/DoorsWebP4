@@ -16,6 +16,11 @@ namespace DoorsWeb.Shared.DTO
         public DateTime? ValidFrom { get; set; }            // start of card validity
         public DateTime? ValidTo { get; set; }              // end of card validity
 
+        // True when a cardholder photo exists for this card number. Photos live on the API's storage
+        // volume (keyed by card number, no DB column), so this is filled from a single directory scan
+        // rather than the cardholder table — see CardholderService.GetAllCards.
+        public bool HasPhoto { get; set; }
+
         // Names of the access levels this card is tied to (joined through T_Name_AccessLevels).
         public List<string> AccessLevels { get; set; } = new();
     }

@@ -7,9 +7,10 @@ namespace DoorsWeb.API.Services.Interfaces
     {
         Task<List<Cardholder>> GetAll();
 
-        /// <summary>Streams every card with the names of the access levels it is tied to,
-        /// so the client can paint the first rows immediately and load the rest in the background.</summary>
-        IAsyncEnumerable<CardDto> GetAllCards();
+        /// <summary>Streams every card with the names of the access levels it is tied to (and whether
+        /// it has a photo), so the client can paint the first rows immediately and load the rest in the
+        /// background.</summary>
+        IAsyncEnumerable<CardDto> GetAllCards(CancellationToken cancellationToken = default);
 
         /// <summary>Builds a CardPresso-friendly CSV of every cardholder (RFC 4180, comma-delimited),
         /// including each card's photo file name so the card designer can bind images by filename.</summary>

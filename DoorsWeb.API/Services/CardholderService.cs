@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
@@ -27,9 +28,15 @@ namespace DoorsWeb.API.Services
 
         // Streams cards (newest names first) projected to CardDto. Each card's access-level
         // names come from the T_Name_AccessLevels junction joined to T_AccessLevel_Header.
-        public IAsyncEnumerable<CardDto> GetAllCards()
+        // HasPhoto is filled after projection from a single photo-directory scan (photos are stored
+        // by card number, not on the cardholder table, so it can't be part of the EF query).
+        public async IAsyncEnumerable<CardDto> GetAllCards(
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            return _context.Cardholder.AsNoTracking()
+            // One directory scan up front: card number -> file name for every card that has a photo.
+            var photos = _cardPhoto.GetAllFileNames();
+
+            var query = _context.Cardholder.AsNoTracking()
                 // Legacy "blank" cards (card-pack placeholders / unissued) have a CardId but no
                 // name; keep them after the real cardholders rather than sorting NULLs to the top.
                 .OrderBy(c => string.IsNullOrEmpty(c.Surname) && string.IsNullOrEmpty(c.Forname))
@@ -52,6 +59,12 @@ namespace DoorsWeb.API.Services
                         .ToList()
                 })
                 .AsAsyncEnumerable();
+
+            await foreach (var card in query.WithCancellation(cancellationToken))
+            {
+                card.HasPhoto = photos.ContainsKey(card.CardNumber);
+                yield return card;
+            }
         }
 
         // Column order/headers chosen to map cleanly onto CardPresso fields. The Photo column holds the

@@ -124,6 +124,10 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPwHashService, PwHashService>();
 
+// Password policy: flat 12-char minimum + offline screen against a bundled list of ~1M
+// known-breached/common passwords. Singleton so the list is loaded into memory just once.
+builder.Services.AddSingleton<IPasswordPolicyService, PasswordPolicyService>();
+
 // Users & Passwords page CRUD (legacy T_Users)
 builder.Services.AddScoped<IUsersService, UsersService>();
 

@@ -29,9 +29,9 @@ namespace DoorsWeb.API.Controllers
         // Streams cards (with their tied access-level names) as a JSON array so the client
         // can paint the first batch immediately and load the rest in the background.
         [HttpGet("cards")]
-        public IAsyncEnumerable<CardDto> GetCards()
+        public IAsyncEnumerable<CardDto> GetCards(CancellationToken cancellationToken)
         {
-            return _service.GetAllCards();
+            return _service.GetAllCards(cancellationToken);
         }
 
         // Exports every cardholder as a CSV tailored for import into CardPresso (card design/printing).

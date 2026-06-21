@@ -18,6 +18,11 @@ namespace DoorsWeb.API.Services
     /// parsed with <see cref="AdtgRecordsetReader"/> (a managed, Linux-friendly parser) and streamed
     /// into the matching table via PostgreSQL's binary <c>COPY</c> protocol, preserving identity values.
     ///
+    /// The archive may also contain a <c>Photos/</c> folder holding one cardholder photo per card,
+    /// named <c>PH&lt;CardNumber&gt;.jpg</c> (e.g. card 1037 → <c>PH001037.jpg</c>). These are copied
+    /// into the card-photo store renamed to the new system's convention (<c>&lt;CardNumber&gt;.jpg</c>),
+    /// replacing any existing photos. A backup with no <c>Photos/</c> folder leaves photos untouched.
+    ///
     /// Referential-integrity triggers are disabled for the duration (<c>session_replication_role =
     /// replica</c>) so tables can be cleared and reloaded in any order, then re-enabled afterwards.
     /// Because explicit identity values are loaded, each table's identity sequence is bumped past its
@@ -33,15 +38,24 @@ namespace DoorsWeb.API.Services
         // warns that all previous audit history is dropped.
         private const string AuditTable = "T_Audit";
 
+        // Legacy stores each cardholder photo in a "Photos" folder named PH<CardNumber>.jpg. The new
+        // system stores one photo per card named <CardNumber>.<ext> in the card-photo store. These are
+        // the image extensions we recognise for the rename-and-copy (mirrors CardPhotoService).
+        private static readonly HashSet<string> PhotoExtensions =
+            new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+
         private readonly string _connectionString;
         private readonly IHubContext<BackupHub> _hub;
         private readonly ILogger<LegacyBackupService> _logger;
+        private readonly ICardPhotoService _cardPhoto;
 
         public LegacyBackupService(
-            IConfiguration configuration, IHubContext<BackupHub> hub, ILogger<LegacyBackupService> logger)
+            IConfiguration configuration, IHubContext<BackupHub> hub, ILogger<LegacyBackupService> logger,
+            ICardPhotoService cardPhoto)
         {
             _hub = hub;
             _logger = logger;
+            _cardPhoto = cardPhoto;
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         }
@@ -54,27 +68,45 @@ namespace DoorsWeb.API.Services
 
             try
             {
-                // 1. Read the recordset (.rs) entries out of the encrypted ZIP.
+                // 1. Read the recordset (.rs) entries — and any cardholder photos — out of the
+                //    encrypted ZIP into temp files. Photos live in a "Photos/" folder named
+                //    PH<CardNumber>.jpg and are processed (renamed + copied) after the table load.
                 var entries = new List<(string table, string tempPath, long size)>();
+                var photos = new List<(int cardNumber, string ext, string tempPath)>();
                 using (var zip = new ZipFile(zipFilePath) { Password = password })
                 {
                     foreach (ZipEntry entry in zip)
                     {
                         if (!entry.IsFile) continue;
                         var fileName = Path.GetFileName(entry.Name);
-                        if (!fileName.EndsWith(".rs", StringComparison.OrdinalIgnoreCase)) continue;
 
-                        var table = Path.GetFileNameWithoutExtension(fileName);
-                        var tempPath = Path.Combine(
-                            Path.GetTempPath(), $"doorsweb_rs_{Guid.NewGuid():N}.rs");
-                        tempFiles.Add(tempPath);
-
-                        await using (var input = zip.GetInputStream(entry))
-                        await using (var output = File.Create(tempPath))
+                        if (fileName.EndsWith(".rs", StringComparison.OrdinalIgnoreCase))
                         {
-                            await input.CopyToAsync(output, cancellationToken);
+                            var table = Path.GetFileNameWithoutExtension(fileName);
+                            var tempPath = Path.Combine(
+                                Path.GetTempPath(), $"doorsweb_rs_{Guid.NewGuid():N}.rs");
+                            tempFiles.Add(tempPath);
+
+                            await using (var input = zip.GetInputStream(entry))
+                            await using (var output = File.Create(tempPath))
+                            {
+                                await input.CopyToAsync(output, cancellationToken);
+                            }
+                            entries.Add((table, tempPath, entry.Size));
                         }
-                        entries.Add((table, tempPath, entry.Size));
+                        else if (IsCardholderPhoto(entry, out var cardNumber, out var ext))
+                        {
+                            var tempPath = Path.Combine(
+                                Path.GetTempPath(), $"doorsweb_photo_{Guid.NewGuid():N}{ext}");
+                            tempFiles.Add(tempPath);
+
+                            await using (var input = zip.GetInputStream(entry))
+                            await using (var output = File.Create(tempPath))
+                            {
+                                await input.CopyToAsync(output, cancellationToken);
+                            }
+                            photos.Add((cardNumber, ext, tempPath));
+                        }
                     }
                 }
 
@@ -166,6 +198,10 @@ namespace DoorsWeb.API.Services
                             await GrantFullAccessToAllUsers(connection, usersTable, cancellationToken);
                     }
 
+                    // Restore cardholder photos from the backup's Photos/ folder (filesystem only,
+                    // independent of the DB). No-op when the backup carried no photos.
+                    result.PhotosRestored = await RestorePhotos(photos, cancellationToken);
+
                     // Read-only integrity scan. The bulk COPY ran with FK enforcement off
                     // (session_replication_role = replica), and PostgreSQL does NOT retro-validate
                     // rows loaded that way, so a legacy backup can leave orphans behind even though the
@@ -185,8 +221,9 @@ namespace DoorsWeb.API.Services
                 result.Success = true;
                 result.TablesLoaded = result.Tables.Count;
                 var skippedNote = result.Skipped.Count > 0 ? $" Skipped {result.Skipped.Count} unmatched table(s)." : "";
+                var photoNote = result.PhotosRestored > 0 ? $" Restored {result.PhotosRestored:N0} photo(s)." : "";
                 result.Message =
-                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{skippedNote}";
+                    $"Restored {result.TablesLoaded} table(s), {result.RowsLoaded:N0} row(s).{photoNote}{skippedNote}";
                 return result;
             }
             catch (Exception ex)
@@ -316,6 +353,73 @@ BEGIN
 END $$;";
             await using var cmd = new NpgsqlCommand(sql, connection) { CommandTimeout = 0 };
             await cmd.ExecuteNonQueryAsync(ct);
+        }
+
+        // Recognises a cardholder photo entry: an image file in the archive's top-level "Photos"
+        // folder named PH<CardNumber>[.ext]. Legacy zero-pads the number to six digits (e.g. card
+        // 1037 → PH001037.jpg). Yields the parsed card number and the lower-cased extension. Entries
+        // outside Photos/, with an unknown extension, or without a positive card number are rejected.
+        private static bool IsCardholderPhoto(ZipEntry entry, out int cardNumber, out string ext)
+        {
+            cardNumber = 0;
+            ext = string.Empty;
+
+            var normalized = entry.Name.Replace('\\', '/');
+            if (!normalized.StartsWith("Photos/", StringComparison.OrdinalIgnoreCase)) return false;
+
+            var fileExt = Path.GetExtension(normalized);
+            if (string.IsNullOrEmpty(fileExt) || !PhotoExtensions.Contains(fileExt)) return false;
+
+            var name = Path.GetFileNameWithoutExtension(normalized).Trim();
+            if (name.StartsWith("PH", StringComparison.OrdinalIgnoreCase))
+                name = name.Substring(2);
+
+            if (!int.TryParse(name, out var n) || n <= 0) return false;
+
+            cardNumber = n;
+            ext = fileExt.ToLowerInvariant();
+            return true;
+        }
+
+        // Restores cardholder photos (already extracted to temp files) into the card-photo store,
+        // renamed from the legacy PH<CardNumber>.jpg convention to the new system's <CardNumber>.<ext>.
+        // The restore replaces the photo set wholesale — mirroring the truncate-then-load of the
+        // tables — so every existing card photo is removed first, then the backup's photos written.
+        // Called only when the backup actually carried photos, so a photo-less backup leaves the
+        // existing photos untouched. Filesystem only; independent of the DB transaction. Returns the
+        // number of photos restored.
+        private async Task<long> RestorePhotos(
+            IReadOnlyList<(int cardNumber, string ext, string tempPath)> photos, CancellationToken ct)
+        {
+            if (photos.Count == 0) return 0;
+
+            var dir = _cardPhoto.PhysicalDirectory;
+            Directory.CreateDirectory(dir);
+
+            // Wholesale replace: drop every existing card photo before importing the backup's set.
+            foreach (var existing in Directory.EnumerateFiles(dir))
+            {
+                if (!PhotoExtensions.Contains(Path.GetExtension(existing))) continue;
+                try { File.Delete(existing); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Could not delete existing card photo {File}.", existing); }
+            }
+
+            long restored = 0;
+            foreach (var (cardNumber, ext, tempPath) in photos)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var dest = Path.Combine(dir, $"{cardNumber}{ext}");
+                await using (var input = File.OpenRead(tempPath))
+                await using (var output = File.Create(dest))
+                {
+                    await input.CopyToAsync(output, ct);
+                }
+                restored++;
+            }
+
+            _logger.LogInformation("Legacy import: restored {Count} cardholder photo(s).", restored);
+            return restored;
         }
 
         // One foreign key as read from the catalog: ordered child/parent column lists included so

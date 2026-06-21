@@ -241,6 +241,20 @@
     </CardBody>
 </Card>
 
+@* About: software version, shown read-only for support/diagnostics. *@
+<h3 class="mt-3 mb-2">About</h3>
+<Card Size="CardSize.Default">
+    <CardBody>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center">
+                <Icon class="icon me-2 text-muted" IconType="@TablerIcons.Info_circle" />
+                <span>Doors Web <span class="badge bg-red text-white ms-1">P4</span></span>
+            </div>
+            <div class="text-muted">Version <span class="font-monospace">@appVersion</span></div>
+        </div>
+    </CardBody>
+</Card>
+
 @if (status is not null)
 {
     <div class="alert @(statusOk ? "alert-success" : "alert-danger") mb-0 mt-3" role="alert">
@@ -261,6 +275,11 @@
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
 
     private HttpClient client = null!;
+
+    // Application version, read from the client assembly (set via <AssemblyVersion> in the csproj:
+    // 0.1.0.0 in Debug, auto-incrementing 0.1.* in Release).
+    private static readonly string appVersion =
+        typeof(SystemSettingsModal).Assembly.GetName().Version?.ToString() ?? "unknown";
 
     private List<SiteDto>? sites;
     private string? newSiteName;

@@ -1,6 +1,7 @@
 @page "/login"
 @attribute [AllowAnonymous]
 @using System.ComponentModel.DataAnnotations
+@using DoorsWeb.Shared.Auth
 @using DoorsWeb.Shared.DTO
 @using DoorsWeb.Shared.Models
 @using DoorsWeb.Client.Auth
@@ -73,7 +74,7 @@
                     <div class="mb-3">
                         <label class="form-label">New password</label>
                         <div class="input-group input-group-flat">
-                            <InputText type="@(showNewPwd ? "text" : "password")" class="form-control" @bind-Value="changeModel.NewPassword" placeholder="New password" />
+                            <InputText type="@(showNewPwd ? "text" : "password")" class="form-control" @bind-Value="changeModel.NewPassword" @bind-Value:event="oninput" placeholder="New password" />
                             <span class="input-group-text">
                                 <a href="#" class="link-secondary" tabindex="-1" title="Show password"
                                    @onclick="() => showNewPwd = !showNewPwd" @onclick:preventDefault="true">
@@ -81,6 +82,7 @@
                                 </a>
                             </span>
                         </div>
+                        <PasswordStrengthMeter Password="@changeModel.NewPassword" />
                         <ValidationMessage For="@(() => changeModel.NewPassword)" />
                     </div>
                     <div class="mb-3">
@@ -256,7 +258,7 @@
     private class ChangePasswordModel
     {
         [Required]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters.")]
+        [MinLength(PasswordPolicy.MinLength, ErrorMessage = "Password must be at least 12 characters.")]
         public string NewPassword { get; set; } = "";
 
         [Required]

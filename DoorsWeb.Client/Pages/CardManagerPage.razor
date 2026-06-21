@@ -94,6 +94,17 @@
                             </select>
                         </div>
 
+                        @* Photo presence. *@
+                        <div class="d-flex flex-column">
+                            <label class="form-label mb-1 small">Photo</label>
+                            <select class="form-select form-select-sm" style="width: auto;"
+                                    @bind="photoFilter" @bind:after="ApplyFilters">
+                                <option value="">All</option>
+                                <option value="yes">With photo</option>
+                                <option value="no">Without photo</option>
+                            </select>
+                        </div>
+
                         @* Valid-date range (only applies when a date is set; cards with no date are excluded). *@
                         <div class="d-flex flex-column">
                             <label class="form-label mb-1 small">Valid from ≥</label>
@@ -167,6 +178,18 @@
                             }
                         </Template>
                     </Column>
+                    <Column Item="CardDto" Title="Photo" Width="70px">
+                        <Template>
+                            @if (context.HasPhoto)
+                            {
+                                <Icon class="icon text-green" IconType="@TablerIcons.Photo" title="Has photo" />
+                            }
+                            else
+                            {
+                                <Icon class="icon text-muted" IconType="@TablerIcons.Photo_off" title="No photo" />
+                            }
+                        </Template>
+                    </Column>
                     @if (canWrite)
                     {
                         <Column Item="CardDto" title="" ActionColumn Width="130px">
@@ -211,6 +234,9 @@
     // Status toggles: "" = all, "yes" / "no" otherwise.
     private string enabledFilter = "";
     private string voidFilter = "";
+
+    // Photo presence: "" = all, "yes" = has photo, "no" = no photo.
+    private string photoFilter = "";
 
     // Valid-date range bounds (null = unbounded on that side).
     private DateTime? validFromAfter;
@@ -407,6 +433,9 @@
         if (voidFilter == "yes") q = q.Where(c => c.Void == true);
         else if (voidFilter == "no") q = q.Where(c => c.Void != true);
 
+        if (photoFilter == "yes") q = q.Where(c => c.HasPhoto);
+        else if (photoFilter == "no") q = q.Where(c => !c.HasPhoto);
+
         if (validFromAfter is DateTime from)
             q = q.Where(c => c.ValidFrom.HasValue && c.ValidFrom.Value.Date >= from.Date);
 
@@ -422,6 +451,7 @@
         selectedAccessLevel = null;
         enabledFilter = "";
         voidFilter = "";
+        photoFilter = "";
         validFromAfter = null;
         validToBefore = null;
         ApplyFilters();

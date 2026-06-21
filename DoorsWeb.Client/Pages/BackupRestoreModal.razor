@@ -162,8 +162,9 @@
                 <input class="form-check-input" type="checkbox" @bind="legacyAcknowledged"
                        disabled="@(busy || !individualWarningsAcknowledged)" />
                 <span class="form-check-label">
-                    I have read and understand the warnings above — this import overwrites current data, drops all
-                    audit history, and grants <strong>every imported user full (Super) access</strong>. This cannot be undone.
+                    I have read and understand the warnings above — this import overwrites current data (including
+                    cardholder photos), drops all audit history, and grants <strong>every imported user full (Super)
+                    access</strong>. This cannot be undone.
                 </span>
             </label>
             @if (!individualWarningsAcknowledged)
@@ -227,6 +228,13 @@
             {
                 <p class="text-muted small mt-2 mb-0">Skipped (no matching table): @string.Join(", ", legacyResult.Skipped)</p>
             }
+            @if (legacyResult.PhotosRestored > 0)
+            {
+                <p class="text-muted small mt-2 mb-0">
+                    <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Photo" />
+                    Restored <strong>@legacyResult.PhotosRestored.ToString("N0")</strong> cardholder photo(s) (existing photos were replaced).
+                </p>
+            }
             @if (legacyResult.UsersGrantedFullAccess > 0)
             {
                 <div class="alert alert-danger mt-3 mb-0" role="alert">
@@ -240,18 +248,19 @@
             @if (legacyResult.Findings.Count > 0)
             {
                 <div class="alert alert-warning mt-3 mb-0" role="alert">
-                    <div class="d-flex">
-                        <div class="me-2"><Icon class="icon" IconType="@TablerIcons.Alert_triangle" /></div>
-                        <div>
-                            <h4 class="alert-title">Data-integrity findings (review only — nothing was changed)</h4>
-                            <div class="text-secondary small">
-                                The backup loaded with foreign-key enforcement off, so these rows were imported as-is.
-                                Orphans reference a parent row that doesn't exist; blank names crash the legacy client.
-                            </div>
+                    @* Single full-width child so the table always stacks below the text, even though
+                       Tabler's .alert lays its direct children out in a row. *@
+                    <div class="w-100">
+                        <h4 class="alert-title">
+                            <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
+                            Data-integrity findings (review only — nothing was changed)
+                        </h4>
+                        <div class="text-secondary small mb-2">
+                            The backup loaded with foreign-key enforcement off, so these rows were imported as-is.
+                            Orphans reference a parent row that doesn't exist; blank names crash the legacy client.
                         </div>
-                    </div>
-                    <div class="table-responsive mt-2" style="max-height: 220px; overflow-y: auto;">
-                        <table class="table table-sm table-vcenter mb-0">
+                        <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
+                            <table class="table table-sm table-vcenter mb-0">
                             <thead>
                                 <tr><th>Kind</th><th>Table</th><th>Reference</th><th>Detail</th><th class="text-end">Rows</th></tr>
                             </thead>
@@ -276,7 +285,8 @@
                                     </tr>
                                 }
                             </tbody>
-                        </table>
+                            </table>
+                        </div>
                     </div>
                 </div>
             }

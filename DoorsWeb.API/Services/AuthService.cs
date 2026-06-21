@@ -25,12 +25,14 @@ namespace DoorsWeb.API.Services
         private readonly DoorsEnterpriseContext _context;
         private readonly IConfiguration _configuration;
         private readonly IPwHashService _pwHash;
+        private readonly IPasswordPolicyService _passwordPolicy;
 
-        public AuthService(DoorsEnterpriseContext context, IConfiguration configuration, IPwHashService pwHash)
+        public AuthService(DoorsEnterpriseContext context, IConfiguration configuration, IPwHashService pwHash, IPasswordPolicyService passwordPolicy)
         {
             _context = context;
             _configuration = configuration;
             _pwHash = pwHash;
+            _passwordPolicy = passwordPolicy;
         }
 
         public async Task<JwtPair?> SignInAsync(AdminLoginDto dto, CancellationToken ct = default)
@@ -89,6 +91,12 @@ namespace DoorsWeb.API.Services
 
             if (user is null)
                 return null;
+
+            // Enforce the policy on the new password (including the force-change-on-first-login flow):
+            // 12-char minimum + not on the breached/common list. Surfaced as 400 by the controller.
+            var validation = _passwordPolicy.Validate(newPassword);
+            if (!validation.IsValid)
+                throw new PasswordPolicyException(validation.Error!);
 
             user.Password = _pwHash.Hash(newPassword);
             await _context.SaveChangesAsync(ct);

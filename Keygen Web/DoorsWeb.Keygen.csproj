@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>DoorsWeb.Keygen</RootNamespace>
+    <AssemblyName>DoorsWeb.Keygen</AssemblyName>
+    <!-- Internal tool for the license issuer only. Never distributed with the product, because it
+         (and the private key it loads) can mint valid license keys. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DoorsWeb.Licensing\DoorsWeb.Licensing.csproj" />
+  </ItemGroup>
+
+</Project>

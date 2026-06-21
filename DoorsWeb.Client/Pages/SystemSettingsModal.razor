@@ -148,6 +148,99 @@
     <CustomCardFormatFields Format="cardFormat" />
 </EditForm>
 
+@* License: shows the server-validated status (limits / expiry / usage) and lets a
+   write-capable user paste a new signed key. The key persists with the other settings on OK. *@
+<h3 class="mt-3 mb-2">License</h3>
+<Card Size="CardSize.Default">
+    <CardBody>
+        @if (license is null)
+        {
+            <div class="text-muted">Loading license status…</div>
+        }
+        else
+        {
+            <div class="mb-3 d-flex align-items-center flex-wrap gap-2">
+                @if (license.IsActive)
+                {
+                    <span class="badge bg-success">Active</span>
+                }
+                else if (license.IsExpired)
+                {
+                    <span class="badge bg-danger">Expired — read-only</span>
+                }
+                else if (license.HasKey)
+                {
+                    <span class="badge bg-warning">Invalid key</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Unlicensed</span>
+                }
+                @if (!license.IsLicensed)
+                {
+                    <span class="badge bg-azure-lt">Default tier</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(license.Message))
+                {
+                    <span class="text-muted small">@license.Message</span>
+                }
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <div class="text-muted small">Doors</div>
+                    <div class="fw-bold">@license.DoorCount / @license.MaxDoors</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted small">Cardholders</div>
+                    <div class="fw-bold">@license.CardCount / @license.MaxCards</div>
+                </div>
+            </div>
+
+            @if (license.IsLicensed)
+            {
+                <div class="row g-2 mb-2">
+                    @if (!string.IsNullOrWhiteSpace(license.Customer))
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">Licensed to</div>
+                            <div>@license.Customer</div>
+                        </div>
+                    }
+                    @if (license.ExpiryUtc is not null)
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">Expires</div>
+                            <div>@license.ExpiryUtc.Value.ToString("yyyy-MM-dd")</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(license.LicenseId))
+                    {
+                        <div class="col-md-6">
+                            <div class="text-muted small">License ID</div>
+                            <div class="font-monospace small">@license.LicenseId</div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+
+        @if (canWrite)
+        {
+            <div class="mt-3">
+                <label class="form-label mb-1">License key</label>
+                <textarea class="form-control font-monospace" rows="4" disabled="@busy"
+                          placeholder="Paste your signed license key here…"
+                          @bind="settings.License.Key" @bind:event="oninput"></textarea>
+                <div class="text-muted small mt-1">
+                    <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
+                    Paste the key supplied after purchase, then click OK to apply. Leave blank to run in the unlicensed default tier.
+                </div>
+            </div>
+        }
+    </CardBody>
+</Card>
+
 @if (status is not null)
 {
     <div class="alert @(statusOk ? "alert-success" : "alert-danger") mb-0 mt-3" role="alert">
@@ -176,8 +269,11 @@
     // legacy dialog), so OK/Cancel don't save these values.
     private CustomCardFormatFields.CustomCardFormatModel cardFormat = new();
 
-    // Global settings (controller communication). Loaded on init, saved on OK.
+    // Global settings (controller communication + license key). Loaded on init, saved on OK.
     private SystemSettings settings = new();
+
+    // Server-validated license status (limits / expiry / live usage). Display-only.
+    private LicenseStatusDto? license;
 
     // Inline rename state: the site currently being edited and its working name.
     private int? editingSite;
@@ -199,6 +295,7 @@
         client = ClientFactory.CreateClient("WebAPI");
         await LoadSites();
         await LoadSettings();
+        await LoadLicense();
     }
 
     private async Task LoadSettings()
@@ -207,11 +304,25 @@
         {
             settings = await client.GetFromJsonAsync<SystemSettings>("api/SystemSettings") ?? new();
             settings.ControllerCommunication ??= new();
+            settings.License ??= new();
         }
         catch (Exception ex)
         {
             settings = new();
             SetStatus(false, $"Could not load settings: {ex.Message}");
+        }
+    }
+
+    private async Task LoadLicense()
+    {
+        try
+        {
+            license = await client.GetFromJsonAsync<LicenseStatusDto>("api/License");
+        }
+        catch (Exception ex)
+        {
+            license = null;
+            SetStatus(false, $"Could not load license status: {ex.Message}");
         }
     }
 
@@ -344,7 +455,8 @@
     }
 
     // Sites persist immediately as they are edited; OK additionally saves the global settings
-    // (controller communication). On failure the dialog stays open so the error is visible.
+    // (controller communication + license key). On failure the dialog stays open so the error is
+    // visible; if the pasted key turns out invalid, the License panel still updates to explain why.
     private async Task Save()
     {
         if (canWrite)
@@ -368,6 +480,15 @@
             finally
             {
                 busy = false;
+            }
+
+            // Re-validate the (possibly new) key. If it didn't verify, keep the dialog open and
+            // surface the reason rather than silently closing.
+            await LoadLicense();
+            if (license is not null && license.HasKey && !license.IsActive)
+            {
+                SetStatus(false, license.Message ?? "The license key was saved but is not active.");
+                return;
             }
         }
 

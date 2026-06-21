@@ -19,5 +19,8 @@ namespace DoorsWeb.Shared.Auth
 
         /// <summary>User Settings area access level as an int string.</summary>
         public const string UserSettings = "perm.usersettings";
+
+        /// <summary>Reports area access level as an int string.</summary>
+        public const string Reports = "perm.reports";
     }
 }

@@ -26,4 +26,8 @@ builder.Services.AddScoped<JwtAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<JwtAuthStateProvider>());
 
+// Live feeds over SignalR /eventHub: door-state for the floorplan, new events for the events page.
+builder.Services.AddScoped<DoorsWeb.Client.Services.DoorStateHubClient>();
+builder.Services.AddScoped<DoorsWeb.Client.Services.EventHubClient>();
+
 await builder.Build().RunAsync();

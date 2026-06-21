@@ -1,4 +1,5 @@
 using DoorsWeb.API.Authorization;
+using DoorsWeb.API.Licensing;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
 using DoorsWeb.Shared.Entities;
@@ -33,6 +34,24 @@ namespace DoorsWeb.API.Controllers
             return _service.GetAllCards();
         }
 
+        // Exports every cardholder as a CSV tailored for import into CardPresso (card design/printing).
+        // Read access is enough — it is the same data the grid already shows. A UTF-8 BOM is prepended so
+        // Windows-side importers detect the encoding and render accented names correctly.
+        [HttpGet("export.csv")]
+        public async Task<IActionResult> ExportCsv()
+        {
+            var csv = await _service.BuildCardPressoCsvAsync();
+
+            var preamble = System.Text.Encoding.UTF8.GetPreamble();
+            var body = System.Text.Encoding.UTF8.GetBytes(csv);
+            var bytes = new byte[preamble.Length + body.Length];
+            Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
+            Buffer.BlockCopy(body, 0, bytes, preamble.Length, body.Length);
+
+            var fileName = $"cardholders-cardpresso-{DateTime.Now:yyyyMMdd}.csv";
+            return File(bytes, "text/csv", fileName);
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Cardholder>> GetById(int id)
         {
@@ -48,7 +67,14 @@ namespace DoorsWeb.API.Controllers
         [HttpPost]
         public async Task<ActionResult<List<Cardholder>>> Create(Cardholder entity)
         {
-            return Ok(await _service.Create(entity));
+            try
+            {
+                return Ok(await _service.Create(entity));
+            }
+            catch (LicenseLimitException ex)
+            {
+                return Problem(detail: ex.Message, title: "License Limit Reached", statusCode: 409);
+            }
         }
 
         [Authorize(Policy = AreaPolicies.CardManagerWrite)]

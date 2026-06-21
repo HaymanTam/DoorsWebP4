@@ -9,6 +9,14 @@ export function getInnerHeight() {
     return window.innerHeight;
 }
 
+// Rendered size of an element, used by the floorplan editor to turn a click's
+// offset into a resolution-independent percentage position.
+export function getElementSize(el) {
+    if (!el) return { width: 0, height: 0 };
+    const r = el.getBoundingClientRect();
+    return { width: r.width, height: r.height };
+}
+
 // Calls back into .NET (OnViewportResized) on resize, debounced so a drag
 // doesn't fire a storm of re-renders.
 export function registerResize(helper) {

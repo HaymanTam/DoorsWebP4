@@ -15,5 +15,8 @@ namespace DoorsWeb.API.Authorization
 
         public const string UserSettingsRead = "UserSettings.Read";
         public const string UserSettingsWrite = "UserSettings.Write";
+
+        public const string ReportsRead = "Reports.Read";
+        public const string ReportsWrite = "Reports.Write";
     }
 }

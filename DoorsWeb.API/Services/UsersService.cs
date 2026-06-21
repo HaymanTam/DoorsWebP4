@@ -62,6 +62,7 @@ namespace DoorsWeb.API.Services
             existing.CardManagerAccess = entity.CardManagerAccess;
             existing.SiteSettingsAccess = entity.SiteSettingsAccess;
             existing.UserSettingsAccess = entity.UserSettingsAccess;
+            existing.ReportsAccess = entity.ReportsAccess;
             // An empty password means "leave unchanged"; otherwise store the new one hashed.
             if (!string.IsNullOrEmpty(entity.Password))
                 existing.Password = _pwHash.Hash(entity.Password);

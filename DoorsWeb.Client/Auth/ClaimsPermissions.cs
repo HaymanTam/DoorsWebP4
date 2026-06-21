@@ -19,6 +19,7 @@ namespace DoorsWeb.Client.Auth
         public static AreaAccess CardManager(this ClaimsPrincipal user) => Area(user, PermissionClaims.CardManager);
         public static AreaAccess SiteSettings(this ClaimsPrincipal user) => Area(user, PermissionClaims.SiteSettings);
         public static AreaAccess UserSettings(this ClaimsPrincipal user) => Area(user, PermissionClaims.UserSettings);
+        public static AreaAccess Reports(this ClaimsPrincipal user) => Area(user, PermissionClaims.Reports);
 
         public static bool CanReadCardManager(this ClaimsPrincipal user) => user.CardManager() >= AreaAccess.Read;
         public static bool CanWriteCardManager(this ClaimsPrincipal user) => user.CardManager() >= AreaAccess.ReadWrite;
@@ -28,6 +29,9 @@ namespace DoorsWeb.Client.Auth
 
         public static bool CanReadUserSettings(this ClaimsPrincipal user) => user.UserSettings() >= AreaAccess.Read;
         public static bool CanWriteUserSettings(this ClaimsPrincipal user) => user.UserSettings() >= AreaAccess.ReadWrite;
+
+        public static bool CanReadReports(this ClaimsPrincipal user) => user.Reports() >= AreaAccess.Read;
+        public static bool CanWriteReports(this ClaimsPrincipal user) => user.Reports() >= AreaAccess.ReadWrite;
 
         // A Super implicitly has ReadWrite; otherwise read the claim's int value (defaulting to None).
         private static AreaAccess Area(ClaimsPrincipal user, string claimType)

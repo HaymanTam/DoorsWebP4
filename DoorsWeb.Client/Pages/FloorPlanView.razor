@@ -1,0 +1,358 @@
+@page "/floorplan"
+@page "/floorplan/{Site:int}"
+@using DoorsWeb.Client.Auth
+@using DoorsWeb.Client.Services
+@using DoorsWeb.Shared.DTO
+@using DoorsWeb.Shared.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IHttpClientFactory ClientFactory
+@inject AuthenticationStateProvider AuthState
+@inject DoorStateHubClient Hub
+@inject NavigationManager Navigation
+@inject TabBlazor.Services.IModalService ModalService
+@implements IAsyncDisposable
+
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.Map_2" />Floorplan
+            <span class="ms-2 badge @(Hub.IsConnected ? "bg-green-lt" : "bg-secondary-lt")">
+                @(Hub.IsConnected ? "Live" : "Connecting…")
+            </span>
+        </CardTitle>
+        <CardActions class="ms-auto d-flex align-items-center gap-2">
+            @if (sites.Count > 1)
+            {
+                <select class="form-select form-select-sm" style="width:auto"
+                        value="@selectedSite" @onchange="OnSiteChanged">
+                    @foreach (var s in sites)
+                    {
+                        <option value="@s.Site">@s.Name</option>
+                    }
+                </select>
+            }
+            @if (canWrite)
+            {
+                <Button BackgroundColor="TablerColor.Danger" Size="ButtonSize.Small" @onclick="ConfirmLockdown">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Lock_access" />Lockdown
+                </Button>
+                <Button BackgroundColor="TablerColor.Secondary" Size="ButtonSize.Small"
+                        @onclick="GoEdit">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Edit" />Edit
+                </Button>
+            }
+        </CardActions>
+    </CardHeader>
+    <CardBody>
+        @if (!canRead)
+        {
+            <div class="alert alert-info mb-0" role="alert">
+                <Icon class="icon me-2" IconType="@TablerIcons.Eye" />
+                You don't have access to site settings, so the floorplan is unavailable.
+            </div>
+        }
+        else if (!isLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        else if (selectedSite is null)
+        {
+            <div class="text-muted text-center py-4">No sites configured.</div>
+        }
+        else
+        {
+            <div class="floorplan-legend mb-3">
+                @foreach (var st in LegendOrder)
+                {
+                    <span class="legend-item">
+                        <span class="status-dot @StatusClass(st)"></span>@StatusLabel(st)
+                    </span>
+                }
+            </div>
+
+            <div class="floorplan-stage">
+                @{
+                    var siteDoors = DoorsForSite();
+                    var placed = layout?.Doors ?? new List<DoorPlacementDto>();
+                    var placedNumbers = placed.Select(p => p.Door).ToHashSet();
+                    var hasImage = !string.IsNullOrWhiteSpace(layout?.ImageFileName);
+                    var unplaced = siteDoors.Where(d => !placedNumbers.Contains(d.Door)).ToList();
+                }
+
+                @if (hasImage)
+                {
+                    <div class="plan-image-wrap">
+                        <img src="@ImageUrl(layout!.ImageFileName!)" alt="Floor plan" class="plan-image" />
+                        @foreach (var p in placed)
+                        {
+                            if (states.TryGetValue(p.Door, out var d) && d.Site == selectedSite)
+                            {
+                                <button type="button"
+                                        class="plan-marker @StatusClass(d.Status) @(IsAlarm(d.Status) ? "alarm" : "")"
+                                        style="left:@(p.X.ToString(Inv))%; top:@(p.Y.ToString(Inv))%;"
+                                        title="@Tooltip(d)" @onclick="() => SelectDoor(d)">
+                                    <span class="marker-label">@d.Name</span>
+                                </button>
+                            }
+                        }
+                    </div>
+
+                    @if (unplaced.Count > 0)
+                    {
+                        <div class="text-muted small mt-3 mb-1">Not placed on the plan</div>
+                        <div class="door-board">
+                            @foreach (var d in unplaced)
+                            {
+                                @DoorTile(d)
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    @if (siteDoors.Count == 0)
+                    {
+                        <div class="text-muted text-center py-4">No doors at this site.</div>
+                    }
+                    else
+                    {
+                        <div class="door-board">
+                            @foreach (var d in siteDoors)
+                            {
+                                @DoorTile(d)
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </CardBody>
+</Card>
+
+@if (selectedDoor is not null)
+{
+    <div class="door-action-panel">
+        <div class="d-flex align-items-center mb-2">
+            <span class="status-dot @StatusClass(selectedDoor.Status) me-2"></span>
+            <strong class="me-auto">@selectedDoor.Name</strong>
+            <Icon class="icon cursor-pointer" IconType="@TablerIcons.X" @onclick="() => selectedDoor = null" />
+        </div>
+        <div class="text-muted small mb-1">Status: <strong>@StatusLabel(selectedDoor.Status)</strong></div>
+        <div class="text-muted small mb-3">
+            Last event: @(string.IsNullOrEmpty(selectedDoor.LastEventName) ? "—" : selectedDoor.LastEventName)
+            @if (selectedDoor.LastEventUtc is not null)
+            {
+                <span> · @selectedDoor.LastEventUtc.Value.ToLocalTime().ToString("HH:mm:ss")</span>
+            }
+        </div>
+        @if (canWrite)
+        {
+            <div class="d-grid gap-2">
+                <Button BackgroundColor="TablerColor.Blue" @onclick="() => SendCommand(DoorCommandAction.Unlock)" Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Lock_open" />Unlock (hold open)
+                </Button>
+                <Button BackgroundColor="TablerColor.Azure" @onclick="() => SendCommand(DoorCommandAction.MomentaryRelease)" Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Walk" />Momentary release
+                </Button>
+                <Button BackgroundColor="TablerColor.Green" @onclick="() => SendCommand(DoorCommandAction.Lock)" Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Lock" />Lock
+                </Button>
+            </div>
+        }
+        else
+        {
+            <div class="text-muted small">Read-only access — control actions are disabled.</div>
+        }
+    </div>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+    private static readonly DoorLiveStatus[] LegendOrder =
+    {
+        DoorLiveStatus.Locked, DoorLiveStatus.Unlocked, DoorLiveStatus.HeldOpen,
+        DoorLiveStatus.ForcedOpen, DoorLiveStatus.Offline
+    };
+
+    [Parameter] public int? Site { get; set; }
+
+    private HttpClient client = default!;
+    private List<SiteDto> sites = new();
+    private int? selectedSite;
+    private readonly Dictionary<int, DoorStateDto> states = new();
+    private FloorPlanLayoutDto? layout;
+    private DoorStateDto? selectedDoor;
+
+    private bool canRead;
+    private bool canWrite;
+    private bool isLoaded;
+    private bool busy;
+    // Guards param-change handling until first-load (sites/states/hub) has completed.
+    private bool ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        canRead = auth.User.CanReadSiteSettings();
+        canWrite = auth.User.CanWriteSiteSettings();
+        client = ClientFactory.CreateClient("WebAPI");
+
+        if (!canRead)
+        {
+            isLoaded = true;
+            return;
+        }
+
+        sites = await client.GetFromJsonAsync<List<SiteDto>>("api/Sites") ?? new();
+        await LoadStates();
+
+        Hub.DoorStateChanged += OnDoorStateChanged;
+        try { await Hub.StartAsync(); } catch { /* badge shows "Connecting…"; snapshot still renders */ }
+
+        ready = true;
+        await ResolveSiteAndLoad();
+        isLoaded = true;
+    }
+
+    // Re-resolves the site whenever the {Site} route parameter changes (per-site deep links
+    // reuse this component instance, so navigation only triggers OnParametersSetAsync).
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ready) await ResolveSiteAndLoad();
+    }
+
+    // Picks the site from the route (falling back to the current/first site) and loads its layout.
+    private async Task ResolveSiteAndLoad()
+    {
+        if (!canRead || sites.Count == 0) return;
+        var desired = Site is int s && sites.Any(x => x.Site == s) ? s : selectedSite ?? sites[0].Site;
+        if (desired != selectedSite || layout is null)
+        {
+            selectedSite = desired;
+            selectedDoor = null;
+            await LoadLayout();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadStates()
+    {
+        var snapshot = await client.GetFromJsonAsync<List<DoorStateDto>>("api/DoorControl/states") ?? new();
+        states.Clear();
+        foreach (var d in snapshot) states[d.Door] = d;
+    }
+
+    private async Task LoadLayout()
+    {
+        layout = selectedSite is int s
+            ? await client.GetFromJsonAsync<FloorPlanLayoutDto>($"api/FloorPlan/{s}")
+            : null;
+    }
+
+    // URL-driven: navigating updates the {Site} route param, which OnParametersSetAsync resolves.
+    private void OnSiteChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var s))
+            Navigation.NavigateTo($"/floorplan/{s}");
+    }
+
+    private void GoEdit() =>
+        Navigation.NavigateTo(selectedSite is int s ? $"/floorplan/{s}/edit" : "/floorplan/edit");
+
+    private void OnDoorStateChanged(DoorStateDto dto)
+    {
+        states[dto.Door] = dto;
+        if (selectedDoor?.Door == dto.Door) selectedDoor = dto;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private List<DoorStateDto> DoorsForSite() =>
+        states.Values.Where(d => d.Site == selectedSite)
+                     .OrderBy(d => d.Name).ThenBy(d => d.Door)
+                     .ToList();
+
+    private void SelectDoor(DoorStateDto d) => selectedDoor = d;
+
+    private async Task SendCommand(DoorCommandAction action)
+    {
+        if (selectedDoor is null) return;
+        busy = true;
+        try
+        {
+            var resp = await client.PostAsJsonAsync(
+                $"api/DoorControl/{selectedDoor.Door}/command", new DoorCommandRequest { Action = action });
+            if (resp.IsSuccessStatusCode)
+            {
+                var updated = await resp.Content.ReadFromJsonAsync<DoorStateDto>();
+                if (updated is not null)
+                {
+                    states[updated.Door] = updated;
+                    if (selectedDoor?.Door == updated.Door) selectedDoor = updated;
+                }
+            }
+        }
+        catch { /* leave state as-is; the live feed will reconcile */ }
+        finally { busy = false; }
+    }
+
+    private async Task ConfirmLockdown()
+    {
+        var siteName = sites.FirstOrDefault(s => s.Site == selectedSite)?.Name ?? "this site";
+        var ok = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Lock every door in {siteName}?",
+            SubText = "All doors at the selected site will be sent a lock command.",
+            IconType = TablerIcons.Lock_access,
+            StatusColor = TablerColor.Danger
+        });
+        if (!ok) return;
+
+        try { await client.PostAsync($"api/DoorControl/lockdown?site={selectedSite}", null); }
+        catch { /* live feed reflects whatever locked */ }
+    }
+
+    // ---- presentation helpers ----------------------------------------------------
+
+    private string ImageUrl(string fileName) => new Uri(client.BaseAddress!, $"media/floorplan/{fileName}").ToString();
+
+    private static bool IsAlarm(DoorLiveStatus s) => s is DoorLiveStatus.HeldOpen or DoorLiveStatus.ForcedOpen;
+
+    private static string StatusClass(DoorLiveStatus s) => s switch
+    {
+        DoorLiveStatus.Locked => "status-locked",
+        DoorLiveStatus.Unlocked => "status-unlocked",
+        DoorLiveStatus.HeldOpen => "status-held",
+        DoorLiveStatus.ForcedOpen => "status-forced",
+        _ => "status-offline"
+    };
+
+    private static string StatusLabel(DoorLiveStatus s) => s switch
+    {
+        DoorLiveStatus.Locked => "Locked",
+        DoorLiveStatus.Unlocked => "Unlocked",
+        DoorLiveStatus.HeldOpen => "Held open",
+        DoorLiveStatus.ForcedOpen => "Forced",
+        _ => "Offline"
+    };
+
+    private static string Tooltip(DoorStateDto d)
+    {
+        var ev = string.IsNullOrEmpty(d.LastEventName) ? "" : $" — {d.LastEventName}";
+        var when = d.LastEventUtc is null ? "" : $" ({d.LastEventUtc.Value.ToLocalTime():HH:mm:ss})";
+        return $"{d.Name}: {StatusLabel(d.Status)}{ev}{when}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Hub.DoorStateChanged -= OnDoorStateChanged;
+        await Hub.DisposeAsync();
+    }
+
+    // Reusable door tile for the zero-setup zone board.
+    private RenderFragment DoorTile(DoorStateDto d) => @<button type="button"
+            class="door-tile @StatusClass(d.Status) @(IsAlarm(d.Status) ? "alarm" : "")"
+            title="@Tooltip(d)" @onclick="() => SelectDoor(d)">
+        <span class="door-tile-name">@d.Name</span>
+        <span class="door-tile-status">@StatusLabel(d.Status)</span>
+    </button>;
+}

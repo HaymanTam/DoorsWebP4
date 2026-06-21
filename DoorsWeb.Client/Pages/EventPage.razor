@@ -1,9 +1,10 @@
 @page "/events"
 @using System.Text.Json
+@using DoorsWeb.Client.Services
 @using DoorsWeb.Shared.DTO
-@using Microsoft.AspNetCore.SignalR.Client
 @inject IHttpClientFactory ClientFactory
 @inject IJSRuntime JS
+@inject EventHubClient Hub
 @implements IAsyncDisposable
 
 <Card>
@@ -91,7 +92,6 @@
 </Card>
 
 @code {
-    private HubConnection? hubConnection;
     private bool IsLoaded = false;
     private HttpClient client = new HttpClient();
 
@@ -132,22 +132,22 @@
         client = ClientFactory.CreateClient("WebAPI"); //this is where base setting locate
         await Refresh();
 
-        hubConnection = new HubConnectionBuilder().WithUrl("https://localhost:60879/eventHub").WithAutomaticReconnect().Build();
-        hubConnection.On<EventDto>("NewEvent", (EvtDto) =>
-        {
-            // The bulk list is range-bounded by the server query; keep the pushed live
-            // stream consistent by dropping events outside the currently applied range.
-            if ((fromDate.HasValue && EvtDto.EventDate < fromDate.Value) ||
-                (toDate.HasValue && EvtDto.EventDate > toDate.Value))
-                return;
+        Hub.NewEvent += OnNewEvent;
+        await Hub.StartAsync(); // Last thing in line
+    }
 
-            eventList.Insert(0, EvtDto);
-            RebuildEventTypeOptions();
-            ApplyFilters();
-            InvokeAsync(StateHasChanged);
-        });
+    private void OnNewEvent(EventDto evt)
+    {
+        // The bulk list is range-bounded by the server query; keep the pushed live
+        // stream consistent by dropping events outside the currently applied range.
+        if ((fromDate.HasValue && evt.EventDate < fromDate.Value) ||
+            (toDate.HasValue && evt.EventDate > toDate.Value))
+            return;
 
-        await hubConnection.StartAsync(); // Last thing in line
+        eventList.Insert(0, evt);
+        RebuildEventTypeOptions();
+        ApplyFilters();
+        InvokeAsync(StateHasChanged);
     }
 
     // Size the page to the window on first render, then track resizes via JS interop.
@@ -330,9 +330,7 @@
         }
         selfRef?.Dispose();
 
-        if (hubConnection is not null)
-        {
-            await hubConnection.DisposeAsync();
-        }
+        Hub.NewEvent -= OnNewEvent;
+        await Hub.DisposeAsync();
     }
 }

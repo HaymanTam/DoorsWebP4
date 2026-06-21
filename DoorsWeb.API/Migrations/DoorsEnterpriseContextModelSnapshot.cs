@@ -3253,6 +3253,11 @@ namespace DoorsWeb.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("ReportsAccess")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("SiteSettingsAccess")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -3276,6 +3281,7 @@ namespace DoorsWeb.API.Migrations
                             CardManagerAccess = 0,
                             Description = "admin",
                             Password = "$2a$11$USGWvPjw8RXKz9LjMWWgr.IV5uCz6Zufb2zTBjSBG9fneY.JY0UDW",
+                            ReportsAccess = 0,
                             SiteSettingsAccess = 0,
                             UserSettingsAccess = 0
                         });

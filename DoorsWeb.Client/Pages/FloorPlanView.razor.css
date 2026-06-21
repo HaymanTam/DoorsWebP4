@@ -1,0 +1,152 @@
+/* ---- Status colour palette ---------------------------------------------------
+   One source of truth for the at-a-glance colours. Locked = calm green,
+   Unlocked = active blue, Held = amber warning, Forced = red alarm,
+   Offline = muted grey. */
+.status-locked   { --door-color: #2fb344; } /* green  */
+.status-unlocked { --door-color: #4299e1; } /* blue   */
+.status-held     { --door-color: #f76707; } /* amber  */
+.status-forced   { --door-color: #d63939; } /* red    */
+.status-offline  { --door-color: #adb5bd; } /* grey   */
+
+/* Legend ----------------------------------------------------------------------- */
+.floorplan-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--tblr-secondary, #626976);
+}
+
+.status-dot {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background-color: var(--door-color, #adb5bd);
+    flex: 0 0 auto;
+}
+
+/* Stage ------------------------------------------------------------------------ */
+.floorplan-stage {
+    position: relative;
+}
+
+/* Zero-setup zone board (no plan image) ---------------------------------------- */
+.door-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
+
+.door-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-left: 4px solid var(--door-color, #adb5bd);
+    border-radius: 0.5rem;
+    background: var(--tblr-card-bg, #fff);
+    cursor: pointer;
+    text-align: left;
+    transition: box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.door-tile:hover {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+.door-tile-name {
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.door-tile-status {
+    font-size: 0.8rem;
+    color: var(--door-color, #adb5bd);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* Plan-image mode -------------------------------------------------------------- */
+.plan-image-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    line-height: 0;
+}
+
+.plan-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 0.5rem;
+}
+
+.plan-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.55rem;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    background-color: var(--door-color, #adb5bd);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.plan-marker:hover {
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.marker-label {
+    line-height: 1;
+}
+
+/* Alarm pulse — forced / held-open doors must grab the eye --------------------- */
+.alarm {
+    animation: door-pulse 1s ease-in-out infinite;
+}
+
+@keyframes door-pulse {
+    0%   { box-shadow: 0 0 0 0 var(--door-color, #d63939); }
+    70%  { box-shadow: 0 0 0 0.6rem transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Action panel ----------------------------------------------------------------- */
+.door-action-panel {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    width: 18rem;
+    max-width: calc(100vw - 2.5rem);
+    padding: 1rem;
+    background: var(--tblr-card-bg, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2);
+    z-index: 1050;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}

@@ -8,6 +8,18 @@ namespace DoorsWeb.Shared.DTO
     public class SystemSettings
     {
         public ControllerCommunicationSettings ControllerCommunication { get; set; } = new();
+
+        public LicenseSettings License { get; set; } = new();
+    }
+
+    /// <summary>
+    /// The installation's license. Just the signed key string — the limits and expiry inside it are
+    /// validated server-side, never trusted from here. Persisted alongside the other system settings.
+    /// </summary>
+    public class LicenseSettings
+    {
+        /// <summary>The signed license key (the string the keygen / payment site produces). Null when unlicensed.</summary>
+        public string? Key { get; set; }
     }
 
     /// <summary>

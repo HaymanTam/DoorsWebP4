@@ -1,0 +1,11 @@
+# NEVER commit signing keys or issued license files. Anyone with the private key can mint
+# valid license keys, so it must stay off source control and out of the shipped product.
+*.private.pem
+doorsweb.private.pem
+*.public.pem
+doorsweb.public.base64.txt
+*.lic
+
+# Build output
+bin/
+obj/

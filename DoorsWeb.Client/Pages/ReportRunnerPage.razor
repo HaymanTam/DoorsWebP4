@@ -1,0 +1,282 @@
+@page "/reports/{Key}"
+@using System.Net.Http.Json
+@using DoorsWeb.Shared.Reports
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.File_analytics" />
+            @(descriptor?.Name ?? "Report")
+        </CardTitle>
+        <CardActions class="ms-auto">
+            <Button BackgroundColor="TablerColor.Secondary" OnClick='() => Navigation.NavigateTo("/reports")'>
+                <Icon class="icon me-1" IconType="@TablerIcons.Arrow_left" />All Reports
+            </Button>
+        </CardActions>
+    </CardHeader>
+    <CardBody>
+        @if (!loaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        else if (descriptor is null)
+        {
+            <div class="alert alert-warning" role="alert">
+                <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
+                Report "@Key" was not found.
+            </div>
+        }
+        else
+        {
+            @if (!string.IsNullOrWhiteSpace(descriptor.Description))
+            {
+                <p class="text-muted">@descriptor.Description</p>
+            }
+
+            @* ---- Parameter form (generated from the descriptor) ---- *@
+            <div class="row g-3 align-items-end mb-3">
+                @foreach (var p in descriptor.Parameters)
+                {
+                    <div class="col-md-4 col-lg-3">
+                        <label class="form-label">
+                            @p.Label
+                            @if (p.Required)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+                        </label>
+                        @switch (p.Type)
+                        {
+                            case ReportParameterType.Boolean:
+                                <div>
+                                    <input type="checkbox" class="form-check-input"
+                                           checked="@IsChecked(p.Key)"
+                                           @onchange="e => OnCheckboxChange(p.Key, e)" />
+                                </div>
+                                break;
+                            case ReportParameterType.Select:
+                                <select class="form-select" value="@GetValue(p.Key)"
+                                        @onchange="e => SetValue(p.Key, e.Value?.ToString())">
+                                    <option value="">(any)</option>
+                                    @foreach (var opt in p.Options)
+                                    {
+                                        <option value="@opt.Value">@opt.Label</option>
+                                    }
+                                </select>
+                                break;
+                            default:
+                                <input type="@InputType(p.Type)" class="form-control"
+                                       value="@GetValue(p.Key)"
+                                       @onchange="e => SetValue(p.Key, e.Value?.ToString())" />
+                                break;
+                        }
+                        @if (!string.IsNullOrWhiteSpace(p.HelpText))
+                        {
+                            <div class="form-hint small">@p.HelpText</div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="mb-3">
+                <Button BackgroundColor="TablerColor.Primary" Class="me-2" OnClick="Run" Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Player_play" />@(running ? "Running…" : "Run Report")
+                </Button>
+                <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick='() => Export("csv")' Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.File_download" />Export CSV
+                </Button>
+                <Button BackgroundColor="TablerColor.Secondary" OnClick='() => Export("pdf")' Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.File_type_pdf" />Export PDF
+                </Button>
+            </div>
+
+            @if (runError)
+            {
+                <div class="alert alert-danger" role="alert">
+                    <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
+                    The report could not be run. Check the parameters and try again.
+                </div>
+            }
+
+            @if (result is not null)
+            {
+                @if (result.Truncated)
+                {
+                    <div class="alert alert-warning" role="alert">
+                        <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
+                        Showing the first @result.RowCount rows. Narrow the parameters to see the rest.
+                    </div>
+                }
+                <div class="text-muted small mb-2">@result.RowCount row(s)</div>
+                <div class="table-responsive">
+                    <table class="table table-vcenter table-striped table-sm">
+                        <thead>
+                            <tr>
+                                @foreach (var col in result.Columns)
+                                {
+                                    <th style="text-align:@AlignCss(col.Align)">@col.Label</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (result.RowCount == 0)
+                            {
+                                <tr>
+                                    <td colspan="@result.Columns.Count" class="text-muted text-center py-3">
+                                        No matching records.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var row in result.Rows)
+                                {
+                                    <tr>
+                                        @for (var i = 0; i < result.Columns.Count; i++)
+                                        {
+                                            <td style="text-align:@AlignCss(result.Columns[i].Align)">
+                                                @(i < row.Count ? row[i] : null)
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </CardBody>
+</Card>
+
+@code {
+    [Parameter] public string Key { get; set; } = string.Empty;
+
+    private ReportDescriptor? descriptor;
+    private ReportResult? result;
+    private readonly Dictionary<string, string?> values = new();
+
+    private bool loaded;
+    private bool running;
+    private bool exporting;
+    private bool runError;
+
+    // Disable all action buttons while any request is in flight.
+    private bool busy => running || exporting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var all = await client.GetFromJsonAsync<List<ReportDescriptor>>("api/Reports") ?? new();
+            descriptor = all.FirstOrDefault(d => string.Equals(d.Key, Key, StringComparison.OrdinalIgnoreCase));
+
+            // Seed the value bag with each parameter's default so the form starts populated.
+            if (descriptor is not null)
+                foreach (var p in descriptor.Parameters)
+                    values[p.Key] = p.DefaultValue;
+        }
+        catch
+        {
+            descriptor = null;
+        }
+        finally
+        {
+            loaded = true;
+        }
+    }
+
+    private string? GetValue(string key) => values.TryGetValue(key, out var v) ? v : null;
+
+    private void SetValue(string key, string? value) => values[key] = value;
+
+    private bool IsChecked(string key) => GetValue(key) == "true";
+
+    private void OnCheckboxChange(string key, ChangeEventArgs e) =>
+        SetValue(key, (e.Value is bool b && b) ? "true" : "false");
+
+    private ReportRequest BuildRequest() => new()
+    {
+        Parameters = new Dictionary<string, string?>(values)
+    };
+
+    private async Task Run()
+    {
+        if (busy || descriptor is null) return;
+        running = true;
+        runError = false;
+        StateHasChanged();
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = await client.PostAsJsonAsync($"api/Reports/{descriptor.Key}/run", BuildRequest());
+            response.EnsureSuccessStatusCode();
+            result = await response.Content.ReadFromJsonAsync<ReportResult>();
+        }
+        catch
+        {
+            runError = true;
+            result = null;
+        }
+        finally
+        {
+            running = false;
+            StateHasChanged();
+        }
+    }
+
+    // Runs the report server-side and saves the rendered CSV/PDF via the shared download helper.
+    private async Task Export(string format)
+    {
+        if (busy || descriptor is null) return;
+        exporting = true;
+        StateHasChanged();
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var response = await client.PostAsJsonAsync(
+                $"api/Reports/{descriptor.Key}/export?format={format}", BuildRequest());
+            response.EnsureSuccessStatusCode();
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            var contentType = format == "pdf" ? "application/pdf" : "text/csv";
+            var fileName = $"{descriptor.Key}-{DateTime.Now:yyyyMMdd-HHmm}.{format}";
+
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
+            await using (module.ConfigureAwait(false))
+            {
+                await module.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef, contentType);
+            }
+        }
+        catch
+        {
+            // Best-effort: the API enforces access; a failed download leaves the page untouched.
+        }
+        finally
+        {
+            exporting = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string InputType(ReportParameterType type) => type switch
+    {
+        ReportParameterType.Number => "number",
+        ReportParameterType.Date => "date",
+        ReportParameterType.DateTime => "datetime-local",
+        _ => "text"
+    };
+
+    private static string AlignCss(ColumnAlign align) => align switch
+    {
+        ColumnAlign.Right => "right",
+        ColumnAlign.Center => "center",
+        _ => "left"
+    };
+}

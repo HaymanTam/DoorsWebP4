@@ -154,6 +154,7 @@ namespace DoorsWeb.API.Services
             var cardManager = EffectiveAccess(user, user.CardManagerAccess);
             var siteSettings = EffectiveAccess(user, user.SiteSettingsAccess);
             var userSettings = EffectiveAccess(user, user.UserSettingsAccess);
+            var reports = EffectiveAccess(user, user.ReportsAccess);
 
             var accessToken = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
@@ -168,6 +169,7 @@ namespace DoorsWeb.API.Services
                     new Claim(PermissionClaims.CardManager, ((int)cardManager).ToString()),
                     new Claim(PermissionClaims.SiteSettings, ((int)siteSettings).ToString()),
                     new Claim(PermissionClaims.UserSettings, ((int)userSettings).ToString()),
+                    new Claim(PermissionClaims.Reports, ((int)reports).ToString()),
                 ],
                 expires: accessExpiry.UtcDateTime,
                 signingCredentials: creds);

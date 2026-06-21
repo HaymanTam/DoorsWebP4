@@ -43,7 +43,7 @@
         <CardBody>
             <CardTitle>Doors</CardTitle>
             <p class="mb-1">Select the doors you want to include in this access level.</p>
-            <p class="mb-2">Pick a Time Zone per door, or leave it on “(level default)” to follow the access level above.</p>
+            <p class="mb-2">Pick a Time Zone per door, or leave it on “&lt;level default&gt;” to follow the access level above.</p>
 
             <div class="table-responsive border rounded mb-2" style="max-height: 320px; overflow-y: auto;">
                 <table class="table table-sm table-hover mb-0">
@@ -74,7 +74,7 @@
                                                 value="@(door.LevelDefault ? "default" : door.DoorTimeZone?.ToString())"
                                                 @onchange="e => OnDoorTimeZoneChanged(door, e)"
                                                 disabled="@(!door.Selected)">
-                                            <option value="default">(level default)</option>
+                                            <option value="default">&lt;level default&gt;</option>
                                             @foreach (var tz in timeZones)
                                             {
                                                 <option value="@tz.TimeZone">@tz.Name</option>

@@ -33,6 +33,9 @@
             <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick="ShowTimeSheetsModal">
                 <Icon class="icon me-1" IconType="@TablerIcons.Calendar_clock" />Time Sheets
             </Button>
+            <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick="ExportCsv" Disabled="exporting">
+                <Icon class="icon me-1" IconType="@TablerIcons.File_download" />@(exporting ? "Exporting…" : "Export CSV")
+            </Button>
             <Button BackgroundColor="TablerColor.Secondary" OnClick="Refresh">
                 <Icon class="icon me-1" IconType="@TablerIcons.Refresh" />Refresh
             </Button>
@@ -215,6 +218,9 @@
 
     // True while rows are still streaming in after the first batch has painted (drives the header chip).
     private bool isLoadingMore;
+
+    // True while a CSV export is being fetched/downloaded (disables the Export button).
+    private bool exporting;
     private static readonly JsonSerializerOptions JsonWebOptions = new(JsonSerializerDefaults.Web);
 
     // Paint the first FirstPaintRows as soon as they arrive, then append the remainder,
@@ -288,6 +294,38 @@
     };
 
     private Task Refresh() => LoadCards();
+
+    // Downloads the cardholder CSV (CardPresso layout) through the authenticated API client. The
+    // endpoint requires a bearer token, so a plain anchor link won't do — we fetch the bytes here and
+    // hand them to a small JS helper that saves them via a temporary blob URL.
+    private async Task ExportCsv()
+    {
+        if (exporting) return;
+        exporting = true;
+        StateHasChanged();
+        try
+        {
+            var bytes = await client.GetByteArrayAsync("api/Cardholder/export.csv");
+            var fileName = $"cardholders-cardpresso-{DateTime.Now:yyyyMMdd}.csv";
+
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
+            await using (module.ConfigureAwait(false))
+            {
+                await module.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef, "text/csv");
+            }
+        }
+        catch
+        {
+            // Best-effort: the API enforces access, and a failed download just leaves the grid untouched.
+        }
+        finally
+        {
+            exporting = false;
+            StateHasChanged();
+        }
+    }
 
     // Streams cards from the API, painting the first FirstPaintRows as soon as they arrive
     // so the table is usable almost immediately, then appending the remainder in the

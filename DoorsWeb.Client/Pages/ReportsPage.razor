@@ -1,0 +1,83 @@
+@page "/reports"
+@using DoorsWeb.Shared.Reports
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.Report" />Reports
+        </CardTitle>
+    </CardHeader>
+    <CardBody>
+        @if (!loaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        else if (loadError)
+        {
+            <div class="alert alert-danger" role="alert">
+                <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
+                Could not load the report catalogue. Please try again.
+            </div>
+        }
+        else if (descriptors.Count == 0)
+        {
+            <div class="text-muted text-center py-4">No reports are available.</div>
+        }
+        else
+        {
+            <p class="text-muted">
+                Pick a report to set its parameters and view the results. Every report can be exported to CSV or PDF.
+            </p>
+            @foreach (var group in descriptors.GroupBy(d => d.Category).OrderBy(g => g.Key))
+            {
+                <h3 class="mt-4 mb-2">@group.Key</h3>
+                <div class="row row-cards">
+                    @foreach (var report in group.OrderBy(r => r.Name))
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card card-link card-sm h-100" role="button" @onclick="() => Open(report.Key)">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <Icon class="icon me-2 text-blue" IconType="@TablerIcons.File_analytics" />
+                                        <span class="fw-bold">@report.Name</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(report.Description))
+                                    {
+                                        <div class="text-muted small">@report.Description</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </CardBody>
+</Card>
+
+@code {
+    private List<ReportDescriptor> descriptors = new();
+    private bool loaded;
+    private bool loadError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            descriptors = await client.GetFromJsonAsync<List<ReportDescriptor>>("api/Reports") ?? new();
+        }
+        catch
+        {
+            loadError = true;
+        }
+        finally
+        {
+            loaded = true;
+        }
+    }
+
+    private void Open(string key) => Navigation.NavigateTo($"/reports/{key}");
+}

@@ -8,6 +8,7 @@ namespace DoorsWeb.Shared.DTO
     {
         //Header
         public int Door { get; set; }                       // T_Doors.Door (PK)
+        public int? Site { get; set; }                      // T_Doors.Site (FK to T_Sites)
         [Required]
         public int ControllerId { get; set; }               // ControllerID (string in DB)
         [Required]

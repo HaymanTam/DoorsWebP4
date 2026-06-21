@@ -5,10 +5,13 @@
      - a drag-and-drop / click photo uploader with live preview
        (replaces the legacy "Cardholder Photo" toolbar button).
    Core cardholder fields persist via api/Cardholder (POST for new, PUT for edit).
-   Access levels, custom fields, bio data and the photo are UI-level only for now
-   (no backing endpoint yet) and are clearly grouped so they can be wired up later. *@
+   The photo persists via api/CardPhoto/{cardNumber} (saved/deleted right after the cardholder
+   is saved, so it's keyed to the final card number).
+   Access levels, custom fields and bio data are UI-level only for now (no backing endpoint yet)
+   and are clearly grouped so they can be wired up later. *@
 
 @using DoorsWeb.Shared.Entities
+@using DoorsWeb.Shared.DTO
 @inject IHttpClientFactory ClientFactory
 
 <div class="row g-3">
@@ -306,13 +309,22 @@
     private string? photoDataUrl;
     private string? photoError;
 
+    // Pending photo change, applied to api/CardPhoto after the cardholder is saved. Bytes are
+    // captured from the file picker; photoRemoved is set when the user clears an existing photo.
+    private byte[]? pendingPhotoBytes;
+    private string? pendingPhotoFileName;
+    private string? pendingPhotoContentType;
+    private bool photoRemoved;
+
+    private HttpClient client = null!;
+
     private List<AccessLevels>? accessLevels;
     private readonly HashSet<string> selectedAccessLevels = new();
     private readonly List<CustomField> customFields = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var client = ClientFactory.CreateClient("WebAPI");
+        client = ClientFactory.CreateClient("WebAPI");
 
         if (CardNumber == 0)
         {
@@ -328,6 +340,7 @@
                 isNew = false;
                 lastTransaction = card.LastDate?.ToString("g") ?? "card not issued";
             }
+            await LoadPhoto();
         }
 
         // Seed the checkbox mirrors / valid-from controls from the loaded card.
@@ -344,7 +357,6 @@
     {
         try
         {
-            var client = ClientFactory.CreateClient("WebAPI");
             accessLevels = await client.GetFromJsonAsync<List<AccessLevels>>("api/AccessLevel") ?? new();
         }
         catch
@@ -352,6 +364,27 @@
             accessLevels = new();
         }
     }
+
+    // Loads the existing photo for the card being edited. The API returns 204 (→ null) when there
+    // is none, leaving the empty-state silhouette in place.
+    private async Task LoadPhoto()
+    {
+        try
+        {
+            var result = await client.GetFromJsonAsync<PhotoUploadResult?>($"api/CardPhoto/{card.CardNumber}");
+            if (result is not null && !string.IsNullOrEmpty(result.Path))
+                photoDataUrl = AbsolutePhotoUrl(result.Path);
+        }
+        catch
+        {
+            /* no photo or API unreachable — show the empty state */
+        }
+    }
+
+    // The photo is served by the API host, but the Blazor app runs on its own origin, so a relative
+    // "/media/..." path must be resolved against the API base address to load correctly.
+    private string AbsolutePhotoUrl(string path) =>
+        client.BaseAddress is null ? path : new Uri(client.BaseAddress, path).ToString();
 
     private void ToggleAccessLevel(string key, ChangeEventArgs e)
     {
@@ -380,8 +413,15 @@
             using var stream = file.OpenReadStream(maxBytes);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
             var contentType = string.IsNullOrEmpty(file.ContentType) ? "image/png" : file.ContentType;
-            photoDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+            photoDataUrl = $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
+
+            // Stash for upload after the cardholder is saved (Apply / OK).
+            pendingPhotoBytes = bytes;
+            pendingPhotoFileName = file.Name;
+            pendingPhotoContentType = contentType;
+            photoRemoved = false;
         }
         catch (Exception ex)
         {
@@ -389,7 +429,60 @@
         }
     }
 
-    private void RemovePhoto() => photoDataUrl = null;
+    private void RemovePhoto()
+    {
+        photoDataUrl = null;
+        pendingPhotoBytes = null;
+        pendingPhotoFileName = null;
+        pendingPhotoContentType = null;
+        photoRemoved = true;
+    }
+
+    // Persist the pending photo change against the (now final) card number. A newly
+    // selected image is uploaded; an explicit removal issues a DELETE. No-op when the
+    // user left the photo untouched. Failures surface via photoError but do not abort
+    // the cardholder save that already succeeded.
+    private async Task SavePhoto()
+    {
+        try
+        {
+            if (pendingPhotoBytes is not null)
+            {
+                using var content = new MultipartFormDataContent();
+                var fileContent = new ByteArrayContent(pendingPhotoBytes);
+                fileContent.Headers.ContentType =
+                    new System.Net.Http.Headers.MediaTypeHeaderValue(pendingPhotoContentType ?? "image/png");
+                content.Add(fileContent, "file", pendingPhotoFileName ?? $"{card.CardNumber}.png");
+
+                var response = await client.PostAsync($"api/CardPhoto/{card.CardNumber}", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    pendingPhotoBytes = null;
+                    pendingPhotoFileName = null;
+                    pendingPhotoContentType = null;
+                    var result = await response.Content.ReadFromJsonAsync<PhotoUploadResult>();
+                    if (result is not null && !string.IsNullOrEmpty(result.Path))
+                    {
+                        // Cache-bust so the freshly uploaded image replaces any cached one.
+                        photoDataUrl = AbsolutePhotoUrl(result.Path) + "?t=" + DateTime.UtcNow.Ticks;
+                    }
+                }
+                else
+                {
+                    photoError = $"Photo upload failed ({(int)response.StatusCode}).";
+                }
+            }
+            else if (photoRemoved)
+            {
+                await client.DeleteAsync($"api/CardPhoto/{card.CardNumber}");
+                photoRemoved = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            photoError = $"Photo save failed: {ex.Message}";
+        }
+    }
 
     // Push the checkbox / valid-from mirrors back onto the entity before saving.
     private void ApplyToCard()
@@ -407,7 +500,6 @@
         status = null;
         try
         {
-            var client = ClientFactory.CreateClient("WebAPI");
             var response = isNew
                 ? await client.PostAsJsonAsync("api/Cardholder", card)
                 : await client.PutAsJsonAsync($"api/Cardholder/{card.CardNumber}", card);
@@ -417,6 +509,8 @@
                 // After a successful create the record exists; switch to edit semantics
                 // so a follow-up Apply/OK issues a PUT rather than a duplicate POST.
                 isNew = false;
+                // Now that the card number is final, persist any photo change against it.
+                await SavePhoto();
                 return true;
             }
 

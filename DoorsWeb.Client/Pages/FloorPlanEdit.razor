@@ -1,0 +1,384 @@
+@page "/floorplan/edit"
+@page "/floorplan/{Site:int}/edit"
+@using System.Net.Http.Headers
+@using DoorsWeb.Client.Auth
+@using DoorsWeb.Shared.DTO
+@using DoorsWeb.Shared.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IHttpClientFactory ClientFactory
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<Card>
+    <CardHeader>
+        <CardTitle>
+            <Icon class="icon me-2" IconType="@TablerIcons.Map_pin" />Floorplan — Edit
+        </CardTitle>
+        <CardActions class="ms-auto d-flex align-items-center gap-2">
+            @if (sites.Count > 1)
+            {
+                <select class="form-select form-select-sm" style="width:auto"
+                        value="@selectedSite" @onchange="OnSiteChanged">
+                    @foreach (var s in sites)
+                    {
+                        <option value="@s.Site">@s.Name</option>
+                    }
+                </select>
+            }
+            <Button BackgroundColor="TablerColor.Secondary" Size="ButtonSize.Small"
+                    @onclick="GoView">
+                <Icon class="icon me-1" IconType="@TablerIcons.Eye" />View
+            </Button>
+            <Button BackgroundColor="TablerColor.Green" Size="ButtonSize.Small"
+                    @onclick="SaveLayout" Disabled="busy || layout is null">
+                <Icon class="icon me-1" IconType="@TablerIcons.Device_floppy" />Save layout
+            </Button>
+        </CardActions>
+    </CardHeader>
+    <CardBody>
+        @if (!canWrite)
+        {
+            <div class="alert alert-info mb-0" role="alert">
+                <Icon class="icon me-2" IconType="@TablerIcons.Lock" />
+                You need site-settings write access to edit the floorplan.
+            </div>
+        }
+        else if (!isLoaded)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        else if (selectedSite is null)
+        {
+            <div class="text-muted text-center py-4">No sites configured.</div>
+        }
+        else
+        {
+            @if (statusMessage is not null)
+            {
+                <div class="alert @statusClass mb-3" role="alert">@statusMessage</div>
+            }
+
+            <div class="row g-3">
+                @* ---- Left: door palette ------------------------------------------------- *@
+                <div class="col-md-3">
+                    <div class="mb-2 fw-bold">Doors</div>
+                    <div class="text-muted small mb-2">
+                        Pick a door, then click the plan to place it. Picking an already-placed door moves it.
+                    </div>
+                    @{
+                        var siteDoors = DoorsForSite();
+                        var placedNumbers = layout!.Doors.Select(p => p.Door).ToHashSet();
+                    }
+                    @if (siteDoors.Count == 0)
+                    {
+                        <div class="text-muted small">No doors at this site.</div>
+                    }
+                    else
+                    {
+                        <div class="door-list">
+                            @foreach (var d in siteDoors)
+                            {
+                                var isPlaced = placedNumbers.Contains(d.Door);
+                                <div class="door-list-item @(pickedDoor == d.Door ? "picked" : "")"
+                                     @onclick="() => PickDoor(d.Door)">
+                                    <span class="door-list-name">@d.Name</span>
+                                    @if (isPlaced)
+                                    {
+                                        <span class="badge bg-blue-lt ms-auto">Placed</span>
+                                        <span class="ms-2 text-danger cursor-pointer" title="Remove from plan"
+                                              @onclick="() => RemovePlacement(d.Door)"
+                                              @onclick:stopPropagation="true">
+                                            <Icon class="icon" IconType="@TablerIcons.Trash" />
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-lt ms-auto">Not placed</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @* ---- Right: image + placement surface ----------------------------------- *@
+                <div class="col-md-9">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <label class="btn btn-outline-primary btn-sm mb-0">
+                            <Icon class="icon me-1" IconType="@TablerIcons.Upload" />
+                            @(string.IsNullOrWhiteSpace(layout.ImageFileName) ? "Upload plan image" : "Replace plan image")
+                            <InputFile OnChange="OnImageSelected" accept="image/*" style="display:none" />
+                        </label>
+                        @if (uploading)
+                        {
+                            <span class="text-muted small">Uploading…</span>
+                        }
+                    </div>
+
+                    @if (string.IsNullOrWhiteSpace(layout.ImageFileName))
+                    {
+                        <div class="plan-empty text-muted">
+                            <Icon class="icon mb-2" IconType="@TablerIcons.Photo" />
+                            <div>No plan image yet. Upload one to place doors on it.</div>
+                            <div class="small">(Without an image the live view falls back to a zone board automatically.)</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="plan-edit-wrap">
+                            <img @ref="imageElement" src="@ImageUrl(layout.ImageFileName!)" alt="Floor plan"
+                                 class="plan-edit-image @(pickedDoor is null ? "" : "placing")"
+                                 @onclick="OnImageClick" />
+                            @foreach (var p in layout.Doors)
+                            {
+                                var name = NameFor(p.Door);
+                                <span class="plan-edit-marker @(pickedDoor == p.Door ? "picked" : "")"
+                                      style="left:@(p.X.ToString(Inv))%; top:@(p.Y.ToString(Inv))%;"
+                                      title="@name">@name</span>
+                            }
+                        </div>
+                        <div class="text-muted small mt-2">
+                            @if (pickedDoor is null)
+                            {
+                                <span>Select a door on the left to place or move it.</span>
+                            }
+                            else
+                            {
+                                <span>Placing <strong>@NameFor(pickedDoor.Value)</strong> — click the plan.</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </CardBody>
+</Card>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+
+    private HttpClient client = default!;
+    private IJSObjectReference? module;
+    private ElementReference imageElement;
+
+    [Parameter] public int? Site { get; set; }
+
+    private List<SiteDto> sites = new();
+    private int? selectedSite;
+    private readonly Dictionary<int, DoorStateDto> states = new();
+    private FloorPlanLayoutDto? layout;
+    private int? pickedDoor;
+
+    private bool canWrite;
+    private bool isLoaded;
+    private bool busy;
+    private bool uploading;
+    private string? statusMessage;
+    private string statusClass = "alert-success";
+    // Guards param-change handling until first-load (sites/states) has completed.
+    private bool ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthState.GetAuthenticationStateAsync();
+        canWrite = auth.User.CanWriteSiteSettings();
+        client = ClientFactory.CreateClient("WebAPI");
+
+        if (!canWrite)
+        {
+            isLoaded = true;
+            return;
+        }
+
+        sites = await client.GetFromJsonAsync<List<SiteDto>>("api/Sites") ?? new();
+        await LoadStates();
+
+        ready = true;
+        await ResolveSiteAndLoad();
+        isLoaded = true;
+    }
+
+    // Re-resolves the site whenever the {Site} route parameter changes (per-site deep links
+    // reuse this component instance, so navigation only triggers OnParametersSetAsync).
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ready) await ResolveSiteAndLoad();
+    }
+
+    // Picks the site from the route (falling back to the current/first site) and loads its layout.
+    private async Task ResolveSiteAndLoad()
+    {
+        if (!canWrite || sites.Count == 0) return;
+        var desired = Site is int s && sites.Any(x => x.Site == s) ? s : selectedSite ?? sites[0].Site;
+        if (desired != selectedSite || layout is null)
+        {
+            selectedSite = desired;
+            statusMessage = null;
+            await LoadLayout();
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+    }
+
+    private async Task LoadStates()
+    {
+        var snapshot = await client.GetFromJsonAsync<List<DoorStateDto>>("api/DoorControl/states") ?? new();
+        states.Clear();
+        foreach (var d in snapshot) states[d.Door] = d;
+    }
+
+    private async Task LoadLayout()
+    {
+        layout = selectedSite is int s
+            ? await client.GetFromJsonAsync<FloorPlanLayoutDto>($"api/FloorPlan/{s}")
+            : null;
+        layout ??= new FloorPlanLayoutDto { Site = selectedSite ?? 0 };
+        pickedDoor = null;
+    }
+
+    // URL-driven: navigating updates the {Site} route param, which OnParametersSetAsync resolves.
+    private void OnSiteChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var s))
+            Navigation.NavigateTo($"/floorplan/{s}/edit");
+    }
+
+    private void GoView() =>
+        Navigation.NavigateTo(selectedSite is int s ? $"/floorplan/{s}" : "/floorplan");
+
+    private List<DoorStateDto> DoorsForSite() =>
+        states.Values.Where(d => d.Site == selectedSite)
+                     .OrderBy(d => d.Name).ThenBy(d => d.Door)
+                     .ToList();
+
+    private string NameFor(int door) =>
+        states.TryGetValue(door, out var d) ? d.Name : $"Door {door}";
+
+    private void PickDoor(int door) =>
+        pickedDoor = pickedDoor == door ? null : door;
+
+    private void RemovePlacement(int door)
+    {
+        layout!.Doors.RemoveAll(p => p.Door == door);
+        if (pickedDoor == door) pickedDoor = null;
+    }
+
+    private async Task OnImageClick(MouseEventArgs e)
+    {
+        if (pickedDoor is null || module is null || layout is null) return;
+
+        var size = await module.InvokeAsync<ElementSize>("getElementSize", imageElement);
+        if (size.Width <= 0 || size.Height <= 0) return;
+
+        var x = Math.Clamp(e.OffsetX / size.Width * 100, 0, 100);
+        var y = Math.Clamp(e.OffsetY / size.Height * 100, 0, 100);
+
+        var existing = layout.Doors.FirstOrDefault(p => p.Door == pickedDoor.Value);
+        if (existing is not null)
+        {
+            existing.X = x;
+            existing.Y = y;
+        }
+        else
+        {
+            layout.Doors.Add(new DoorPlacementDto { Door = pickedDoor.Value, X = x, Y = y });
+        }
+        // Leave the door picked so it can be nudged with another click.
+    }
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        if (selectedSite is null) return;
+        var file = e.File;
+        if (file is null) return;
+
+        uploading = true;
+        statusMessage = null;
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(15 * 1024 * 1024)); // 15 MB
+            if (!string.IsNullOrEmpty(file.ContentType))
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await client.PostAsync($"api/FloorPlan/{selectedSite}/image", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var updated = await response.Content.ReadFromJsonAsync<FloorPlanLayoutDto>();
+                if (updated is not null)
+                {
+                    // Preserve any unsaved placements the user has made this session.
+                    updated.Doors = layout?.Doors ?? updated.Doors;
+                    layout = updated;
+                }
+                ShowStatus("Image uploaded.", true);
+            }
+            else
+            {
+                ShowStatus("Image upload failed.", false);
+            }
+        }
+        catch
+        {
+            ShowStatus("Image upload failed.", false);
+        }
+        finally { uploading = false; }
+    }
+
+    private async Task SaveLayout()
+    {
+        if (layout is null || selectedSite is null) return;
+        busy = true;
+        statusMessage = null;
+        try
+        {
+            var response = await client.PutAsJsonAsync($"api/FloorPlan/{selectedSite}", layout);
+            if (response.IsSuccessStatusCode)
+            {
+                var saved = await response.Content.ReadFromJsonAsync<FloorPlanLayoutDto>();
+                if (saved is not null) layout = saved;
+                ShowStatus("Layout saved.", true);
+            }
+            else
+            {
+                ShowStatus("Save failed.", false);
+            }
+        }
+        catch
+        {
+            ShowStatus("Save failed.", false);
+        }
+        finally { busy = false; }
+    }
+
+    private void ShowStatus(string message, bool success)
+    {
+        statusMessage = message;
+        statusClass = success ? "alert-success" : "alert-danger";
+    }
+
+    private string ImageUrl(string fileName) => new Uri(client.BaseAddress!, $"media/floorplan/{fileName}").ToString();
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            try { await module.DisposeAsync(); }
+            catch { /* JS already gone */ }
+        }
+    }
+
+    private sealed class ElementSize
+    {
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+}

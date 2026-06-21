@@ -46,6 +46,15 @@
                         </MenuItemIcon>
                     </NavbarMenuItem>
                 }
+                @* Reports hub: categorized report catalogue + generic runner. Needs the Reports area. *@
+                @if (auth.User.CanReadReports())
+                {
+                    <NavbarMenuItem Href="reports" Text="Reports">
+                        <MenuItemIcon>
+                            <Icon class="icon" IconType="@TablerIcons.Report" />
+                        </MenuItemIcon>
+                    </NavbarMenuItem>
+                }
 
                 @* ---- One collapsible group per site (click to expand). Requires Site Settings read. ---- *@
                 @if (auth.User.CanReadSiteSettings() && sites is not null)
@@ -67,9 +76,16 @@
                         {
                             <div class="ms-4">
                                 <li class="nav-item">
-                                    <NavLink class="nav-link" href="doors">
+                                    <NavLink class="nav-link" href="@($"doors/{site.Site}")">
                                         <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Door" /></span>
                                         <span class="nav-link-title">Doors</span>
+                                    </NavLink>
+                                </li>
+                                @* Live floorplan deep-linked to this site. Edit (place doors) is gated to site-write inside the page. *@
+                                <li class="nav-item">
+                                    <NavLink class="nav-link" href="@($"floorplan/{site.Site}")">
+                                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Map_2" /></span>
+                                        <span class="nav-link-title">Floorplan</span>
                                     </NavLink>
                                 </li>
                                 <li class="nav-item">

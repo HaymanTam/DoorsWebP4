@@ -26,5 +26,8 @@ public partial class Users
 
     /// <summary>User Settings area access level (0=None, 1=Read, 2=ReadWrite). See <see cref="Enums.AreaAccess"/>.</summary>
     public int UserSettingsAccess { get; set; }
+
+    /// <summary>Reports area access level (0=None, 1=Read, 2=ReadWrite). See <see cref="Enums.AreaAccess"/>.</summary>
+    public int ReportsAccess { get; set; }
 }
 

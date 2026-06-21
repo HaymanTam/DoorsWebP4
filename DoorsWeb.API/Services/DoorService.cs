@@ -11,11 +11,13 @@ namespace DoorsWeb.API.Services
 
         private readonly DoorsEnterpriseContext _context;
         private readonly IAuditService _audit;
+        private readonly ILicenseService _license;
 
-        public DoorService(DoorsEnterpriseContext context, IAuditService audit)
+        public DoorService(DoorsEnterpriseContext context, IAuditService audit, ILicenseService license)
         {
             _context = context;
             _audit = audit;
+            _license = license;
         }
 
         public async Task<List<DoorListDto>> GetAll()
@@ -46,8 +48,16 @@ namespace DoorsWeb.API.Services
 
         public async Task<List<DoorListDto>> Create(DoorDetailDto dto)
         {
-            var e = new Doors { Door = dto.Door };
+            // License gate: refuse to add a door once the licensed (or unlicensed default) limit is hit.
+            _license.EnforceDoorLimit(await _context.Doors.CountAsync());
+
+            // Door is the (never-generated) PK. The editor doesn't expose a door-number field,
+            // so allocate the next free number when the client didn't supply one.
+            var doorNumber = dto.Door > 0 ? dto.Door : await NextDoorNumber();
+
+            var e = new Doors { Door = doorNumber };
             ApplyToEntity(dto, e);
+            await NormalizeTechnologyRefs(e);
             _context.Doors.Add(e);
             await _context.SaveChangesAsync();
             await _audit.LogAsync(AuditAction.Create, "Door", e.Door.ToString(), e.Name);
@@ -59,6 +69,7 @@ namespace DoorsWeb.API.Services
             var e = await _context.Doors.FirstOrDefaultAsync(d => d.Door == door);
             if (e is null) return null;
             ApplyToEntity(dto, e);
+            await NormalizeTechnologyRefs(e);
             await _context.SaveChangesAsync();
             await _audit.LogAsync(AuditAction.Update, "Door", door.ToString(), e.Name);
             return await GetAll();
@@ -79,6 +90,26 @@ namespace DoorsWeb.API.Services
         private static int ParseControllerId(string? value)
             => int.TryParse(value, out var id) ? id : 0;
 
+        // Door PK is ValueGeneratedNever, so we allocate it ourselves: one past the highest
+        // existing door number (1 for the first door).
+        private async Task<int> NextDoorNumber()
+            => (await _context.Doors.MaxAsync(d => (int?)d.Door) ?? 0) + 1;
+
+        // TechnologyA/B and KeyboardTech are optional FKs into T_Door_Technology. The door
+        // editor offers fixed technology codes that need not exist as lookup rows (the table
+        // is empty until technologies are configured), and the columns are nullable. Coerce
+        // any code without a matching lookup row to NULL ("no technology") so the insert/update
+        // doesn't violate the foreign key; real codes pass through untouched.
+        private async Task NormalizeTechnologyRefs(Doors e)
+        {
+            var valid = (await _context.DoorTechnology.AsNoTracking()
+                .Select(t => t.Code).ToListAsync()).ToHashSet();
+
+            e.TechnologyA = e.TechnologyA is int a && valid.Contains(a) ? a : null;
+            e.TechnologyB = e.TechnologyB is int b && valid.Contains(b) ? b : null;
+            e.KeyboardTech = e.KeyboardTech is int k && valid.Contains(k) ? k : null;
+        }
+
         private static DoorDetailDto ToDetail(Doors e)
         {
             var pdo = e.Pdo ?? 0;
@@ -87,6 +118,7 @@ namespace DoorsWeb.API.Services
             return new DoorDetailDto
             {
                 Door = e.Door,
+                Site = e.Site,
                 ControllerId = ParseControllerId(e.ControllerId),
                 Name = e.Name ?? string.Empty,
                 IPAddressString = e.DoorIpaddress ?? string.Empty,
@@ -135,6 +167,9 @@ namespace DoorsWeb.API.Services
 
         private static void ApplyToEntity(DoorDetailDto dto, Doors e)
         {
+            // Set by the editor from the site its "Add Door" button was launched under; on
+            // edit it round-trips the door's existing site. NULL is allowed (unassigned).
+            e.Site = dto.Site;
             e.ControllerId = dto.ControllerId.ToString();
             e.Name = dto.Name;
             e.DoorIpaddress = dto.IPAddressString;

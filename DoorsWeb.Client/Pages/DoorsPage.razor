@@ -1,4 +1,5 @@
 ﻿@page "/doors"
+@page "/doors/{Site:int}"
 @using DoorsWeb.Client.Auth
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IHttpClientFactory ClientFactory
@@ -36,7 +37,7 @@
             }
             @* Editing is fully custom (Add button + action column below, both gated on canWrite),
                so the built-in edit mode is disabled via AllowAdd/AllowEdit/AllowDelete. *@
-            <Table @ref="table" Item="DoorListDto" Items="doorList" PageSize="pageSize"
+            <Table @ref="table" Item="DoorListDto" Items="VisibleDoors" PageSize="pageSize"
                    Hover Responsive EditMode="TableEditMode.Popup"
                    AllowAdd="canWrite" AllowEdit="canWrite" AllowDelete="canWrite">
                 <ChildContent>
@@ -78,7 +79,7 @@
                     }
                 </ChildContent>
             </Table>
-            @if (doorList.Count == 0)
+            @if (VisibleDoors.Count == 0)
             {
                 <div class="text-muted text-center py-4">No doors found.</div>
             }
@@ -95,6 +96,14 @@
 @code {
     [Inject] TabBlazor.Services.TablerService TablerService { get; set; } = null!;
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    // Set when reached via /doors/{site} (the per-site nav link). Filters the list and is the
+    // site newly-added doors are assigned to. Null on the bare /doors route = show all doors.
+    [Parameter] public int? Site { get; set; }
+
+    // Doors shown for the current route: this site's doors, or all when no site is in the URL.
+    private List<DoorListDto> VisibleDoors =>
+        Site is int s ? doorList.Where(d => d.Site == s).ToList() : doorList;
 
     private bool IsLoaded = false;
 
@@ -174,7 +183,9 @@
     private async Task ShowDoorEditModal(string title, int DoorId)
     {
         var component = new RenderComponent<DoorEditModal>().Set(e => e.DoorId, DoorId);
-        var result = await ModalService.ShowAsync(title, component, new ModalOptions { 
+        // Hand the current site to the editor so a new door is created under it (0 = none).
+        if (Site is int s) component.Set(e => e.SiteId, s);
+        var result = await ModalService.ShowAsync(title, component, new ModalOptions {
                                     Size = ModalSize.Large, 
                                     ShowHeader = true, 
                                     Scrollable = false,

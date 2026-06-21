@@ -1176,6 +1176,7 @@ public partial class DoorsEnterpriseContext : DbContext
             entity.Property(e => e.CardManagerAccess).HasDefaultValue(0);
             entity.Property(e => e.SiteSettingsAccess).HasDefaultValue(0);
             entity.Property(e => e.UserSettingsAccess).HasDefaultValue(0);
+            entity.Property(e => e.ReportsAccess).HasDefaultValue(0);
         });
 
         modelBuilder.Entity<NameAccessLevelsView>(entity =>

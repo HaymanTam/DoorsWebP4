@@ -32,13 +32,15 @@ services:
       # Container-internal storage paths (constant). The host side is chosen below.
       - Backup__Directory=/data/backups
       - Storage__UserPhotoDirectory=/data/user-photo
+      - Storage__CardPhotoDirectory=/data/card-photo
       - Storage__SettingsDirectory=/data/settings
     volumes:
       # Hybrid storage: a Docker-managed named volume is used by default.
-      # Set BACKUP_PATH / USER_PHOTO_PATH in .env to a host folder to bind-mount
-      # a real directory instead (e.g. /srv/doorsweb/backups or D:/DoorsData).
+      # Set BACKUP_PATH / USER_PHOTO_PATH / CARD_PHOTO_PATH in .env to a host folder to
+      # bind-mount a real directory instead (e.g. /srv/doorsweb/backups or D:/DoorsData).
       - ${BACKUP_PATH:-backups}:/data/backups
       - ${USER_PHOTO_PATH:-user-photo}:/data/user-photo
+      - ${CARD_PHOTO_PATH:-card-photo}:/data/card-photo
       - ${SETTINGS_PATH:-settings}:/data/settings
     depends_on:
       postgres:
@@ -76,10 +78,12 @@ networks:
     driver: bridge
 
 volumes:
-  # Defaults used when BACKUP_PATH / USER_PHOTO_PATH are not set in .env.
+  # Defaults used when BACKUP_PATH / USER_PHOTO_PATH / CARD_PHOTO_PATH are not set in .env.
   backups:
     driver: local
   user-photo:
+    driver: local
+  card-photo:
     driver: local
   settings:
     driver: local

@@ -501,6 +501,8 @@
 
     public DoorDetailDto dDetail { get; set; } = new DoorDetailDto();
     [Parameter] public int DoorId { get; set; }
+    // The site a new door is created under (passed from the per-site Doors page; 0 = none).
+    [Parameter] public int SiteId { get; set; }
     [CascadingParameter] public bool CascadingParameter { get; set; } = false;
 
     // ---- Local backing field for UI-only controls (not persisted) ----
@@ -545,6 +547,11 @@
             {
                 dDetail = result;
             }
+        }
+        else if (SiteId > 0)
+        {
+            // New door: pin it to the site its "Add Door" button was launched under.
+            dDetail.Site = SiteId;
         }
     }
 

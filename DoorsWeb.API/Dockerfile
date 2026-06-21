@@ -8,10 +8,12 @@ EXPOSE 8081
 
 # As root we (1) install the PostgreSQL client tools (pg_dump/pg_restore) that
 # BackupService shells out to, pinned to major 16 from the official PGDG apt repo to
-# match the postgres:16 server, and (2) pre-create the mounted data directories and
+# match the postgres:16 server, plus libfontconfig1 (the native font library QuestPDF/SkiaSharp
+# needs to render report PDFs on Linux), and (2) pre-create the mounted data directories and
 # hand them to the non-root runtime user ($APP_UID). When Docker first mounts an
 # *empty* named volume over one of these paths it copies this ownership onto the
-# volume, so the app can write to /data/settings, /data/backups and /data/user-photo.
+# volume, so the app can write to /data/settings, /data/backups, /data/user-photo and
+# /data/card-photo.
 # Without this, fresh named volumes are created root-owned and writes fail with
 # "Access to the path ... is denied". (Existing root-owned volumes must be recreated
 # or chowned once.)
@@ -24,9 +26,9 @@ RUN apt-get update \
     && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" \
          > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client-16 \
+    && apt-get install -y --no-install-recommends postgresql-client-16 libfontconfig1 \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /data/backups /data/user-photo /data/settings \
+    && mkdir -p /data/backups /data/user-photo /data/card-photo /data/settings \
     && chown -R $APP_UID:$APP_UID /data
 USER $APP_UID
 

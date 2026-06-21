@@ -259,6 +259,7 @@ namespace DoorsWeb.API.Services
             if (columns.TryGetValue("CardManagerAccess", out var cm)) sets.Add($"{Quote(cm)} = 2");
             if (columns.TryGetValue("SiteSettingsAccess", out var ss)) sets.Add($"{Quote(ss)} = 2");
             if (columns.TryGetValue("UserSettingsAccess", out var us)) sets.Add($"{Quote(us)} = 2");
+            if (columns.TryGetValue("ReportsAccess", out var rp)) sets.Add($"{Quote(rp)} = 2");
             if (sets.Count == 0) return 0;
 
             var sql = $"UPDATE {QualifiedTable(usersTable)} SET {string.Join(", ", sets)};";

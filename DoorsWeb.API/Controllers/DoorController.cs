@@ -1,4 +1,5 @@
 using DoorsWeb.API.Authorization;
+using DoorsWeb.API.Licensing;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
 using Microsoft.AspNetCore.Authorization;
@@ -39,7 +40,14 @@ namespace DoorsWeb.API.Controllers
         [HttpPost]
         public async Task<ActionResult<List<DoorListDto>>> Create(DoorDetailDto dto)
         {
-            return Ok(await _service.Create(dto));
+            try
+            {
+                return Ok(await _service.Create(dto));
+            }
+            catch (LicenseLimitException ex)
+            {
+                return Problem(detail: ex.Message, title: "License Limit Reached", statusCode: 409);
+            }
         }
 
         [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]

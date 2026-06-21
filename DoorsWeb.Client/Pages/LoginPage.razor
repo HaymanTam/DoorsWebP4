@@ -47,7 +47,14 @@
                     @if (passwordHint is not null)
                     {
                         <div class="alert alert-info mb-3">
-                            <div>First login: the default password is <strong>@passwordHint</strong>. You'll be asked to set a new one.</div>
+                            @if (defaultUsernameHint is not null)
+                            {
+                                <div>First login: sign in as <strong>@defaultUsernameHint</strong> with the default password <strong>@passwordHint</strong>. You'll be asked to set a new one.</div>
+                            }
+                            else
+                            {
+                                <div>First login: the default password is <strong>@passwordHint</strong>. You'll be asked to set a new one.</div>
+                            }
                         </div>
                     }
                     @if (errorMessage is not null)
@@ -125,10 +132,13 @@
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    private AdminLoginDto loginDto = new() { Username = "admin", Password = "" };
+    private const string LastUsernameKey = "last_username";
+
+    private AdminLoginDto loginDto = new() { Username = "", Password = "" };
     private ChangePasswordModel changeModel = new();
     private string? errorMessage;
     private string? passwordHint;
+    private string? defaultUsernameHint;
     private bool isLoading;
     private bool requirePasswordChange;
     private bool showLoginPwd;
@@ -149,12 +159,24 @@
             }
         }
 
-        await FetchHint();
+        // Prefer the username last used on this machine: pre-fill it and fetch its hint.
+        var lastUsername = await GetLastUsername();
+        if (!string.IsNullOrWhiteSpace(lastUsername))
+        {
+            loginDto.Username = lastUsername;
+            await FetchHint();
+            return;
+        }
+
+        // Otherwise, on a fresh install surface the seeded Super's username + default password
+        // so the (now-blank) login screen can still be signed into.
+        await FetchFirstRunHint();
     }
 
     private async Task FetchHint()
     {
         passwordHint = null;
+        defaultUsernameHint = null;
         if (string.IsNullOrWhiteSpace(loginDto.Username))
             return;
         try
@@ -167,6 +189,51 @@
         catch
         {
             passwordHint = null;
+        }
+    }
+
+    // Fresh-install hint: ask the API for the seeded Super account still on its default password,
+    // and pre-fill its username while showing the default password. Returns nothing once configured.
+    private async Task FetchFirstRunHint()
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            var hint = await client.GetFromJsonAsync<FirstRunHint>("auth/first-run-hint");
+            if (hint is { Available: true, Username: not null })
+            {
+                loginDto.Username = hint.Username;
+                defaultUsernameHint = hint.Username;
+                passwordHint = hint.Password;
+            }
+        }
+        catch
+        {
+            // Non-fatal: login still works without the hint.
+        }
+    }
+
+    private async Task<string?> GetLastUsername()
+    {
+        try
+        {
+            return await JS.InvokeAsync<string?>("localStorage.getItem", LastUsernameKey);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task SetLastUsername(string username)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", LastUsernameKey, username);
+        }
+        catch
+        {
+            // Non-fatal: prefill is a convenience only.
         }
     }
 
@@ -185,6 +252,7 @@
                 if (jwtPair?.AccessToken is not null)
                 {
                     await StoreTokens(jwtPair);
+                    await SetLastUsername(loginDto.Username);
                     if (jwtPair.MustChangePassword)
                     {
                         // Hold the user on the change-password form; the stored token
@@ -274,4 +342,6 @@
         bool MustChangePassword);
 
     private record DefaultHint(bool IsDefault, string? Hint);
+
+    private record FirstRunHint(bool Available, string? Username, string? Password);
 }

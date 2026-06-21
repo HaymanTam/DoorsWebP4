@@ -73,5 +73,16 @@ namespace DoorsWeb.API.Controllers
             var hint = await _authService.GetDefaultPasswordHintAsync(username, ct);
             return Ok(new { isDefault = hint is not null, hint });
         }
+
+        // First-run hint for the blank login screen: surfaces the seeded Super account's username and
+        // default password while it is still unconfigured, so a fresh install can be signed into.
+        // available = false once that account's password has been changed (or no such account exists).
+        [AllowAnonymous]
+        [HttpGet("first-run-hint")]
+        public async Task<IActionResult> FirstRunHint(CancellationToken ct)
+        {
+            var hint = await _authService.GetFirstRunHintAsync(ct);
+            return Ok(new { available = hint is not null, username = hint?.Username, password = hint?.Password });
+        }
     }
 }

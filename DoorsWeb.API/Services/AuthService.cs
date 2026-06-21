@@ -16,6 +16,11 @@ namespace DoorsWeb.API.Services
         DateTimeOffset RefreshTokenExpiresAt,
         bool MustChangePassword);
 
+    // First-run convenience hint: the username + default password of an as-yet-unconfigured
+    // Super account. Surfaced on the (otherwise blank) login screen so a fresh install can be
+    // signed into; disappears once the seed account's password is changed.
+    public record DefaultLoginHint(string Username, string Password);
+
     public class AuthService : IAuthService
     {
         // Default password seeded for the "admin" account; users on this password
@@ -113,6 +118,22 @@ namespace DoorsWeb.API.Services
                 .FirstOrDefaultAsync(u => u.Description == username, ct);
 
             return user is not null && StoredIsDefault(user.Password) ? DefaultPassword : null;
+        }
+
+        // First-run hint shown on the blank login screen: find a Super (Administrator) account that is
+        // still on its default/legacy password and surface its username + the default password so a
+        // fresh install can be signed into. Restricting to Administrators bounds the per-row bcrypt
+        // verify cost. Returns null once every Super has set a real password (StoredIsDefault false).
+        public async Task<DefaultLoginHint?> GetFirstRunHintAsync(CancellationToken ct = default)
+        {
+            var admins = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Administrator)
+                .OrderBy(u => u.Code)
+                .ToListAsync(ct);
+
+            var seed = admins.FirstOrDefault(u => StoredIsDefault(u.Password));
+            return seed is null ? null : new DefaultLoginHint(seed.Description, DefaultPassword);
         }
 
         // Legacy T_Users may still hold plaintext passwords; bcrypt hashes start

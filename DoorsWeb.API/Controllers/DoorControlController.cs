@@ -19,11 +19,13 @@ namespace DoorsWeb.API.Controllers
     {
         private readonly IDoorStateService _state;
         private readonly IDoorCommandService _commands;
+        private readonly IPendingCommandService _pending;
 
-        public DoorControlController(IDoorStateService state, IDoorCommandService commands)
+        public DoorControlController(IDoorStateService state, IDoorCommandService commands, IPendingCommandService pending)
         {
             _state = state;
             _commands = commands;
+            _pending = pending;
         }
 
         /// <summary>Current live state of every door (the floorplan's initial snapshot).</summary>
@@ -53,5 +55,23 @@ namespace DoorsWeb.API.Controllers
         [HttpPost("lockdown")]
         public async Task<ActionResult<int>> Lockdown([FromQuery] int? site, CancellationToken ct)
             => Ok(await _commands.LockdownAsync(site, ct));
+
+        /// <summary>Commands that have been sent but not yet acknowledged (still being retried).</summary>
+        [HttpGet("pending")]
+        public ActionResult<IReadOnlyCollection<PendingCommandDto>> GetPending()
+            => Ok(_pending.GetSnapshot());
+
+        /// <summary>Cancels a single pending command so it stops being retried.</summary>
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
+        [HttpDelete("pending/{id:guid}")]
+        public IActionResult ClearPending(Guid id)
+            => _pending.Clear(id) ? NoContent()
+                                  : Problem(detail: $"Pending command <{id}> was not found.", title: "Not Found", statusCode: 404);
+
+        /// <summary>Cancels every pending command, or only those for one door when <c>door</c> is supplied.</summary>
+        [Authorize(Policy = AreaPolicies.SiteSettingsWrite)]
+        [HttpDelete("pending")]
+        public ActionResult<int> ClearAllPending([FromQuery] int? door)
+            => Ok(_pending.ClearAll(door));
     }
 }

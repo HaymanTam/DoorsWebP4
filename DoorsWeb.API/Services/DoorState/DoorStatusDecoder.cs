@@ -56,6 +56,14 @@ namespace DoorsWeb.API.Services.DoorState
         public const byte PingRequest = 0x01;     // Command 2 (B,1 — what we send)
         public const byte PingReply = 0x02;       // Command 2 (B,2 — what we decode)
 
+        // ---- Command acknowledgement (legacy "command received" reply). ----
+        // After a controller accepts a command it answers with command group 0x11, command 2 = 0x01.
+        // The legacy connector correlated an ack to the most recent command sent to that controller
+        // address (Last_command_address = Source_Address); the block-sequence number was not used for
+        // matching. We use the same address-based correlation to resolve pending commands.
+        public const byte AckGroup = 0x11;        // Command 1 (controller -> PC "command received")
+        public const byte AckReply = 0x01;        // Command 2
+
         // ---- Ping reply (B,2) data-byte layout (P4 UDP Protocol v4.68, Doc 4002) ----
         // data length is 15 (no supply voltage) or 16 (with supply voltage).
         private const int CardBlocksLowIndex = 0;   // free card blocks, low byte

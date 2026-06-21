@@ -20,6 +20,7 @@ namespace DoorsWeb.Client.Services
         private readonly IJSRuntime _js;
         private readonly SemaphoreSlim _startGate = new(1, 1);
         private readonly Dictionary<int, DoorStateDto> _doors = new();
+        private IReadOnlyList<PendingCommandDto> _pending = Array.Empty<PendingCommandDto>();
 
         private HubConnection? _connection;
         private bool _started;
@@ -39,6 +40,16 @@ namespace DoorsWeb.Client.Services
 
         public DoorStateDto? TryGet(int door) => _doors.TryGetValue(door, out var d) ? d : null;
 
+        /// <summary>Commands that have been sent to controllers but not yet acknowledged (still retrying).</summary>
+        public IReadOnlyList<PendingCommandDto> PendingCommands => _pending;
+
+        /// <summary>Total number of outstanding (unacknowledged) commands across all doors.</summary>
+        public int PendingCount => _pending.Count;
+
+        /// <summary>The outstanding commands for one door, oldest first.</summary>
+        public IReadOnlyList<PendingCommandDto> PendingFor(int door)
+            => _pending.Where(p => p.Door == door).ToList();
+
         /// <summary>Doors not currently in contact with their controller.</summary>
         public int InactiveCount => _doors.Values.Count(d => d.Status == DoorLiveStatus.Offline);
 
@@ -47,6 +58,19 @@ namespace DoorsWeb.Client.Services
 
         /// <summary>Doors that need attention — inactive or in alarm (counted once each).</summary>
         public int ProblemCount => _doors.Values.Count(IsProblem);
+
+        /// <summary>Doors needing attention in one site (or all sites when <paramref name="site"/> is null).</summary>
+        public int ProblemCountFor(int? site) => DoorsFor(site).Count(IsProblem);
+
+        /// <summary>Doors in alarm in one site (or all sites when <paramref name="site"/> is null).</summary>
+        public int AlarmCountFor(int? site) => DoorsFor(site).Count(HasAlarm);
+
+        /// <summary>Offline doors in one site (or all sites when <paramref name="site"/> is null).</summary>
+        public int InactiveCountFor(int? site)
+            => DoorsFor(site).Count(d => d.Status == DoorLiveStatus.Offline);
+
+        private IEnumerable<DoorStateDto> DoorsFor(int? site)
+            => site is int s ? _doors.Values.Where(d => d.Site == s) : _doors.Values;
 
         /// <summary>True when the door has any active alarm condition.</summary>
         public static bool HasAlarm(DoorStateDto d)
@@ -86,6 +110,17 @@ namespace DoorsWeb.Client.Services
                     return;
                 }
 
+                // Pending-command snapshot (best-effort; the live "PendingCommandsChanged" push keeps it current).
+                try
+                {
+                    _pending = await client.GetFromJsonAsync<List<PendingCommandDto>>("api/DoorControl/pending")
+                        ?? (IReadOnlyList<PendingCommandDto>)Array.Empty<PendingCommandDto>();
+                }
+                catch
+                {
+                    // Leave empty; a push will populate it once the connection is up.
+                }
+
                 // Live connection (best-effort). Auto-reconnect handles drops once connected.
                 try
                 {
@@ -103,6 +138,7 @@ namespace DoorsWeb.Client.Services
                         .Build();
 
                     connection.On<DoorStateDto>("DoorStateChanged", OnDoorStateChanged);
+                    connection.On<List<PendingCommandDto>>("PendingCommandsChanged", OnPendingChanged);
                     await connection.StartAsync();
                     _connection = connection;
                 }
@@ -125,6 +161,44 @@ namespace DoorsWeb.Client.Services
         {
             _doors[dto.Door] = dto;
             Changed?.Invoke();
+        }
+
+        private void OnPendingChanged(List<PendingCommandDto> pending)
+        {
+            _pending = pending;
+            Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// Cancels a single pending command so the server stops retrying it. The store updates from
+        /// the resulting "PendingCommandsChanged" push, but we also drop it locally for snappy UI.
+        /// </summary>
+        public async Task ClearCommandAsync(Guid id)
+        {
+            try
+            {
+                var client = _clientFactory.CreateClient("WebAPI");
+                await client.DeleteAsync($"api/DoorControl/pending/{id}");
+            }
+            catch
+            {
+                // Ignore; the list stays as-is and the next push reconciles it.
+            }
+        }
+
+        /// <summary>Cancels every pending command, or only those for one door when <paramref name="door"/> is supplied.</summary>
+        public async Task ClearAllAsync(int? door = null)
+        {
+            try
+            {
+                var client = _clientFactory.CreateClient("WebAPI");
+                var url = door is int d ? $"api/DoorControl/pending?door={d}" : "api/DoorControl/pending";
+                await client.DeleteAsync(url);
+            }
+            catch
+            {
+                // Ignore; the next push reconciles it.
+            }
         }
 
         public async ValueTask DisposeAsync()

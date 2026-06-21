@@ -35,28 +35,19 @@
                         <Icon class="icon" IconType="@TablerIcons.Search" />
                     </MenuItemIcon>
                 </NavbarMenuItem>
-                <NavbarMenuItem Href="alarms" Text="Alarms">
-                    <MenuItemIcon>
-                        <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
-                    </MenuItemIcon>
-                </NavbarMenuItem>
-                @* Live problem indicator: doors that are inactive or in alarm. Needs the door-status
-                   feed, which requires Site Settings read; clicking opens the floorplan. *@
-                @if (auth.User.CanReadSiteSettings() && DoorStatus.ProblemCount > 0)
-                {
-                    <li class="nav-item">
-                        <NavLink class="nav-link" href="floorplan">
-                            <span class="nav-link-icon @(DoorStatus.AlarmCount > 0 ? "text-danger" : "text-warning")">
-                                <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="alarms">
+                        <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Alert_triangle" /></span>
+                        <span class="nav-link-title">Alarms</span>
+                        @* Live count of doors currently in alarm (all sites). Needs the door-status feed. *@
+                        @if (auth.User.CanReadSiteSettings() && DoorStatus.AlarmCount > 0)
+                        {
+                            <span class="ms-auto badge bg-red text-white" title="@($"{DoorStatus.AlarmCount} in alarm")">
+                                @DoorStatus.AlarmCount
                             </span>
-                            <span class="nav-link-title">Problems</span>
-                            <span class="ms-auto badge @(DoorStatus.AlarmCount > 0 ? "bg-red" : "bg-orange") text-white"
-                                  title="@ProblemTooltip()">
-                                @DoorStatus.ProblemCount
-                            </span>
-                        </NavLink>
-                    </li>
-                }
+                        }
+                    </NavLink>
+                </li>
                 @if (auth.User.CanReadCardManager())
                 {
                     <NavbarMenuItem Href="cardmanager" Text="Card Manager">
@@ -98,6 +89,14 @@
                                     <NavLink class="nav-link" href="@($"doors/{site.Site}")">
                                         <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Door" /></span>
                                         <span class="nav-link-title">Doors</span>
+                                        @* Inactive (offline) doors in this site. Alarms have their own badge on the Alarms item. *@
+                                        @if (DoorStatus.InactiveCountFor(site.Site) > 0)
+                                        {
+                                            <span class="ms-auto badge bg-orange text-white"
+                                                  title="@($"{DoorStatus.InactiveCountFor(site.Site)} inactive")">
+                                                @DoorStatus.InactiveCountFor(site.Site)
+                                            </span>
+                                        }
                                     </NavLink>
                                 </li>
                                 @* Live floorplan deep-linked to this site. Edit (place doors) is gated to site-write inside the page. *@
@@ -258,17 +257,8 @@
         await LoadSites();
     }
 
-    // Repaint the problem badge whenever a door's live state changes.
+    // Repaint the nav badges whenever a door's live state changes.
     private void OnDoorStatusChanged() => InvokeAsync(StateHasChanged);
-
-    // Hover text for the problem badge, e.g. "2 inactive, 1 in alarm".
-    private string ProblemTooltip()
-    {
-        var parts = new List<string>();
-        if (DoorStatus.InactiveCount > 0) parts.Add($"{DoorStatus.InactiveCount} inactive");
-        if (DoorStatus.AlarmCount > 0) parts.Add($"{DoorStatus.AlarmCount} in alarm");
-        return parts.Count == 0 ? "All doors OK" : string.Join(", ", parts);
-    }
 
     private async void OnAuthStateChanged(Task<AuthenticationState> _)
     {

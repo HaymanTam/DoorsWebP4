@@ -23,18 +23,18 @@ namespace DoorsWeb.API.Services
         private const int DefaultReleaseSeconds = 5;
 
         private readonly DoorsEnterpriseContext _context;
-        private readonly IUdpProtocolService _udp;
+        private readonly IPendingCommandService _pending;
         private readonly IDoorStateService _doorState;
         private readonly ILogger<DoorCommandService> _logger;
 
         public DoorCommandService(
             DoorsEnterpriseContext context,
-            IUdpProtocolService udp,
+            IPendingCommandService pending,
             IDoorStateService doorState,
             ILogger<DoorCommandService> logger)
         {
             _context = context;
-            _udp = udp;
+            _pending = pending;
             _doorState = doorState;
             _logger = logger;
         }
@@ -53,8 +53,13 @@ namespace DoorsWeb.API.Services
             byte channel = request.Relay == DoorRelay.RelayB ? ChannelLockB : ChannelLockA;
             var packet = BuildTrigger(e.ControllerId, channel, mode, seconds);
 
-            await _udp.SendAsync(packet, e.DoorIpaddress.Trim(), cancellationToken: ct);
-            _logger.LogInformation("Sent {Action} on {Relay} to door {Door} ({Ip}).",
+            // Queue the command for delivery: it is sent once now and resent until the controller
+            // acks (or an operator clears it). The controller's ack carries its own address as the
+            // source, which matches the destination we sent to, so we correlate on that address.
+            string description = DescribeCommand(request, seconds);
+            await _pending.EnqueueAsync(door, e.Name, packet.DestinationAddress, e.DoorIpaddress.Trim(),
+                packet, request.Action, request.Relay, description, ct);
+            _logger.LogInformation("Queued {Action} on {Relay} for door {Door} ({Ip}).",
                 request.Action, request.Relay, door, e.DoorIpaddress);
 
             // Relay A is the door lock, so reflect the action in the door's live status immediately.
@@ -77,7 +82,7 @@ namespace DoorsWeb.API.Services
                 query = query.Where(d => d.Site == s);
 
             var doors = await query
-                .Select(d => new { d.Door, d.ControllerId, d.DoorIpaddress })
+                .Select(d => new { d.Door, d.Name, d.ControllerId, d.DoorIpaddress })
                 .ToListAsync(ct);
 
             int commanded = 0;
@@ -86,7 +91,8 @@ namespace DoorsWeb.API.Services
                 try
                 {
                     var packet = BuildTrigger(d.ControllerId, ChannelLockA, ModeClose, 0);
-                    await _udp.SendAsync(packet, d.DoorIpaddress!.Trim(), cancellationToken: ct);
+                    await _pending.EnqueueAsync(d.Door, d.Name, packet.DestinationAddress, d.DoorIpaddress!.Trim(),
+                        packet, DoorCommandAction.Lock, DoorRelay.RelayA, "Lockdown", ct);
                     await _doorState.ApplyLocalAsync(d.Door, DoorLiveStatus.Locked, "Lockdown", ct);
                     commanded++;
                 }
@@ -112,6 +118,19 @@ namespace DoorsWeb.API.Services
         };
 
         private static byte ClampSeconds(int seconds) => (byte)Math.Clamp(seconds, 1, 255);
+
+        // Short human-readable summary shown next to the pending command in the Door Manager.
+        private static string DescribeCommand(DoorCommandRequest request, byte seconds)
+        {
+            string relay = request.Relay == DoorRelay.RelayB ? "Relay B" : "Relay A";
+            return request.Action switch
+            {
+                DoorCommandAction.Unlock => $"Unlock {relay}",
+                DoorCommandAction.Lock => $"Lock {relay}",
+                DoorCommandAction.MomentaryRelease => $"Release {relay} ({seconds}s)",
+                _ => $"Command {relay}"
+            };
+        }
 
         private static ProtocolPacket BuildTrigger(string? controllerId, byte channel, byte mode, byte seconds)
         {

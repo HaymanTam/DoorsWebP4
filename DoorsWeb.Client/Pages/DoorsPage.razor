@@ -38,6 +38,43 @@
                     You have read-only access to site settings. Adding, editing and deleting doors are disabled.
                 </div>
             }
+            @* Pending commands: operator commands that have been sent but not yet acknowledged by the
+               controller. The server retries them automatically; this panel shows what's outstanding
+               and lets a writer cancel a single command or all of them. *@
+            @if (DoorStatus.PendingCount > 0)
+            {
+                <div class="card mb-3 border-warning">
+                    <div class="card-header d-flex align-items-center">
+                        <Icon class="icon me-2" IconType="@TablerIcons.Clock" />
+                        <span class="fw-bold">Pending commands (@DoorStatus.PendingCount)</span>
+                        <span class="text-muted small ms-2 d-none d-md-inline">Sent but not yet acknowledged — retrying automatically.</span>
+                        @if (canWrite)
+                        {
+                            <Button class="ms-auto" Size="ButtonSize.Small" BackgroundColor="TablerColor.Danger" @onclick="ClearAllPending">
+                                <Icon class="icon me-1" IconType="@TablerIcons.Trash" />Clear all
+                            </Button>
+                        }
+                    </div>
+                    <div class="list-group list-group-flush">
+                        @foreach (var cmd in DoorStatus.PendingCommands)
+                        {
+                            <div class="list-group-item d-flex align-items-center gap-2" @key="cmd.Id">
+                                <span class="fw-bold">@DoorLabel(cmd)</span>
+                                <span class="text-muted">— @cmd.Description</span>
+                                <span class="badge bg-warning-lt" title="Transmission attempts">
+                                    @cmd.Attempts attempt@(cmd.Attempts == 1 ? "" : "s")
+                                </span>
+                                <span class="text-muted small">@PendingAge(cmd)</span>
+                                @if (canWrite)
+                                {
+                                    <Icon class="icon ms-auto row-action text-danger" IconType="@TablerIcons.X"
+                                          title="Cancel this command" @onclick="() => ClearPending(cmd.Id)" />
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
             @* Editing is fully custom (Add button + action column below, both gated on canWrite),
                so the built-in edit mode is disabled via AllowAdd/AllowEdit/AllowDelete. *@
             <Table @ref="table" Item="DoorListDto" Items="VisibleDoors" PageSize="pageSize"
@@ -54,7 +91,7 @@
                             <input type="text" class="form-control" @bind-value="@context.Name" />
                         </EditorTemplate>
                     </Column>
-                    <Column Item="DoorListDto" Property="e => e.ControllerId" Title="Controller ID" Searchable Sortable>
+                    <Column Item="DoorListDto" Property="e => e.ControllerIdString" Title="Controller ID" Searchable Sortable>
                         <EditorTemplate>
                             <input type="text" class="form-control" @bind-value="@context.ControllerId" />
                         </EditorTemplate>
@@ -276,6 +313,26 @@
         RelayState.Closed => ("bg-green-lt", "Locked"),
         _ => ("bg-blue-lt", "Unknown")
     };
+
+    // ---- Pending commands ---------------------------------------------------------
+
+    private async Task ClearPending(Guid id) => await DoorStatus.ClearCommandAsync(id);
+
+    private async Task ClearAllPending() => await DoorStatus.ClearAllAsync();
+
+    // Door display label for the pending list: the door's name, falling back to its number.
+    private static string DoorLabel(PendingCommandDto cmd)
+        => string.IsNullOrWhiteSpace(cmd.DoorName) ? $"Door {cmd.Door}" : cmd.DoorName!;
+
+    // Rough "how long it's been waiting" for the pending list (refreshes on each retry/push).
+    private static string PendingAge(PendingCommandDto cmd)
+    {
+        var elapsed = DateTime.UtcNow - cmd.CreatedUtc;
+        if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
+        if (elapsed.TotalSeconds < 60) return $"waiting {(int)elapsed.TotalSeconds}s";
+        if (elapsed.TotalMinutes < 60) return $"waiting {(int)elapsed.TotalMinutes}m";
+        return $"waiting {(int)elapsed.TotalHours}h";
+    }
 
     // The names of every active alarm on a door, for the red chips.
     private static IEnumerable<string> AlarmLabels(DoorStateDto live)

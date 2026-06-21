@@ -232,7 +232,15 @@ builder.Services.AddHostedService<ControllerPollingService>();
 // it owns its UDP subscription and per-door drain de-duplication for the app's lifetime.
 builder.Services.AddSingleton<IEventLogService, EventLogService>();
 
-// Door control (unlock / lock / momentary / lockdown) — builds and sends protocol commands.
+// Persistent commands: every operator command (except pings/event-log traffic) is tracked here and
+// resent until the controller acks (0x11/1) or an operator clears it. Singleton so it owns its UDP
+// subscription + retry queue for the app's lifetime; also a hosted service for the retry loop.
+builder.Services.AddSingleton<PendingCommandService>();
+builder.Services.AddSingleton<IPendingCommandService>(sp => sp.GetRequiredService<PendingCommandService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PendingCommandService>());
+
+// Door control (unlock / lock / momentary / lockdown) — builds protocol commands and queues them
+// through the pending-command service above.
 builder.Services.AddScoped<IDoorCommandService, DoorCommandService>();
 
 // Floorplan layout (optional uploaded plan image + door placements), persisted per-site as JSON

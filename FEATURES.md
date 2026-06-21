@@ -70,13 +70,61 @@ idea is agreed, add it to *Planned*.
 - CSV + PDF output (QuestPDF — Community license, valid under $1M revenue).
 - Reports hub UI + generic runner + nav entry.
 
+### Diagnostics & Support
+- **Request correlation IDs** — every API request gets a stable ID (`CorrelationIdMiddleware`): honours an
+  inbound `X-Correlation-Id`, else mints one; sets `HttpContext.TraceIdentifier` so the ProblemDetails
+  `requestId` in error responses matches; echoes it back in the `X-Correlation-Id` response header; and
+  pushes it into the Serilog `LogContext` so every log line for the request is tagged with it.
+- **Structured logging to rolling files** (Serilog) — daily roll, 14-file retention, written under
+  `Storage:LogDirectory` (defaults to a `Logs/` folder on the settings volume) so logs persist across
+  container restarts on offline sites. One concise completion line per request via `UseSerilogRequestLogging`.
+- _Foundation for the planned bug-report support bundle: a user-quoted correlation/reference ID resolves
+  directly to the exact log lines for the failing request._
+
 ---
 
 ## Planned / To Be Implemented
 
 _Backlog — add agreed-on features here; nothing is in flight unless noted._
 
-- _(none currently tracked — add items as they come up)_
+### Bug Report Pipeline (offline-first)
+End-to-end flow from a user hitting a problem to the vendor shipping a fix: a user generates a
+self-contained diagnostic report in-app and sends it to a vendor-hosted intake site; when the site is
+offline the same report is downloaded as a file and uploaded from any connected machine. Generation never
+needs connectivity — only transport does. Phase 1 (correlation IDs + rolling file logs) is **done** (see
+*Diagnostics & Support* above). Remaining phases:
+- **Phase 2 — Capture + offline file:** Blazor `<ErrorBoundary>` replacing the dead default error bar with
+  a friendly "something went wrong — reference `X`"; a "Report a problem" dialog that captures the recent
+  failed-request correlation ID(s) + the operator's description and produces a downloadable report.
+- **Phase 3 — Full support bundle:** server-side `.zip` (Super-gated) bundling recent logs + app version +
+  license/DB status, keyed by a globally-unique **Report ID** (`{siteCode}-{timestamp}-{guid}`), with a
+  root `manifest.json`. **Redaction is mandatory** — never include `Jwt:SecretKey`, the connection string,
+  password hashes, tokens, or cardholder PII/photos. Optionally **sign the manifest with the existing
+  `DoorsWeb.Licensing` ECDSA scheme** so the vendor can verify authenticity + originating site.
+- **Phase 4 — Hosted intake + auto-upload:** the receiving website + client logic that POSTs the bundle
+  when reachable and falls back to file download when offline.
+- **Phase 5 — Triage → fix → release loop:** vendor-side intake dashboard that indexes bundles by Report
+  ID / site / version, dedupes recurring crashes, and links a report to the fix + the version it ships in
+  (closing the loop back to the version shown in System Settings, so a site can confirm "my issue is fixed
+  in this build").
+
+### Testing & CI Pipeline
+Goal: lock in behaviour with automated tests and run them on every change, so regressions surface before
+a build reaches a site. No test project exists yet — this is greenfield. Proposed layering (thin pyramid):
+- **Phase 1 — Test project + unit tests:** add `DoorsWeb.Tests` (xUnit) to `DoorsWebP4.slnx`; cover the
+  pure, bug-prone logic first — legacy-restore floor selection (`IsFloorImage`, one-plan-per-site
+  lowest-code-wins), JWT parse/expiry (`JwtAuthStateProvider`), and password-policy/strength scoring.
+  Some logic needs a small refactor to be testable (e.g. extract the floor-selection rule into a pure
+  method).
+- **Phase 2 — Behaviour tests with mocks:** `JwtAuthorizationHandler` 401 → refresh → replay → sign-out
+  flow (mock `IJSRuntime` + stub `HttpMessageHandler`), and the concurrent-refresh dedup path.
+- **Phase 3 — Integration tests:** legacy backup restore against a throwaway Postgres (Testcontainers)
+  using a sample backup ZIP — assert `FloorPlansRestored`, that the image lands on the store, and that
+  imported layouts have zero doors. (Pragmatic fallback: a documented manual run against the dev DB.)
+- **Phase 4 — CI automation:** a pipeline (e.g. GitHub Actions) that restores, builds API + Client, and
+  runs the test suite on push/PR, gating merges on green. Optionally publish a coverage summary.
+- **Optional — UI/E2E:** bUnit for Blazor component logic (e.g. restore-modal acknowledgement gating) and
+  Playwright for the real expired-session → redirect-to-login flow, added once the lower layers exist.
 
 ---
 

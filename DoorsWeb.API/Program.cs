@@ -11,10 +11,41 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using Serilog;
 using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Structured logging to rolling files — the persisted record a bug-report support bundle draws on.
+// Files land on the same mounted volume as the rest of the app's data (Storage:LogDirectory, else a
+// "Logs" folder beside the settings volume) so they survive container restarts on offline sites.
+// Every line carries the per-request {CorrelationId} (pushed by CorrelationIdMiddleware via
+// LogContext), which is what ties a user-quoted reference back to the exact request.
+var logDirectory = builder.Configuration["Storage:LogDirectory"];
+if (string.IsNullOrWhiteSpace(logDirectory))
+    logDirectory = Path.Combine(SystemSettingsService.ResolveDirectory(builder.Configuration), "Logs");
+Directory.CreateDirectory(logDirectory);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    // Keep the support-bundle logs focused on app events: framework/EF chatter (e.g. every SQL
+    // command logged at Information) is dropped to Warning so real problems stand out.
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("System", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: Path.Combine(logDirectory, "doorsweb-.log"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 14,
+        shared: true,
+        outputTemplate:
+            "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{CorrelationId}] " +
+            "{SourceContext}{NewLine}    {Message:lj}{NewLine}{Exception}"));
 
 // QuestPDF (report PDF export) requires a license type to be declared before any PDF is generated.
 // NOTE: the Community license is free only for organisations/individuals under USD $1M annual
@@ -254,6 +285,12 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(floorPlanService.ImageDirectory),
     RequestPath = FloorPlanService.ImageWebPath
 });
+
+// Stamp a correlation ID on every request (response header + log scope + ProblemDetails requestId),
+// then emit one structured completion line per request. Placed after static files so media requests
+// don't add log noise, but before auth so even rejected requests are traced.
+app.UseMiddleware<DoorsWeb.API.Middleware.CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging();
 
 app.UseCors("BlazorCorsPolicy");
 app.UseAuthentication();

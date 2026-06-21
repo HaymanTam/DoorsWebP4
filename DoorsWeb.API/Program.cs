@@ -223,6 +223,15 @@ builder.Services.AddSingleton<DoorStateService>();
 builder.Services.AddSingleton<IDoorStateService>(sp => sp.GetRequiredService<DoorStateService>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DoorStateService>());
 
+// Active polling: pings every controller (B,1) on the configured interval so the live state above
+// stays current even when no events are happening. Replies (B,2) flow back through the UDP listener.
+builder.Services.AddHostedService<ControllerPollingService>();
+
+// Event-log drain: when a ping reply reports unread entries, pull them from the controller (D,1/
+// D,3/D,2 handshake), record them to T_Events and push each to clients as "NewEvent". Singleton so
+// it owns its UDP subscription and per-door drain de-duplication for the app's lifetime.
+builder.Services.AddSingleton<IEventLogService, EventLogService>();
+
 // Door control (unlock / lock / momentary / lockdown) — builds and sends protocol commands.
 builder.Services.AddScoped<IDoorCommandService, DoorCommandService>();
 

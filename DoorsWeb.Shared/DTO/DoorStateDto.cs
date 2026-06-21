@@ -27,5 +27,11 @@ namespace DoorsWeb.Shared.DTO
 
         /// <summary>UTC time the most recent event/state change was observed, or null if never.</summary>
         public DateTime? LastEventUtc { get; set; }
+
+        /// <summary>
+        /// Hardware-level detail from the controller's last ping reply (relay states, alarms,
+        /// firmware, diagnostics). Null until the first reply arrives → rendered as "unknown" (blue).
+        /// </summary>
+        public DoorHardwareStatusDto? Hardware { get; set; }
     }
 }

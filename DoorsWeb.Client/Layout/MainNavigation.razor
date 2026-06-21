@@ -1,6 +1,7 @@
 @using DoorsWeb.Client.Auth
 @using DoorsWeb.Client.Components
 @using DoorsWeb.Client.Pages
+@using DoorsWeb.Client.Services
 @using DoorsWeb.Shared.DTO
 @using DoorsWeb.Shared.Entities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -9,6 +10,7 @@
 @inject NavigationManager Navigation
 @inject JwtAuthStateProvider AuthStateProvider
 @inject IHttpClientFactory ClientFactory
+@inject DoorStatusStore DoorStatus
 @inject TabBlazor.Services.IModalService ModalService
 
 <Navbar Direction=NavbarDirection.Vertical Background=NavbarBackground.Dark>
@@ -38,6 +40,23 @@
                         <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
                     </MenuItemIcon>
                 </NavbarMenuItem>
+                @* Live problem indicator: doors that are inactive or in alarm. Needs the door-status
+                   feed, which requires Site Settings read; clicking opens the floorplan. *@
+                @if (auth.User.CanReadSiteSettings() && DoorStatus.ProblemCount > 0)
+                {
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="floorplan">
+                            <span class="nav-link-icon @(DoorStatus.AlarmCount > 0 ? "text-danger" : "text-warning")">
+                                <Icon class="icon" IconType="@TablerIcons.Alert_triangle" />
+                            </span>
+                            <span class="nav-link-title">Problems</span>
+                            <span class="ms-auto badge @(DoorStatus.AlarmCount > 0 ? "bg-red" : "bg-orange") text-white"
+                                  title="@ProblemTooltip()">
+                                @DoorStatus.ProblemCount
+                            </span>
+                        </NavLink>
+                    </li>
+                }
                 @if (auth.User.CanReadCardManager())
                 {
                     <NavbarMenuItem Href="cardmanager" Text="Card Manager">
@@ -235,7 +254,20 @@
         // Reload the site list whenever the auth state changes (e.g. after sign-in),
         // since the nav is long-lived and OnInitialized only runs once.
         AuthStateProvider.AuthenticationStateChanged += OnAuthStateChanged;
+        DoorStatus.Changed += OnDoorStatusChanged;
         await LoadSites();
+    }
+
+    // Repaint the problem badge whenever a door's live state changes.
+    private void OnDoorStatusChanged() => InvokeAsync(StateHasChanged);
+
+    // Hover text for the problem badge, e.g. "2 inactive, 1 in alarm".
+    private string ProblemTooltip()
+    {
+        var parts = new List<string>();
+        if (DoorStatus.InactiveCount > 0) parts.Add($"{DoorStatus.InactiveCount} inactive");
+        if (DoorStatus.AlarmCount > 0) parts.Add($"{DoorStatus.AlarmCount} in alarm");
+        return parts.Count == 0 ? "All doors OK" : string.Join(", ", parts);
     }
 
     private async void OnAuthStateChanged(Task<AuthenticationState> _)
@@ -257,6 +289,9 @@
                 openSiteId = null;
                 return;
             }
+
+            // Start the live door-status feed (idempotent) so the nav problem badge updates.
+            await DoorStatus.EnsureStartedAsync();
 
             var client = ClientFactory.CreateClient("WebAPI");
             sites = await client.GetFromJsonAsync<List<SiteDto>>("api/Sites") ?? new();
@@ -290,6 +325,7 @@
     public void Dispose()
     {
         AuthStateProvider.AuthenticationStateChanged -= OnAuthStateChanged;
+        DoorStatus.Changed -= OnDoorStatusChanged;
     }
 
     // ---- Access Levels: name-only list modal (api/AccessLevel, key { Site, AccessLevel }) ----

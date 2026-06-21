@@ -15,7 +15,8 @@ namespace DoorsWeb.API.Services
         // 5,4 Trigger Channel A/B.
         private const byte TriggerGroup = 0x05;
         private const byte TriggerNumber = 0x04;
-        private const byte ChannelLockA = 0x01;
+        private const byte ChannelLockA = 0x01;     // Relay A / Relay 1 — the door lock
+        private const byte ChannelLockB = 0x02;     // Relay B / Relay 2 — auxiliary relay
         private const byte ModeTimed = 0x00;        // release for D2 seconds then auto-relock
         private const byte ModeOpenForever = 0x01;  // release and hold open
         private const byte ModeClose = 0x02;        // secure / lock
@@ -49,13 +50,20 @@ namespace DoorsWeb.API.Services
                 return new DoorCommandResult(DoorCommandOutcome.NoIpAddress, null);
 
             var (mode, seconds) = ResolveMode(request, e.ReleaseTime);
-            var packet = BuildTrigger(e.ControllerId, mode, seconds);
+            byte channel = request.Relay == DoorRelay.RelayB ? ChannelLockB : ChannelLockA;
+            var packet = BuildTrigger(e.ControllerId, channel, mode, seconds);
 
             await _udp.SendAsync(packet, e.DoorIpaddress.Trim(), cancellationToken: ct);
-            _logger.LogInformation("Sent {Action} to door {Door} ({Ip}).", request.Action, door, e.DoorIpaddress);
+            _logger.LogInformation("Sent {Action} on {Relay} to door {Door} ({Ip}).",
+                request.Action, request.Relay, door, e.DoorIpaddress);
 
-            var (status, label) = OptimisticState(request.Action);
-            await _doorState.ApplyLocalAsync(door, status, label, ct);
+            // Relay A is the door lock, so reflect the action in the door's live status immediately.
+            // Relay B is auxiliary and doesn't change the door's lock state — the next ping reconciles it.
+            if (request.Relay == DoorRelay.RelayA)
+            {
+                var (status, label) = OptimisticState(request.Action);
+                await _doorState.ApplyLocalAsync(door, status, label, ct);
+            }
 
             var state = _doorState.GetSnapshot().FirstOrDefault(s => s.Door == door);
             return new DoorCommandResult(DoorCommandOutcome.Sent, state);
@@ -77,7 +85,7 @@ namespace DoorsWeb.API.Services
             {
                 try
                 {
-                    var packet = BuildTrigger(d.ControllerId, ModeClose, 0);
+                    var packet = BuildTrigger(d.ControllerId, ChannelLockA, ModeClose, 0);
                     await _udp.SendAsync(packet, d.DoorIpaddress!.Trim(), cancellationToken: ct);
                     await _doorState.ApplyLocalAsync(d.Door, DoorLiveStatus.Locked, "Lockdown", ct);
                     commanded++;
@@ -105,7 +113,7 @@ namespace DoorsWeb.API.Services
 
         private static byte ClampSeconds(int seconds) => (byte)Math.Clamp(seconds, 1, 255);
 
-        private static ProtocolPacket BuildTrigger(string? controllerId, byte mode, byte seconds)
+        private static ProtocolPacket BuildTrigger(string? controllerId, byte channel, byte mode, byte seconds)
         {
             uint.TryParse(controllerId, out var address);
             return new ProtocolPacket
@@ -114,7 +122,7 @@ namespace DoorsWeb.API.Services
                 SourceAddress = 0, // PC
                 CommandGroup = TriggerGroup,
                 CommandNumber = TriggerNumber,
-                Data = new[] { ChannelLockA, mode, seconds }
+                Data = new[] { channel, mode, seconds }
             };
         }
 

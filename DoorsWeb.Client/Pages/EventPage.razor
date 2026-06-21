@@ -144,7 +144,15 @@
             (toDate.HasValue && evt.EventDate > toDate.Value))
             return;
 
-        eventList.Insert(0, evt);
+        // eventList is ordered newest-first. Insert the pushed event at its chronological
+        // position rather than always at the top, since a controller can deliver buffered
+        // (older) events after being offline.
+        int index = eventList.FindIndex(e => e.EventDate < evt.EventDate);
+        if (index < 0)
+            eventList.Add(evt);
+        else
+            eventList.Insert(index, evt);
+
         RebuildEventTypeOptions();
         ApplyFilters();
         InvokeAsync(StateHasChanged);

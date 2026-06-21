@@ -1,9 +1,12 @@
 ﻿@page "/doors"
 @page "/doors/{Site:int}"
 @using DoorsWeb.Client.Auth
+@using DoorsWeb.Client.Services
+@using DoorsWeb.Shared.Enums
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IHttpClientFactory ClientFactory
 @inject AuthenticationStateProvider AuthState
+@inject DoorStatusStore DoorStatus
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -64,6 +67,44 @@
                     <Column Item="DoorListDto" Property="e => e.LastUpdated" Title="Last Updated" Sortable>
                         <Template>
                             @(context.LastUpdated != default ? context.LastUpdated : "")
+                        </Template>
+                    </Column>
+                    @* Live activity from the controller's pings (DoorStatusStore). Blue chips mean
+                       "not yet known" — no ping reply has been decoded for that relay. *@
+                    <Column Item="DoorListDto" title="Activity" Width="220px">
+                        <Template>
+                            @{
+                                var live = DoorStatus.TryGet(context.Door);
+                            }
+                            @if (live is null)
+                            {
+                                <span class="badge bg-blue-lt" title="No live status yet">Unknown</span>
+                            }
+                            else
+                            {
+                                <div class="d-flex flex-wrap align-items-center gap-1" title="@ActivityTooltip(live)">
+                                    @if (live.Status == DoorLiveStatus.Offline)
+                                    {
+                                        <span class="badge bg-secondary text-white">
+                                            <span class="status-dot me-1"></span>Inactive
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-green-lt">
+                                            <span class="status-dot status-dot-animated bg-green me-1"></span>Active
+                                        </span>
+                                    }
+                                    @{
+                                        var (relayClass, relayLabel) = RelayChip(live.Hardware?.RelayA ?? RelayState.Unknown);
+                                    }
+                                    <span class="badge @relayClass">@relayLabel</span>
+                                    @foreach (var alarm in AlarmLabels(live))
+                                    {
+                                        <span class="badge bg-red text-white">@alarm</span>
+                                    }
+                                </div>
+                            }
                         </Template>
                     </Column>
                     @if (canWrite)
@@ -131,7 +172,13 @@
         client = ClientFactory.CreateClient("WebAPI");
         doorList = await client.GetFromJsonAsync<List<DoorListDto>>("api/Door") ?? [];
         IsLoaded = true;
+
+        // Live activity column: subscribe before starting so we don't miss the first snapshot fire.
+        DoorStatus.Changed += OnDoorStatusChanged;
+        await DoorStatus.EnsureStartedAsync();
     }
+
+    private void OnDoorStatusChanged() => InvokeAsync(StateHasChanged);
 
     // Size the page to the window on first render, then track resizes via JS interop.
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -222,8 +269,52 @@
         });
     }
 
+    // Maps a relay state to a Tabler badge class + label. Unknown is blue ("not yet known").
+    private static (string cssClass, string label) RelayChip(RelayState state) => state switch
+    {
+        RelayState.Open => ("bg-azure-lt", "Released"),
+        RelayState.Closed => ("bg-green-lt", "Locked"),
+        _ => ("bg-blue-lt", "Unknown")
+    };
+
+    // The names of every active alarm on a door, for the red chips.
+    private static IEnumerable<string> AlarmLabels(DoorStateDto live)
+    {
+        var alarms = live.Hardware?.Alarms ?? DoorAlarmFlags.None;
+        foreach (DoorAlarmFlags flag in Enum.GetValues<DoorAlarmFlags>())
+        {
+            if (flag != DoorAlarmFlags.None && alarms.HasFlag(flag))
+                yield return flag.ToString();
+        }
+    }
+
+    // Hover detail for the Activity cell: relays, firmware, supply, unread logs and poll time.
+    private static string ActivityTooltip(DoorStateDto live)
+    {
+        var hw = live.Hardware;
+        if (hw is null)
+            return $"{live.Status}";
+
+        var parts = new List<string>
+        {
+            $"State: {live.Status}",
+            $"Relay A: {hw.RelayA}",
+            $"Relay B: {hw.RelayB}"
+        };
+        if (!string.IsNullOrWhiteSpace(hw.FirmwareVersion))
+            parts.Add($"Firmware: {hw.FirmwareVersion}");
+        if (hw.SupplyVoltage is double v)
+            parts.Add($"Supply: {v:0.0} V");
+        if (hw.UnreadLogCount is int logs)
+            parts.Add($"Unread logs: {logs}");
+        if (hw.LastPolledUtc is DateTime polled)
+            parts.Add($"Last polled: {polled.ToLocalTime():g}");
+        return string.Join(" · ", parts);
+    }
+
     public async ValueTask DisposeAsync()
     {
+        DoorStatus.Changed -= OnDoorStatusChanged;
         if (viewportModule is not null)
         {
             try

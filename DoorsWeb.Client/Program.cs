@@ -34,4 +34,8 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
 builder.Services.AddScoped<DoorsWeb.Client.Services.DoorStateHubClient>();
 builder.Services.AddScoped<DoorsWeb.Client.Services.EventHubClient>();
 
+// App-wide live door status (its own hub connection) feeding the nav problem badge and the Door
+// Manager's Activity column. Scoped == one instance for the app's lifetime in standalone WASM.
+builder.Services.AddScoped<DoorsWeb.Client.Services.DoorStatusStore>();
+
 await builder.Build().RunAsync();

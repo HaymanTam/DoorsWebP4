@@ -138,24 +138,80 @@
             <Icon class="icon cursor-pointer" IconType="@TablerIcons.X" @onclick="() => selectedDoor = null" />
         </div>
         <div class="text-muted small mb-1">Status: <strong>@StatusLabel(selectedDoor.Status)</strong></div>
-        <div class="text-muted small mb-3">
+        <div class="text-muted small mb-2">
             Last event: @(string.IsNullOrEmpty(selectedDoor.LastEventName) ? "—" : selectedDoor.LastEventName)
             @if (selectedDoor.LastEventUtc is not null)
             {
                 <span> · @selectedDoor.LastEventUtc.Value.ToLocalTime().ToString("HH:mm:ss")</span>
             }
         </div>
+
+        @* Hardware detail from the controller's last ping reply. Blue "Unknown" until one arrives. *@
+        <div class="door-hw small mb-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                @{
+                    var (relayAClass, relayALabel) = RelayChip(selectedDoor.Hardware?.RelayA ?? RelayState.Unknown);
+                    var (relayBClass, relayBLabel) = RelayChip(selectedDoor.Hardware?.RelayB ?? RelayState.Unknown);
+                }
+                <span>Relay A <span class="badge @relayAClass">@relayALabel</span></span>
+                <span>Relay B <span class="badge @relayBClass">@relayBLabel</span></span>
+            </div>
+            @{
+                var alarms = AlarmLabels(selectedDoor).ToList();
+            }
+            @if (alarms.Count > 0)
+            {
+                <div class="mt-2">
+                    @foreach (var a in alarms)
+                    {
+                        <span class="badge bg-red text-white me-1">@a</span>
+                    }
+                </div>
+            }
+            @if (selectedDoor.Hardware is { } hw && (!string.IsNullOrWhiteSpace(hw.FirmwareVersion) || hw.SupplyVoltage is not null || hw.LastPolledUtc is not null))
+            {
+                <div class="text-muted mt-2">
+                    @if (!string.IsNullOrWhiteSpace(hw.FirmwareVersion))
+                    {
+                        <span>Firmware @hw.FirmwareVersion</span>
+                    }
+                    @if (hw.SupplyVoltage is double v)
+                    {
+                        <span> · @v.ToString("0.0", Inv) V</span>
+                    }
+                    @if (hw.LastPolledUtc is DateTime polled)
+                    {
+                        <span> · polled @polled.ToLocalTime().ToString("HH:mm:ss")</span>
+                    }
+                </div>
+            }
+        </div>
+
         @if (canWrite)
         {
-            <div class="d-grid gap-2">
-                <Button BackgroundColor="TablerColor.Blue" @onclick="() => SendCommand(DoorCommandAction.Unlock)" Disabled="busy">
+            <div class="text-muted small fw-bold mb-1">Relay A — door lock</div>
+            <div class="d-grid gap-2 mb-3">
+                <Button BackgroundColor="TablerColor.Blue" @onclick="() => SendCommand(DoorCommandAction.Unlock, DoorRelay.RelayA)" Disabled="busy">
                     <Icon class="icon me-1" IconType="@TablerIcons.Lock_open" />Unlock (hold open)
                 </Button>
-                <Button BackgroundColor="TablerColor.Azure" @onclick="() => SendCommand(DoorCommandAction.MomentaryRelease)" Disabled="busy">
+                <Button BackgroundColor="TablerColor.Azure" @onclick="() => SendCommand(DoorCommandAction.MomentaryRelease, DoorRelay.RelayA)" Disabled="busy">
                     <Icon class="icon me-1" IconType="@TablerIcons.Walk" />Momentary release
                 </Button>
-                <Button BackgroundColor="TablerColor.Green" @onclick="() => SendCommand(DoorCommandAction.Lock)" Disabled="busy">
+                <Button BackgroundColor="TablerColor.Green" @onclick="() => SendCommand(DoorCommandAction.Lock, DoorRelay.RelayA)" Disabled="busy">
                     <Icon class="icon me-1" IconType="@TablerIcons.Lock" />Lock
+                </Button>
+            </div>
+
+            <div class="text-muted small fw-bold mb-1">Relay B — auxiliary</div>
+            <div class="d-grid gap-2">
+                <Button BackgroundColor="TablerColor.Blue" Outline @onclick="() => SendCommand(DoorCommandAction.Unlock, DoorRelay.RelayB)" Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Lock_open" />Open (hold)
+                </Button>
+                <Button BackgroundColor="TablerColor.Azure" Outline @onclick="() => SendCommand(DoorCommandAction.MomentaryRelease, DoorRelay.RelayB)" Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Walk" />Release
+                </Button>
+                <Button BackgroundColor="TablerColor.Green" Outline @onclick="() => SendCommand(DoorCommandAction.Lock, DoorRelay.RelayB)" Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Lock" />Close
                 </Button>
             </div>
         }
@@ -273,14 +329,15 @@
 
     private void SelectDoor(DoorStateDto d) => selectedDoor = d;
 
-    private async Task SendCommand(DoorCommandAction action)
+    private async Task SendCommand(DoorCommandAction action, DoorRelay relay = DoorRelay.RelayA)
     {
         if (selectedDoor is null) return;
         busy = true;
         try
         {
             var resp = await client.PostAsJsonAsync(
-                $"api/DoorControl/{selectedDoor.Door}/command", new DoorCommandRequest { Action = action });
+                $"api/DoorControl/{selectedDoor.Door}/command",
+                new DoorCommandRequest { Action = action, Relay = relay });
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DoorStateDto>();
@@ -340,6 +397,25 @@
         var ev = string.IsNullOrEmpty(d.LastEventName) ? "" : $" — {d.LastEventName}";
         var when = d.LastEventUtc is null ? "" : $" ({d.LastEventUtc.Value.ToLocalTime():HH:mm:ss})";
         return $"{d.Name}: {StatusLabel(d.Status)}{ev}{when}";
+    }
+
+    // Maps a relay state to a Tabler badge class + label. Unknown is blue ("not yet known").
+    private static (string cssClass, string label) RelayChip(RelayState state) => state switch
+    {
+        RelayState.Open => ("bg-azure-lt", "Released"),
+        RelayState.Closed => ("bg-green-lt", "Locked"),
+        _ => ("bg-blue-lt", "Unknown")
+    };
+
+    // The names of every active alarm on a door, for the red chips.
+    private static IEnumerable<string> AlarmLabels(DoorStateDto d)
+    {
+        var alarms = d.Hardware?.Alarms ?? DoorAlarmFlags.None;
+        foreach (DoorAlarmFlags flag in Enum.GetValues<DoorAlarmFlags>())
+        {
+            if (flag != DoorAlarmFlags.None && alarms.HasFlag(flag))
+                yield return flag.ToString();
+        }
     }
 
     public async ValueTask DisposeAsync()

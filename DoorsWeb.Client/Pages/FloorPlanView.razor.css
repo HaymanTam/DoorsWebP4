@@ -93,32 +93,36 @@
     border-radius: 0.5rem;
 }
 
+/* Each placed door is a round icon badge; the door name shows on hover (title tooltip). */
 .plan-marker {
     position: absolute;
     transform: translate(-50%, -50%);
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.25rem 0.55rem;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
     border: 2px solid #fff;
-    border-radius: 999px;
+    border-radius: 50%;
     background-color: var(--door-color, #adb5bd);
     color: #fff;
-    font-size: 0.78rem;
-    font-weight: 600;
-    line-height: 1;
-    white-space: nowrap;
+    line-height: 0;
     cursor: pointer;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.plan-marker .icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    stroke-width: 2.2;
 }
 
 .plan-marker:hover {
     z-index: 5;
+    transform: translate(-50%, -50%) scale(1.12);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-}
-
-.marker-label {
-    line-height: 1;
 }
 
 /* Alarm pulse — forced / held-open doors must grab the eye --------------------- */

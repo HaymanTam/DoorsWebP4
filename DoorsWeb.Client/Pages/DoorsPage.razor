@@ -106,42 +106,39 @@
                             @(context.LastUpdated != default ? context.LastUpdated : "")
                         </Template>
                     </Column>
-                    @* Live activity from the controller's pings (DoorStatusStore). Blue chips mean
-                       "not yet known" — no ping reply has been decoded for that relay. *@
+                    @* Live activity from the controller's pings (DoorStatusStore). A door is "Inactive"
+                       when it's been swept Offline OR has no live reading yet — both mean "not in contact",
+                       so they share one grey badge rather than a separate confusing "Unknown" chip. *@
                     <Column Item="DoorListDto" title="Activity" Width="220px">
                         <Template>
                             @{
                                 var live = DoorStatus.TryGet(context.Door);
+                                var inactive = live is null || live.Status == DoorLiveStatus.Offline;
                             }
-                            @if (live is null)
-                            {
-                                <span class="badge bg-blue-lt" title="No live status yet">Unknown</span>
-                            }
-                            else
-                            {
-                                <div class="d-flex flex-wrap align-items-center gap-1" title="@ActivityTooltip(live)">
-                                    @if (live.Status == DoorLiveStatus.Offline)
-                                    {
-                                        <span class="badge bg-secondary text-white">
-                                            <span class="status-dot me-1"></span>Inactive
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-green-lt">
-                                            <span class="status-dot status-dot-animated bg-green me-1"></span>Active
-                                        </span>
-                                    }
-                                    @{
-                                        var (relayClass, relayLabel) = RelayChip(live.Hardware?.RelayA ?? RelayState.Unknown);
-                                    }
+                            <div class="d-flex flex-wrap align-items-center gap-1" title="@ActivityTooltip(live)">
+                                @if (inactive)
+                                {
+                                    <span class="badge bg-secondary text-white">
+                                        <span class="status-dot me-1"></span>Inactive
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-green-lt">
+                                        <span class="status-dot status-dot-animated bg-green me-1"></span>Active
+                                    </span>
+                                }
+                                @* Relay position + any alarms, shown whenever we have a live reading to report. *@
+                                @if (live is not null)
+                                {
+                                    var (relayClass, relayLabel) = RelayChip(live.Hardware?.RelayA ?? RelayState.Unknown);
                                     <span class="badge @relayClass">@relayLabel</span>
                                     @foreach (var alarm in AlarmLabels(live))
                                     {
                                         <span class="badge bg-red text-white">@alarm</span>
                                     }
-                                </div>
-                            }
+                                }
+                            </div>
                         </Template>
                     </Column>
                     @if (canWrite)
@@ -346,8 +343,11 @@
     }
 
     // Hover detail for the Activity cell: relays, firmware, supply, unread logs and poll time.
-    private static string ActivityTooltip(DoorStateDto live)
+    private static string ActivityTooltip(DoorStateDto? live)
     {
+        if (live is null)
+            return "No live status yet — controller hasn't reported.";
+
         var hw = live.Hardware;
         if (hw is null)
             return $"{live.Status}";

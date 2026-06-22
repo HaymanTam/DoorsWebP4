@@ -90,8 +90,8 @@
                                 <button type="button"
                                         class="plan-marker @StatusClass(d.Status) @(IsAlarm(d.Status) ? "alarm" : "")"
                                         style="left:@(p.X.ToString(Inv))%; top:@(p.Y.ToString(Inv))%;"
-                                        title="@Tooltip(d)" @onclick="() => SelectDoor(d)">
-                                    <span class="marker-label">@d.Name</span>
+                                        title="@Tooltip(d)" aria-label="@d.Name" @onclick="() => SelectDoor(d)">
+                                    <Icon class="icon" IconType="@TablerIcons.Door" />
                                 </button>
                             }
                         }

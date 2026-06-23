@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace DoorsWeb.Shared.DTO
 {
@@ -23,5 +24,12 @@ namespace DoorsWeb.Shared.DTO
 
         // Names of the access levels this card is tied to (joined through T_Name_AccessLevels).
         public List<string> AccessLevels { get; set; } = new();
+
+        // Space-joined access-level names so the Card Manager's built-in table search box (which
+        // only matches columns exposing a string Property) can filter by access level. Computed
+        // from AccessLevels and [JsonIgnore]d so it isn't streamed redundantly — the client
+        // recomputes it from the deserialized list when the table evaluates the search.
+        [JsonIgnore]
+        public string AccessLevelsText => string.Join(" ", AccessLevels);
     }
 }

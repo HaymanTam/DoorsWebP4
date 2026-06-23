@@ -163,7 +163,9 @@
                             }
                         </Template>
                     </Column>
-                    <Column Item="CardDto" Title="Access Levels">
+                    @* Property exposes the joined access-level names so the table's built-in search
+                       box matches them; the Template below still renders the individual badges. *@
+                    <Column Item="CardDto" Property="c => c.AccessLevelsText" Title="Access Levels" Searchable>
                         <Template>
                             @if (context.AccessLevels.Count == 0)
                             {

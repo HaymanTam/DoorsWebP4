@@ -5,8 +5,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Progeny P4 Doors Web</title>
-    <script type="importmap"></script>
+    <!-- <base> MUST come before the import map: an import map resolves its (relative) keys against
+         the document base URL at parse time, so if <base href="/"> appears after it, deep-link URLs
+         like /doors/1 make "./_framework/dotnet.js" resolve to "/doors/_framework/..." — the remap
+         to the fingerprinted file misses, the literal dotnet.js 404s, and nginx returns index.html
+         (text/html) -> "disallowed MIME type" on a fresh load of any sub-route. -->
     <base href="/" />
+    <script type="importmap"></script>
 
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="alternate icon" type="image/png" href="favicon.png" />

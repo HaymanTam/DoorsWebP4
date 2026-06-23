@@ -13,8 +13,6 @@ public partial class Cardholder
 
     public string? CardId { get; set; }
 
-    public string? OldCardId { get; set; }
-
     public bool? Flexi { get; set; }
 
     public bool? InUse { get; set; }

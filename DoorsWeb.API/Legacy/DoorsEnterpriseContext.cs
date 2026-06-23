@@ -575,9 +575,6 @@ public partial class DoorsEnterpriseContext : DbContext
                 .HasColumnName("IDCardDesign");
             entity.Property(e => e.LastDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.Modified).HasColumnType("timestamp without time zone");
-            entity.Property(e => e.OldCardId)
-                .HasMaxLength(8)
-                .HasColumnName("OldCardID");
             entity.Property(e => e.Pin)
                 .HasMaxLength(8)
                 .HasColumnName("PIN");

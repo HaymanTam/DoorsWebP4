@@ -79,6 +79,18 @@
                 <div class="mb-3 row">
                     <label class="col-4 col-form-label text-end">Access Levels</label>
                     <div class="col-8">
+                        @* Live name filter for the (potentially long) access-level list. Filters the
+                           view only — selections in selectedAccessLevels are preserved while you search. *@
+                        @if (accessLevels is { Count: > 0 })
+                        {
+                            <div class="input-icon mb-2">
+                                <span class="input-icon-addon">
+                                    <Icon IconType="@TablerIcons.Search" />
+                                </span>
+                                <input type="search" class="form-control" placeholder="Search access levels by name…"
+                                       @bind="accessLevelSearch" @bind:event="oninput" aria-label="Search access levels" />
+                            </div>
+                        }
                         <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
                             @if (accessLevels is null)
                             {
@@ -88,9 +100,13 @@
                             {
                                 <div class="text-muted small">No access levels defined.</div>
                             }
+                            else if (VisibleAccessLevels.Count == 0)
+                            {
+                                <div class="text-muted small">@($"No access levels match “{accessLevelSearch.Trim()}”.")</div>
+                            }
                             else
                             {
-                                @foreach (var al in accessLevels)
+                                @foreach (var al in VisibleAccessLevels)
                                 {
                                     var key = $"{al.Site}/{al.AccessLevel}";
                                     <label class="form-check mb-0">
@@ -321,6 +337,24 @@
     private List<AccessLevels>? accessLevels;
     private readonly HashSet<string> selectedAccessLevels = new();
     private readonly List<CustomField> customFields = new();
+
+    // Free-text filter for the access-level list (case-insensitive substring on the level name).
+    // Filters the rendered view only; selections in selectedAccessLevels are untouched while searching.
+    private string accessLevelSearch = "";
+
+    private List<AccessLevels> VisibleAccessLevels
+    {
+        get
+        {
+            if (accessLevels is null) return new();
+            if (string.IsNullOrWhiteSpace(accessLevelSearch)) return accessLevels;
+            var term = accessLevelSearch.Trim();
+            return accessLevels
+                .Where(al => al.Name is not null
+                    && al.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

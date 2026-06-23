@@ -47,7 +47,11 @@ namespace DoorsWeb.API.Services
             {
                 var entry = new Audit
                 {
-                    Timestamp = DateTime.UtcNow,
+                    // T_Audit.Timestamp is "timestamp without time zone" (like every legacy date
+                    // column). Npgsql rejects a Kind=Utc DateTime against that type, so use local
+                    // time — the same convention the rest of the app persists with (e.g. DoorService)
+                    // and what the Audit page displays as-is, keeping all UI timestamps consistent.
+                    Timestamp = DateTime.Now,
                     UserName = ResolveUserName(),
                     ClientIp = ResolveClientIp(),
                     Action = action.ToString(),

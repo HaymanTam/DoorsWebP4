@@ -23,6 +23,24 @@
     position: fixed !important;
 }
 
+/* Sidebar count badges (inactive-door count on "Doors", in-alarm count on "Alarms"),
+   right-aligned via ms-auto to line up with the collapse chevrons. Tabler's
+   `.navbar-nav .nav-link .badge` rule force-positions ANY badge inside a navbar link to
+   the link's top-right corner (position:absolute; transform:translate(50%,-50%)) — its
+   "notification dot" pattern. That pins the count to the corner (overflowing/clipping) and
+   also defeats ms-auto. Restore normal flex flow so margin-left:auto can push it to the
+   right edge. The `.nav-count-badge` class raises specificity above Tabler's rule
+   (0,4,0 > 0,3,0) and matches the badge wherever it sits in the link. */
+.navbar-nav .nav-link .badge.nav-count-badge {
+    position: static;
+    transform: none;
+    top: auto;
+    right: auto;
+    /* Tabler badges default to vertical-align:bottom; middle centres the count against
+       the "Doors"/"Alarms" label row. */
+    vertical-align: middle;
+}
+
 /* Card record editor: ~30% wider than a standard Large modal (Bootstrap modal-lg
    is 800px -> 1040px). Higher specificity than .modal-lg, scoped to the lg breakpoint
    so small-screen responsive behaviour is left to Bootstrap. */

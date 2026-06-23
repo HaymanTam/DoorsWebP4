@@ -45,6 +45,16 @@
             <p class="mb-1">Select the doors you want to include in this access level.</p>
             <p class="mb-2">Pick a Time Zone per door, or leave it on “&lt;level default&gt;” to follow the access level above.</p>
 
+            @* Live name filter for the (potentially long) door list. Filters the view only —
+               selections in the full list are preserved while you search. *@
+            <div class="input-icon mb-2">
+                <span class="input-icon-addon">
+                    <Icon IconType="@TablerIcons.Search" />
+                </span>
+                <input type="search" class="form-control" placeholder="Search doors by name…"
+                       @bind="doorSearch" @bind:event="oninput" aria-label="Search doors" />
+            </div>
+
             <div class="table-responsive border rounded mb-2" style="max-height: 320px; overflow-y: auto;">
                 <table class="table table-sm table-hover mb-0">
                     <thead>
@@ -56,7 +66,11 @@
                     <tbody>
                         @if (VisibleDoors.Count == 0)
                         {
-                            <tr><td colspan="2" class="text-muted text-center py-4">No doors available.</td></tr>
+                            <tr><td colspan="2" class="text-muted text-center py-4">
+                                @(string.IsNullOrWhiteSpace(doorSearch)
+                                    ? "No doors available."
+                                    : $"No doors match “{doorSearch.Trim()}”.")
+                            </td></tr>
                         }
                         else
                         {
@@ -132,8 +146,26 @@
     // Time zones defined for this site, used to populate the per-door Time Zone dropdowns.
     private List<TimeZones> timeZones = new();
 
-    private List<DoorRow> VisibleDoors =>
-        level.ShowSelectedOnly ? level.Doors.Where(d => d.Selected).ToList() : level.Doors;
+    // Free-text filter for the door list (case-insensitive substring on the door name).
+    // Filters the rendered view only; selections in level.Doors are untouched while searching.
+    private string doorSearch = "";
+
+    private List<DoorRow> VisibleDoors
+    {
+        get
+        {
+            IEnumerable<DoorRow> q = level.Doors;
+            if (level.ShowSelectedOnly)
+                q = q.Where(d => d.Selected);
+            if (!string.IsNullOrWhiteSpace(doorSearch))
+            {
+                var term = doorSearch.Trim();
+                q = q.Where(d => d.Name is not null
+                    && d.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
+            }
+            return q.ToList();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

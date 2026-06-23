@@ -39,10 +39,12 @@
                     <NavLink class="nav-link" href="alarms">
                         <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Alert_triangle" /></span>
                         <span class="nav-link-title">Alarms</span>
-                        @* Live count of doors currently in alarm (all sites). Needs the door-status feed. *@
+                        @* Live count of doors currently in alarm (all sites), right-aligned (ms-auto) to match the
+                           chevrons. The .nav-count-badge class hooks the site.css override that undoes Tabler's
+                           top-right corner notification-dot positioning. *@
                         @if (auth.User.CanReadSiteSettings() && DoorStatus.AlarmCount > 0)
                         {
-                            <span class="badge bg-red text-white ms-2" title="@($"{DoorStatus.AlarmCount} in alarm")">
+                            <span class="badge bg-red text-white nav-count-badge ms-auto" title="@($"{DoorStatus.AlarmCount} in alarm")">
                                 @DoorStatus.AlarmCount
                             </span>
                         }
@@ -89,12 +91,14 @@
                                     <NavLink class="nav-link" href="@($"doors/{site.Site}")">
                                         <span class="nav-link-icon"><Icon class="icon" IconType="@TablerIcons.Door" /></span>
                                         <span class="nav-link-title">Doors</span>
-                                        @* Inactive (offline) doors in this site. Alarms have their own badge on the Alarms item.
-                                           Sits right after the title (ms-2) rather than ms-auto, so a 2-3 digit count
-                                           doesn't get pushed against — and clipped by — the indented nav edge. *@
+                                        @* Inactive (offline) door count, right-aligned (ms-auto) to line up with the
+                                           collapse chevrons. Tabler force-positions any .badge inside a navbar .nav-link
+                                           to the link's top-right corner (its notification-dot pattern); the
+                                           .nav-count-badge class hooks the site.css override that restores normal flow,
+                                           letting ms-auto push it to the right edge instead. *@
                                         @if (DoorStatus.InactiveCountFor(site.Site) > 0)
                                         {
-                                            <span class="badge bg-orange text-white ms-2"
+                                            <span class="badge bg-orange text-white nav-count-badge ms-auto"
                                                   title="@($"{DoorStatus.InactiveCountFor(site.Site)} inactive")">
                                                 @DoorStatus.InactiveCountFor(site.Site)
                                             </span>

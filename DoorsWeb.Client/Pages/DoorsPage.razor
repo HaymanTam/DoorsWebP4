@@ -108,8 +108,10 @@
                     </Column>
                     @* Live activity from the controller's pings (DoorStatusStore). A door is "Inactive"
                        when it's been swept Offline OR has no live reading yet — both mean "not in contact",
-                       so they share one grey badge rather than a separate confusing "Unknown" chip. *@
-                    <Column Item="DoorListDto" title="Activity" Width="220px">
+                       so they share one grey badge rather than a separate confusing "Unknown" chip.
+                       Relay position lives in its own column so a blue "Unknown" there isn't mistaken
+                       for the activity status. *@
+                    <Column Item="DoorListDto" title="Activity" Width="170px">
                         <Template>
                             @{
                                 var live = DoorStatus.TryGet(context.Door);
@@ -128,17 +130,33 @@
                                         <span class="status-dot status-dot-animated bg-green me-1"></span>Active
                                     </span>
                                 }
-                                @* Relay position + any alarms, shown whenever we have a live reading to report. *@
+                                @* Alarms are critical — surface them whenever we have a live reading. *@
                                 @if (live is not null)
                                 {
-                                    var (relayClass, relayLabel) = RelayChip(live.Hardware?.RelayA ?? RelayState.Unknown);
-                                    <span class="badge @relayClass">@relayLabel</span>
                                     @foreach (var alarm in AlarmLabels(live))
                                     {
                                         <span class="badge bg-red text-white">@alarm</span>
                                     }
                                 }
                             </div>
+                        </Template>
+                    </Column>
+                    @* Relay A position, separate from Activity. Blue "Unknown" = not yet decoded;
+                       a dash means there's no live reading for the door at all. *@
+                    <Column Item="DoorListDto" title="Relay" Width="120px">
+                        <Template>
+                            @{
+                                var relayLive = DoorStatus.TryGet(context.Door);
+                            }
+                            @if (relayLive is null)
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else
+                            {
+                                var (relayClass, relayLabel) = RelayChip(relayLive.Hardware?.RelayA ?? RelayState.Unknown);
+                                <span class="badge @relayClass" title="Relay A position">@relayLabel</span>
+                            }
                         </Template>
                     </Column>
                     @if (canWrite)

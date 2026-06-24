@@ -81,71 +81,34 @@
                 }
             </div>
 
+            @* Reports are download-only: the result set is rendered server-side to CSV/PDF and
+               streamed to the browser. We don't build a preview table — large reports (up to 10k
+               rows) froze the WASM UI, and the file is the deliverable anyway. *@
             <div class="mb-3">
-                <Button BackgroundColor="TablerColor.Primary" Class="me-2" OnClick="Run" Disabled="busy">
-                    <Icon class="icon me-1" IconType="@TablerIcons.Player_play" />@(running ? "Running…" : "Run Report")
-                </Button>
-                <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick='() => Export("csv")' Disabled="busy">
-                    <Icon class="icon me-1" IconType="@TablerIcons.File_download" />Export CSV
+                <Button BackgroundColor="TablerColor.Primary" Class="me-2" OnClick='() => Export("csv")' Disabled="busy">
+                    <Icon class="icon me-1" IconType="@TablerIcons.File_download" />Download CSV
                 </Button>
                 <Button BackgroundColor="TablerColor.Secondary" OnClick='() => Export("pdf")' Disabled="busy">
-                    <Icon class="icon me-1" IconType="@TablerIcons.File_type_pdf" />Export PDF
+                    <Icon class="icon me-1" IconType="@TablerIcons.File_type_pdf" />Download PDF
                 </Button>
             </div>
 
-            @if (runError)
+            @if (exporting)
             {
-                <div class="alert alert-danger" role="alert">
-                    <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
-                    The report could not be run. Check the parameters and try again.
+                <div class="mb-3">
+                    <div class="d-flex align-items-center gap-2 text-muted mb-2">
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        <span>Running report and preparing your @(exportFormat?.ToUpperInvariant()) download…</span>
+                    </div>
+                    <Progress Color="TablerColor.Blue" Indeterminate />
                 </div>
             }
 
-            @if (result is not null)
+            @if (exportError)
             {
-                @if (result.Truncated)
-                {
-                    <div class="alert alert-warning" role="alert">
-                        <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
-                        Showing the first @result.RowCount rows. Narrow the parameters to see the rest.
-                    </div>
-                }
-                <div class="text-muted small mb-2">@result.RowCount row(s)</div>
-                <div class="table-responsive">
-                    <table class="table table-vcenter table-striped table-sm">
-                        <thead>
-                            <tr>
-                                @foreach (var col in result.Columns)
-                                {
-                                    <th style="text-align:@AlignCss(col.Align)">@col.Label</th>
-                                }
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (result.RowCount == 0)
-                            {
-                                <tr>
-                                    <td colspan="@result.Columns.Count" class="text-muted text-center py-3">
-                                        No matching records.
-                                    </td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var row in result.Rows)
-                                {
-                                    <tr>
-                                        @for (var i = 0; i < result.Columns.Count; i++)
-                                        {
-                                            <td style="text-align:@AlignCss(result.Columns[i].Align)">
-                                                @(i < row.Count ? row[i] : null)
-                                            </td>
-                                        }
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
+                <div class="alert alert-danger" role="alert">
+                    <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
+                    The report could not be generated. Check the parameters and try again.
                 </div>
             }
         }
@@ -156,16 +119,15 @@
     [Parameter] public string Key { get; set; } = string.Empty;
 
     private ReportDescriptor? descriptor;
-    private ReportResult? result;
     private readonly Dictionary<string, string?> values = new();
 
     private bool loaded;
-    private bool running;
     private bool exporting;
-    private bool runError;
+    private bool exportError;
+    private string? exportFormat;
 
-    // Disable all action buttons while any request is in flight.
-    private bool busy => running || exporting;
+    // Disable all action buttons while any download is in flight.
+    private bool busy => exporting;
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,36 +166,13 @@
         Parameters = new Dictionary<string, string?>(values)
     };
 
-    private async Task Run()
-    {
-        if (busy || descriptor is null) return;
-        running = true;
-        runError = false;
-        StateHasChanged();
-        try
-        {
-            var client = ClientFactory.CreateClient("WebAPI");
-            var response = await client.PostAsJsonAsync($"api/Reports/{descriptor.Key}/run", BuildRequest());
-            response.EnsureSuccessStatusCode();
-            result = await response.Content.ReadFromJsonAsync<ReportResult>();
-        }
-        catch
-        {
-            runError = true;
-            result = null;
-        }
-        finally
-        {
-            running = false;
-            StateHasChanged();
-        }
-    }
-
     // Runs the report server-side and saves the rendered CSV/PDF via the shared download helper.
     private async Task Export(string format)
     {
         if (busy || descriptor is null) return;
         exporting = true;
+        exportFormat = format;
+        exportError = false;
         StateHasChanged();
         try
         {
@@ -256,11 +195,12 @@
         }
         catch
         {
-            // Best-effort: the API enforces access; a failed download leaves the page untouched.
+            exportError = true;
         }
         finally
         {
             exporting = false;
+            exportFormat = null;
             StateHasChanged();
         }
     }
@@ -271,12 +211,5 @@
         ReportParameterType.Date => "date",
         ReportParameterType.DateTime => "datetime-local",
         _ => "text"
-    };
-
-    private static string AlignCss(ColumnAlign align) => align switch
-    {
-        ColumnAlign.Right => "right",
-        ColumnAlign.Center => "center",
-        _ => "left"
     };
 }

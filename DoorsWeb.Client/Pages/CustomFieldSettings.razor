@@ -1,0 +1,156 @@
+@* Custom Fields settings screen. Manages the GLOBAL custom-field definitions (T_CustomFieldTypes)
+   that drive the "Custom Fields" section of every card record — the web equivalent of the legacy
+   "Add or Remove Fields" dialog. Adding/editing a field opens CustomFieldsModal. *@
+@page "/settings/custom-fields"
+@using DoorsWeb.Shared.DTO
+@inject IHttpClientFactory ClientFactory
+
+<PageTitle>Custom Fields</PageTitle>
+
+<div class="d-flex align-items-center mb-3">
+    <div>
+        <h2 class="page-title mb-0">Custom Fields</h2>
+        <div class="text-muted small">These fields appear on every card record. Up to 25 can be defined.</div>
+    </div>
+    <button type="button" class="btn btn-primary ms-auto" @onclick="() => ShowEditor(null)" disabled="@(definitions is { Count: >= 25 })">
+        <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Field
+    </button>
+</div>
+
+<Card>
+    <CardBody>
+        @if (definitions is null)
+        {
+            <Progress Color="TablerColor.Blue" Indeterminate />
+        }
+        else if (definitions.Count == 0)
+        {
+            <div class="text-muted">No custom fields defined yet. Use “Add Field” to create one (e.g. Department).</div>
+        }
+        else
+        {
+            <Table Item="CustomFieldDefinitionDto" Items="definitions" Hover Responsive>
+                <ChildContent>
+                    <Column Item="CustomFieldDefinitionDto" Property="d => d.Name" Title="Name" Sortable Searchable />
+                    <Column Item="CustomFieldDefinitionDto" Property="d => d.DataType" Title="Type">
+                        <Template>@TypeName(context.DataType)</Template>
+                    </Column>
+                    <Column Item="CustomFieldDefinitionDto" Title="Options">
+                        <Template>
+                            @if ((CustomFieldDataType)context.DataType == CustomFieldDataType.Combobox)
+                            {
+                                <span class="text-muted">@context.Options.Count option(s)</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </Template>
+                    </Column>
+                    <Column Item="CustomFieldDefinitionDto" Title="">
+                        <Template>
+                            @if (confirmDeleteSlot == context.Slot)
+                            {
+                                <div class="d-flex gap-2 justify-content-end align-items-center">
+                                    <span class="text-danger small">Delete?</span>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => Delete(context)">Yes</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => confirmDeleteSlot = null">No</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditor(context)">
+                                        <Icon IconType="@TablerIcons.Edit" />
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => confirmDeleteSlot = context.Slot">
+                                        <Icon IconType="@TablerIcons.Trash" />
+                                    </button>
+                                </div>
+                            }
+                        </Template>
+                    </Column>
+                </ChildContent>
+            </Table>
+        }
+
+        @if (status is not null)
+        {
+            <div class="alert alert-danger mb-0 mt-2" role="alert">@status</div>
+        }
+    </CardBody>
+</Card>
+
+@code {
+    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
+
+    private List<CustomFieldDefinitionDto>? definitions;
+    private int? confirmDeleteSlot;
+    private string? status;
+    private HttpClient client = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        client = ClientFactory.CreateClient("WebAPI");
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        try
+        {
+            definitions = await client.GetFromJsonAsync<List<CustomFieldDefinitionDto>>("api/CustomField/definitions") ?? new();
+        }
+        catch (Exception ex)
+        {
+            status = $"Could not load custom fields: {ex.Message}";
+            definitions = new();
+        }
+    }
+
+    private async Task ShowEditor(CustomFieldDefinitionDto? field)
+    {
+        confirmDeleteSlot = null;
+        var component = new RenderComponent<CustomFieldsModal>();
+        if (field is not null) component.Set(e => e.Field, field);
+
+        var result = await ModalService.ShowAsync(
+            field is null ? "Custom Field - New field" : "Custom Field - Edit field",
+            component,
+            new ModalOptions { Size = ModalSize.Large, ShowHeader = true });
+
+        // The modal persists directly; reload so the list reflects adds/edits/option changes.
+        if (result is not null && !result.Cancelled)
+            await Load();
+    }
+
+    private async Task Delete(CustomFieldDefinitionDto field)
+    {
+        confirmDeleteSlot = null;
+        status = null;
+        try
+        {
+            var response = await client.DeleteAsync($"api/CustomField/definitions/{field.Slot}");
+            if (response.IsSuccessStatusCode)
+                await Load();
+            else
+                status = $"Delete failed ({(int)response.StatusCode}).";
+        }
+        catch (Exception ex)
+        {
+            status = $"Delete failed: {ex.Message}";
+        }
+    }
+
+    private static string TypeName(int dataType) => (CustomFieldDataType)dataType switch
+    {
+        CustomFieldDataType.Checkbox => "Checkbox",
+        CustomFieldDataType.Combobox => "Drop down list",
+        CustomFieldDataType.Date => "Date",
+        CustomFieldDataType.Text => "Text",
+        CustomFieldDataType.Number => "Number",
+        CustomFieldDataType.CheckboxAndDate => "Checkbox + date",
+        CustomFieldDataType.CheckboxAndNumber => "Checkbox + number",
+        _ => "Text"
+    };
+}

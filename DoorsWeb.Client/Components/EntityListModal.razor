@@ -36,6 +36,10 @@
         <Column Item="EntityListRow" title="" ActionColumn Width="110px">
             <Template>
                 <span class="row-action">
+                    @if (OnRun is not null)
+                    {
+                        <Icon class="icon" IconType="@TablerIcons.Player_play" title="Run" @onclick="() => RunClicked(context)" />
+                    }
                     @if (OnEdit is not null)
                     {
                         <Icon class="icon" IconType="@TablerIcons.Edit" @onclick="() => EditClicked(context)" />
@@ -64,6 +68,17 @@
     <div class="text-muted text-center py-4">No @(ItemNoun.ToLower())s found.</div>
 }
 
+@if (running)
+{
+    <div class="mt-2">
+        <div class="d-flex align-items-center mb-1 text-muted small">
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            Running report and preparing CSV…
+        </div>
+        <Progress Color="TablerColor.Blue" Indeterminate />
+    </div>
+}
+
 <div class="d-flex justify-content-between align-items-center gap-3 mt-3">
     <span class="text-muted small">
         <Icon class="icon icon-sm me-1" IconType="@TablerIcons.Info_circle" />
@@ -86,6 +101,10 @@
     /// <summary>Invoked when "Add" is clicked (typically opens the entity's edit modal for a new item).</summary>
     [Parameter] public Func<Task>? OnAdd { get; set; }
 
+    /// <summary>Invoked when a row's run icon is clicked. When null, no run action is shown.
+    /// Typically runs the entity's report and streams a download; the list isn't reloaded.</summary>
+    [Parameter] public Func<EntityListRow, Task>? OnRun { get; set; }
+
     /// <summary>Invoked when a row's edit icon is clicked.</summary>
     [Parameter] public Func<EntityListRow, Task>? OnEdit { get; set; }
 
@@ -94,6 +113,7 @@
 
     private List<EntityListRow> rows = new();
     private bool loaded;
+    private bool running;   // true while a row's OnRun callback is in flight (drives the progress bar)
 
     // Bound to the table so the Left/Right arrow keys can drive its pager.
     private Table<EntityListRow>? table;
@@ -136,6 +156,17 @@
         if (OnAdd is null) return;
         await OnAdd();
         await Reload();
+    }
+
+    // Runs the row's report. Unlike edit/delete this doesn't change the list, so we don't reload —
+    // we just show a progress bar while the (potentially slow) run + download is in flight.
+    private async Task RunClicked(EntityListRow row)
+    {
+        if (OnRun is null || running) return;
+        running = true;
+        StateHasChanged();
+        try { await OnRun(row); }
+        finally { running = false; StateHasChanged(); }
     }
 
     private async Task EditClicked(EntityListRow row)

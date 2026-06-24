@@ -1,92 +1,223 @@
-@* Card Pack dialog (mirrors LegacyDoorsClient frmCardPacks "General" tab).
-   Shown via ModalService.ShowAsync("Card packs - …", ...). OK + Cancel only.
+@* Card Packs manager (mirrors LegacyDoorsClient frmCardPacks "General" tab).
+   Shown via ModalService.ShowAsync("Card Packs", ...). Lists every card pack and edits them
+   INLINE — clicking "Add Card Pack" or a row's edit pencil turns that row into editable fields
+   with Save/Cancel, so there's no second-level popup. Persists directly through api/CardPack.
    The legacy "Tools" tab (Create Card Records / Delete Unused Cards) is intentionally omitted. *@
 
 @using System.Globalization
 @using DoorsWeb.Shared.Entities
+@inject IHttpClientFactory ClientFactory
+@inject TabBlazor.Services.IModalService ModalService
 
-<TablerForm Model="@model" OnValidSubmit="OK">
-    <Card Size="CardSize.Default">
-        <CardBody>
-            <CardTitle>Card Pack</CardTitle>
-
-            <div class="mb-2 row align-items-center">
-                <div class="col-lg-3 text-end">
-                    <label class="form-label mb-0">Name</label>
-                </div>
-                <div class="col-lg-9">
-                    <InputText class="form-control" @bind-Value="model.Name" disabled="@busy" />
-                </div>
+<div class="card-packs">
+    @if (!loaded)
+    {
+        <Progress Color="TablerColor.Blue" Indeterminate />
+    }
+    else
+    {
+        @if (CanWrite)
+        {
+            <div class="mb-2">
+                <Button BackgroundColor="TablerColor.Success" @onclick="BeginAdd" Disabled="IsEditing">
+                    <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Card Pack
+                </Button>
             </div>
+        }
 
-            <div class="mb-2 row align-items-center">
-                <div class="col-lg-3 text-end">
-                    <label class="form-label mb-0">First card ID</label>
-                </div>
-                <div class="col-lg-9">
-                    <InputText class="form-control" @bind-Value="model.FirstCardId" maxlength="8"
-                               placeholder="00000000" disabled="@busy" />
-                    <div class="form-text">An 8-digit card number; the pack numbers run sequentially from here.</div>
-                </div>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>First card ID</th>
+                        <th style="width: 120px;">Quantity</th>
+                        @if (CanWrite)
+                        {
+                            <th style="width: 100px;" class="text-end"></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (addingNew)
+                    {
+                        <tr>
+                            <td>
+                                <input class="form-control form-control-sm" maxlength="30" placeholder="Name"
+                                       @bind="editRow.Name" disabled="@busy" />
+                            </td>
+                            <td>
+                                <input class="form-control form-control-sm" maxlength="8" placeholder="00000000"
+                                       @bind="editRow.FirstCardId" disabled="@busy" />
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" min="2"
+                                       @bind="editRow.Qty" disabled="@busy" />
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <button type="button" class="btn btn-sm btn-primary me-1" @onclick="SaveEdit" disabled="@busy" title="Save">
+                                    @if (busy)
+                                    {
+                                        <span class="spinner-border spinner-border-sm"></span>
+                                    }
+                                    else
+                                    {
+                                        <Icon IconType="@TablerIcons.Check" />
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit" disabled="@busy" title="Cancel">
+                                    <Icon IconType="@TablerIcons.X" />
+                                </button>
+                            </td>
+                        </tr>
+                    }
 
-            <div class="mb-1 row align-items-center">
-                <div class="col-lg-3 text-end">
-                    <label class="form-label mb-0">Quantity</label>
-                </div>
-                <div class="col-lg-9">
-                    <InputNumber class="form-control" @bind-Value="model.Qty" disabled="@busy" />
-                    <div class="form-text">Number of cards in the pack (must be greater than 1).</div>
-                </div>
-            </div>
-        </CardBody>
-    </Card>
+                    @foreach (var pack in packs)
+                    {
+                        @if (editingCode == pack.Code)
+                        {
+                            <tr>
+                                <td>
+                                    <input class="form-control form-control-sm" maxlength="30" placeholder="Name"
+                                           @bind="editRow.Name" disabled="@busy" />
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" maxlength="8" placeholder="00000000"
+                                           @bind="editRow.FirstCardId" disabled="@busy" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" min="2"
+                                           @bind="editRow.Qty" disabled="@busy" />
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <button type="button" class="btn btn-sm btn-primary me-1" @onclick="SaveEdit" disabled="@busy" title="Save">
+                                        @if (busy)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <Icon IconType="@TablerIcons.Check" />
+                                        }
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelEdit" disabled="@busy" title="Cancel">
+                                        <Icon IconType="@TablerIcons.X" />
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr>
+                                <td>@pack.Name</td>
+                                <td>@pack.FirstCardId</td>
+                                <td>@pack.Qty</td>
+                                @if (CanWrite)
+                                {
+                                    <td class="text-end">
+                                        @if (!IsEditing)
+                                        {
+                                            <span class="row-action">
+                                                <Icon class="icon" IconType="@TablerIcons.Edit" @onclick="() => BeginEdit(pack)" />
+                                                <Icon class="icon" IconType="@TablerIcons.Trash" @onclick="() => DeleteRow(pack)" />
+                                            </span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (packs.Count == 0 && !addingNew)
+        {
+            <div class="text-muted text-center py-3">No card packs yet.</div>
+        }
+
+        <div class="form-text mt-1">
+            First card ID is an 8-digit card number; the pack numbers run sequentially from there. Quantity must be greater than 1.
+        </div>
+    }
 
     @if (status is not null)
     {
         <div class="alert alert-danger py-2 px-3 small mt-3 mb-0" role="alert">@status</div>
     }
+</div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
-        <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
-        <button type="submit" class="btn btn-primary" disabled="@busy">OK</button>
-    </div>
-</TablerForm>
+<div class="d-flex justify-content-between align-items-center gap-3 mt-3">
+    <span class="text-muted small">Press <kbd>Esc</kbd> to close</span>
+    <button type="button" class="btn btn-secondary" @onclick="Close">Close</button>
+</div>
 
 @code {
+    /// <summary>When false, the list is view-only (Add/Edit/Delete controls are hidden).</summary>
+    [Parameter] public bool CanWrite { get; set; }
 
-    [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
-    [Inject] IHttpClientFactory ClientFactory { get; set; } = null!;
-
-    /// <summary>Existing card pack's code; null when creating a new one.</summary>
-    [Parameter] public int? CardPackId { get; set; }
-
-    private readonly CardPackModel model = new();
+    private HttpClient client = null!;
+    private List<CardPack> packs = new();
+    private bool loaded;
     private bool busy;
     private string? status;
 
+    // Inline-edit state. Only one row is editable at a time:
+    //   addingNew == true  → a blank draft row at the top of the table
+    //   editingCode != null → the existing pack with that Code is in edit mode
+    private bool addingNew;
+    private int? editingCode;
+    private bool IsEditing => addingNew || editingCode is not null;
+
+    private readonly EditModel editRow = new();
+
     protected override async Task OnInitializedAsync()
     {
-        if (CardPackId is not int id) return;
+        client = ClientFactory.CreateClient("WebAPI");
+        await Reload();
+    }
 
+    private async Task Reload()
+    {
+        loaded = false;
         try
         {
-            var client = ClientFactory.CreateClient("WebAPI");
-            var pack = await client.GetFromJsonAsync<CardPack>($"api/CardPack/{id}");
-            if (pack is not null)
-            {
-                model.Name = pack.Name;
-                model.FirstCardId = pack.FirstCardId;
-                model.Qty = pack.Qty;
-            }
+            packs = await client.GetFromJsonAsync<List<CardPack>>("api/CardPack") ?? new();
         }
         catch
         {
-            // Leave the form empty; the user can still enter values.
+            packs = new();
         }
+        packs = packs.OrderBy(p => p.Name).ToList();
+        loaded = true;
     }
 
-    private async Task OK(EditContext context)
+    private void BeginAdd()
+    {
+        status = null;
+        editingCode = null;
+        addingNew = true;
+        editRow.Set(null);
+    }
+
+    private void BeginEdit(CardPack pack)
+    {
+        status = null;
+        addingNew = false;
+        editingCode = pack.Code;
+        editRow.Set(pack);
+    }
+
+    private void CancelEdit()
+    {
+        addingNew = false;
+        editingCode = null;
+        status = null;
+    }
+
+    // Creates (Add) or updates (existing) the pack. Both endpoints return the full refreshed list,
+    // so we just rebind it on success — no extra round-trip.
+    private async Task SaveEdit()
     {
         status = Validate();
         if (status is not null) return;
@@ -96,22 +227,23 @@
         {
             var entity = new CardPack
             {
-                Code = CardPackId ?? 0,
-                Name = model.Name!.Trim(),
+                Code = editingCode ?? 0,
+                Name = editRow.Name!.Trim(),
                 // Legacy stores the first card as a zero-padded 8-digit string (Format "00000000").
-                FirstCardId = long.Parse(model.FirstCardId!.Trim(), CultureInfo.InvariantCulture)
+                FirstCardId = long.Parse(editRow.FirstCardId!.Trim(), CultureInfo.InvariantCulture)
                     .ToString("00000000", CultureInfo.InvariantCulture),
-                Qty = model.Qty,
+                Qty = editRow.Qty,
             };
 
-            var client = ClientFactory.CreateClient("WebAPI");
-            var response = CardPackId is int id
+            var response = editingCode is int id
                 ? await client.PutAsJsonAsync($"api/CardPack/{id}", entity)
                 : await client.PostAsJsonAsync("api/CardPack", entity);
 
             if (response.IsSuccessStatusCode)
             {
-                ModalService.Close(ModalResult.Ok());
+                var list = await response.Content.ReadFromJsonAsync<List<CardPack>>();
+                if (list is not null) packs = list.OrderBy(p => p.Name).ToList();
+                CancelEdit();
                 return;
             }
 
@@ -127,19 +259,56 @@
         }
     }
 
+    private async Task DeleteRow(CardPack pack)
+    {
+        var confirmed = await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = $"Delete card pack \"{pack.Name}\"?",
+            SubText = "This action cannot be undone!",
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+        if (!confirmed) return;
+
+        busy = true;
+        status = null;
+        try
+        {
+            var response = await client.DeleteAsync($"api/CardPack/{pack.Code}");
+            if (response.IsSuccessStatusCode)
+            {
+                var list = await response.Content.ReadFromJsonAsync<List<CardPack>>();
+                packs = (list ?? packs.Where(p => p.Code != pack.Code).ToList())
+                    .OrderBy(p => p.Name).ToList();
+            }
+            else
+            {
+                status = $"Delete failed ({(int)response.StatusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            status = $"Delete failed: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
     // Mirrors the legacy frmCardPacks validation: name + first card required, quantity > 1.
     private string? Validate()
     {
-        if (string.IsNullOrWhiteSpace(model.Name))
+        if (string.IsNullOrWhiteSpace(editRow.Name))
             return "Please enter a name for the card pack.";
 
-        var card = model.FirstCardId?.Trim() ?? "";
+        var card = editRow.FirstCardId?.Trim() ?? "";
         if (card.Length == 0)
             return "Please enter the first card ID.";
         if (!long.TryParse(card, NumberStyles.None, CultureInfo.InvariantCulture, out _))
             return "The first card ID must be a number.";
 
-        if (model.Qty is not int qty)
+        if (editRow.Qty is not int qty)
             return "Please enter a quantity.";
         if (qty <= 1)
             return "The quantity must be greater than 1.";
@@ -147,12 +316,20 @@
         return null;
     }
 
-    private void Cancel() => ModalService.Close(ModalResult.Cancel());
+    private void Close() => ModalService.Close(ModalResult.Ok());
 
-    private sealed class CardPackModel
+    // Working copy for the row currently being added/edited.
+    private sealed class EditModel
     {
         public string? Name { get; set; }
         public string? FirstCardId { get; set; }
         public int? Qty { get; set; }
+
+        public void Set(CardPack? p)
+        {
+            Name = p?.Name;
+            FirstCardId = p?.FirstCardId;
+            Qty = p?.Qty;
+        }
     }
 }

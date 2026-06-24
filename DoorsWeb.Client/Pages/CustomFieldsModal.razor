@@ -1,68 +1,242 @@
-@* Custom Fields dialog (mirrors LegacyDoorsClient). Shown via
-   ModalService.ShowAsync("Custom Fields", ...). OK + Cancel only (Apply ignored). *@
+@* Custom Field editor (mirrors the legacy frmCustomFields dialog). Add or edit a GLOBAL custom-field
+   definition (name + type) and, for a drop-down list, manage its selectable options. Shown via
+   ModalService.ShowAsync("Custom Field", ...). Persists directly through api/CustomField. *@
 
-<TablerForm Model="@field" OnValidSubmit="OK">
+@using DoorsWeb.Shared.DTO
+@inject IHttpClientFactory ClientFactory
+
+<Card Size="CardSize.Default">
+    <CardBody>
+        <div class="mb-3 row align-items-center">
+            <label class="col-lg-3 col-form-label">Name</label>
+            <div class="col-lg-9">
+                <input class="form-control" maxlength="30" @bind="def.Name" disabled="@busy" />
+            </div>
+        </div>
+
+        <div class="mb-1 row align-items-center">
+            <label class="col-lg-3 col-form-label">Type</label>
+            <div class="col-lg-9">
+                <select class="form-select" @bind="def.DataType" disabled="@busy">
+                    <option value="1">Checkbox</option>
+                    <option value="2">Drop down list</option>
+                    <option value="3">Date</option>
+                    <option value="4">Text</option>
+                    <option value="5">Number</option>
+                </select>
+            </div>
+        </div>
+    </CardBody>
+</Card>
+
+@* ---- Drop-down options (only for combobox fields that already exist) ---- *@
+@if ((CustomFieldDataType)def.DataType == CustomFieldDataType.Combobox)
+{
     <Card Size="CardSize.Default">
         <CardBody>
-            <div class="mb-3 row align-items-center">
-                <div class="col-lg-3">
-                    <label class="form-label mb-0">Name</label>
-                </div>
-                <div class="col-lg-9">
-                    <InputText class="form-control" @bind-Value="field.Name"></InputText>
-                </div>
-            </div>
+            <CardTitle class="mb-2">List options</CardTitle>
 
-            <div class="mb-1 row align-items-center">
-                <div class="col-lg-3">
-                    <label class="form-label mb-0">Type</label>
+            @if (isNew)
+            {
+                <div class="text-muted small">Save the field first, then add its drop-down options here.</div>
+            }
+            else
+            {
+                <div class="d-flex gap-2 mb-2">
+                    <input class="form-control" maxlength="30" placeholder="New option"
+                           @bind="newOptionText" @bind:event="oninput" disabled="@busy" />
+                    <button type="button" class="btn btn-outline-success"
+                            @onclick="AddOption" disabled="@(busy || string.IsNullOrWhiteSpace(newOptionText))">
+                        <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add
+                    </button>
                 </div>
-                <div class="col-lg-9">
-                    <InputSelect class="form-select" @bind-Value="field.Type">
-                        <option value="Checkbox">Checkbox</option>
-                        <option value="Drop down list">Drop down list</option>
-                        <option value="Date">Date</option>
-                        <option value="Text">Text</option>
-                        <option value="Number">Number</option>
-                    </InputSelect>
-                </div>
-            </div>
+
+                @if (def.Options.Count == 0)
+                {
+                    <div class="text-muted small">No options yet.</div>
+                }
+                else
+                {
+                    <div class="border rounded" style="max-height: 200px; overflow-y: auto;">
+                        <ul class="list-group list-group-flush">
+                            @foreach (var opt in def.Options)
+                            {
+                                <li class="list-group-item d-flex align-items-center py-1">
+                                    <span>@opt.Description</span>
+                                    <Icon class="icon text-danger ms-auto" style="cursor: pointer;"
+                                          IconType="@TablerIcons.Trash" @onclick="() => RemoveOption(opt)" />
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            }
         </CardBody>
     </Card>
+}
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary">OK</button>
-    </div>
-</TablerForm>
+@if (status is not null)
+{
+    <div class="alert alert-danger mb-0 mt-2" role="alert">@status</div>
+}
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+    <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@busy">Cancel</button>
+    <button type="button" class="btn btn-outline-primary" @onclick="Apply" disabled="@busy">
+        @if (busy) { <span class="spinner-border spinner-border-sm me-2"></span> }
+        Apply
+    </button>
+    <button type="button" class="btn btn-primary" @onclick="Ok" disabled="@busy">OK</button>
+</div>
 
 @code {
-
     [Inject] TabBlazor.Services.IModalService ModalService { get; set; } = null!;
 
-    /// <summary>Optional starting values (e.g. when editing an existing custom field).</summary>
-    [Parameter] public CustomFieldModel? Field { get; set; }
+    /// <summary>Definition to edit; null opens a "new field" form.</summary>
+    [Parameter] public CustomFieldDefinitionDto? Field { get; set; }
 
-    private CustomFieldModel field = new();
+    private CustomFieldDefinitionDto def = new() { DataType = (int)CustomFieldDataType.Text };
+    private bool isNew = true;
+    private bool busy;
+    private string? status;
+    private bool dirty;            // whether anything was saved, so the parent knows to refresh
+
+    private string newOptionText = "";
+
+    private HttpClient client = null!;
 
     protected override void OnInitialized()
     {
-        if (Field is not null) field = Field;
+        client = ClientFactory.CreateClient("WebAPI");
+        if (Field is not null)
+        {
+            isNew = false;
+            def = new CustomFieldDefinitionDto
+            {
+                Slot = Field.Slot,
+                Name = Field.Name,
+                DataType = Field.DataType,
+                Options = Field.Options.Select(o => new CustomFieldOptionDto { Code = o.Code, Description = o.Description }).ToList()
+            };
+        }
     }
 
-    private void OK(EditContext context)
+    // Creates (new) or updates (existing) the definition. On a successful create we switch to edit
+    // mode so the just-assigned slot is available for adding drop-down options.
+    private async Task<bool> SaveDefinition()
     {
-        ModalService.Close(ModalResult.Ok());
+        if (string.IsNullOrWhiteSpace(def.Name))
+        {
+            status = "Name must be entered.";
+            return false;
+        }
+
+        busy = true;
+        status = null;
+        try
+        {
+            HttpResponseMessage response;
+            if (isNew)
+                response = await client.PostAsJsonAsync("api/CustomField/definitions", def);
+            else
+                response = await client.PutAsJsonAsync($"api/CustomField/definitions/{def.Slot}", def);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                status = $"Save failed ({(int)response.StatusCode}). {await response.Content.ReadAsStringAsync()}";
+                return false;
+            }
+
+            var saved = await response.Content.ReadFromJsonAsync<CustomFieldDefinitionDto>();
+            if (saved is not null)
+            {
+                // Preserve any options already loaded; the create response carries none.
+                saved.Options = def.Options;
+                def = saved;
+            }
+            isNew = false;
+            dirty = true;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            status = $"Save failed: {ex.Message}";
+            return false;
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
-    private void Cancel()
+    private async Task AddOption()
     {
-        ModalService.Close(ModalResult.Cancel());
+        var text = newOptionText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        busy = true;
+        status = null;
+        try
+        {
+            var response = await client.PostAsJsonAsync(
+                $"api/CustomField/definitions/{def.Slot}/options", new { Description = text });
+            if (!response.IsSuccessStatusCode)
+            {
+                status = $"Could not add option ({(int)response.StatusCode}).";
+                return;
+            }
+
+            var option = await response.Content.ReadFromJsonAsync<CustomFieldOptionDto>();
+            if (option is not null) def.Options.Add(option);
+            newOptionText = "";
+            dirty = true;
+        }
+        catch (Exception ex)
+        {
+            status = $"Could not add option: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
-    public class CustomFieldModel
+    private async Task RemoveOption(CustomFieldOptionDto option)
     {
-        public string? Name { get; set; }
-        public string Type { get; set; } = "Checkbox";
+        busy = true;
+        status = null;
+        try
+        {
+            var response = await client.DeleteAsync(
+                $"api/CustomField/definitions/{def.Slot}/options/{option.Code}");
+            if (response.IsSuccessStatusCode)
+            {
+                def.Options.Remove(option);
+                dirty = true;
+            }
+            else
+            {
+                status = $"Could not remove option ({(int)response.StatusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            status = $"Could not remove option: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
     }
+
+    private async Task Apply() => await SaveDefinition();
+
+    private async Task Ok()
+    {
+        if (await SaveDefinition())
+            ModalService.Close(ModalResult.Ok(def));
+    }
+
+    private void Cancel() =>
+        ModalService.Close(dirty ? ModalResult.Ok(def) : ModalResult.Cancel());
 }

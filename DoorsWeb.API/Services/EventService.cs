@@ -31,6 +31,12 @@ namespace DoorsWeb.API.Services
             DoorNumber = e.DoorNumber,
             DoorName = e.DoorNavigation != null ? e.DoorNavigation.Name : null,
             ReaderId = e.ReaderId,
+            // Reader 1 = A, Reader 2 = B (controller protocol); resolve to the door's configured
+            // reader name (defaults "In"/"Out"). Other reader IDs have no name → null (UI falls back).
+            ReaderName = e.DoorNavigation == null ? null
+                : e.ReaderId == 1 ? e.DoorNavigation.ReaderAname
+                : e.ReaderId == 2 ? e.DoorNavigation.ReaderBname
+                : null,
             EventType = e.EventType,
             EventName = e.EventTypeNavigation != null ? e.EventTypeNavigation.Description : null,
             ActualCardId = e.ActualCardId

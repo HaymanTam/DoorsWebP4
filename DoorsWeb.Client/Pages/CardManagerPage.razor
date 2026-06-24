@@ -1,4 +1,5 @@
 @page "/cardmanager"
+@using System.Text
 @using System.Text.Json
 @using DoorsWeb.Client.Auth
 @using DoorsWeb.Shared.DTO
@@ -6,6 +7,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IHttpClientFactory ClientFactory
 @inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -32,6 +34,10 @@
             </Button>
             <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick="ShowTimeSheetsModal">
                 <Icon class="icon me-1" IconType="@TablerIcons.Calendar_clock" />Time Sheets
+            </Button>
+            @* Global custom-field definitions shown on every card record (legacy "Add or Remove Fields"). *@
+            <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick='() => Navigation.NavigateTo("settings/custom-fields")'>
+                <Icon class="icon me-1" IconType="@TablerIcons.Adjustments" />Custom Fields
             </Button>
             <Button BackgroundColor="TablerColor.Secondary" Class="me-2" OnClick="ExportCsv" Disabled="exporting">
                 <Icon class="icon me-1" IconType="@TablerIcons.File_download" />@(exporting ? "Exporting…" : "Export CSV")
@@ -482,17 +488,13 @@
         }
     }
 
-    // ---- Card Packs: name-only list modal (api/CardPack, key Code) ----
+    // ---- Card Packs: list with inline add/edit/delete (api/CardPack, key Code). The modal is
+    //      self-contained — it loads, edits and persists packs internally; read-only users get a
+    //      view-only list (CanWrite hides the Add/Edit/Delete controls). ----
     private async Task ShowCardPacksModal()
     {
-        var component = new RenderComponent<EntityListModal>()
-            .Set(e => e.ItemNoun, "Card Pack")
-            .Set(e => e.Load, LoadCardPackRows);
-        // Read-only users get a view-only list (EntityListModal hides Add/Edit/Delete when these are null).
-        if (canWrite)
-            component.Set(e => e.OnAdd, () => ShowCardPackEdit(null))
-                     .Set(e => e.OnEdit, (EntityListRow row) => ShowCardPackEdit(row))
-                     .Set(e => e.OnDelete, DeleteCardPack);
+        var component = new RenderComponent<CardPackModal>()
+            .Set(e => e.CanWrite, canWrite);
 
         await ModalService.ShowAsync("Card Packs", component, new ModalOptions
         {
@@ -503,40 +505,15 @@
         });
     }
 
-    private async Task<List<EntityListRow>> LoadCardPackRows()
-    {
-        var list = await client.GetFromJsonAsync<List<CardPack>>("api/CardPack") ?? new();
-        return list.OrderBy(p => p.Name)
-                   .Select(p => new EntityListRow { Id = p.Code.ToString(), Name = p.Name ?? "" }).ToList();
-    }
-
-    private async Task ShowCardPackEdit(EntityListRow? row)
-    {
-        var title = row is null ? "Card packs - New card pack" : "Card packs - Edit card pack";
-        var component = new RenderComponent<CardPackModal>();
-        // TabBlazor's RenderComponent.Set rejects null, so only set the key when editing.
-        if (row is not null) component.Set(e => e.CardPackId, int.Parse(row.Id));
-
-        await ModalService.ShowAsync(title, component, new ModalOptions
-        {
-            Size = ModalSize.Large,
-            ShowHeader = true,
-            Scrollable = true,
-        });
-    }
-
-    private async Task DeleteCardPack(EntityListRow row)
-    {
-        await client.DeleteAsync($"api/CardPack/{row.Id}");
-    }
-
     // ---- Time Sheets: saved report settings (api/TimeSheet, key Code). Editing opens the settings
     //      modal, which can run the hours-worked report fresh from those settings. ----
     private async Task ShowTimeSheetsModal()
     {
         var component = new RenderComponent<EntityListModal>()
             .Set(e => e.ItemNoun, "Time Sheet")
-            .Set(e => e.Load, LoadTimeSheetRows);
+            .Set(e => e.Load, LoadTimeSheetRows)
+            // Running a time sheet only reads + downloads, so it's offered to everyone (incl. read-only).
+            .Set(e => e.OnRun, RunTimeSheet);
         // Read-only users get a view-only list (EntityListModal hides Add/Edit/Delete when these are null).
         if (canWrite)
             component.Set(e => e.OnAdd, () => ShowTimeSheetEdit(null))
@@ -577,6 +554,43 @@
     private async Task DeleteTimeSheet(EntityListRow row)
     {
         await client.DeleteAsync($"api/TimeSheet/{row.Id}");
+    }
+
+    // Runs a saved time sheet's report straight from the list and streams the result to a CSV
+    // download — same output as the settings modal's "Run report", without opening it first.
+    // EntityListModal shows its own progress bar while this is in flight.
+    private async Task RunTimeSheet(EntityListRow row)
+    {
+        try
+        {
+            var rows = await client.GetFromJsonAsync<List<TimeSheetReportRowDto>>($"api/TimeSheet/{row.Id}/run") ?? new();
+            if (rows.Count == 0)
+            {
+                await ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+                {
+                    MainText = "No transactions matched these settings.",
+                    SubText = $"\"{row.Name}\" produced no rows.",
+                    IconType = TablerIcons.Info_circle,
+                    StatusColor = TablerColor.Info
+                });
+                return;
+            }
+
+            var fileName = $"timesheet-{TimeSheetCsv.FileNameSafe(row.Name)}-{DateTime.Now:yyyyMMdd-HHmm}.csv";
+            var bytes = Encoding.UTF8.GetBytes(TimeSheetCsv.Build(rows));
+
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
+            await using (module.ConfigureAwait(false))
+            {
+                await module.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef, "text/csv");
+            }
+        }
+        catch
+        {
+            // Best-effort download; a failure leaves the list untouched.
+        }
     }
 
     private async Task ConfirmDeleteCard(int cardNumber)

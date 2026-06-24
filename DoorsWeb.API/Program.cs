@@ -184,6 +184,7 @@ builder.Services.AddScoped<ICardManagerService, CardManagerService>();
 builder.Services.AddScoped<ICardPackService, CardPackService>();
 builder.Services.AddScoped<IIoControllerService, IoControllerService>();
 builder.Services.AddScoped<ICardholderService, CardholderService>();
+builder.Services.AddScoped<ICustomFieldService, CustomFieldService>();
 builder.Services.AddScoped<ISpaceZoneService, SpaceZoneService>();
 builder.Services.AddScoped<ITimeSheetService, TimeSheetService>();
 builder.Services.AddScoped<ITimeZoneService, TimeZoneService>();

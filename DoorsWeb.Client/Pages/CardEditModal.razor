@@ -1,14 +1,16 @@
 @* Card Record dialog. Shown via ModalService.ShowAsync("...", RenderComponent<CardEditModal>...).
    Mirrors the legacy "Card Record" window but with friendlier UX:
-     - a "Custom Fields" section that lets you add / remove named fields inline
-       (replaces the legacy "Add or Remove Fields" toolbar), and
+     - a "Custom Fields" section driven by the GLOBAL field definitions (T_CustomFieldTypes), so the
+       same fields appear on every card; each card's values persist via api/CustomField/card/{n}.
+       Field definitions themselves are managed on the separate Custom Fields settings screen
+       (the legacy "Add or Remove Fields" toolbar), and
      - a drag-and-drop / click photo uploader with live preview
        (replaces the legacy "Cardholder Photo" toolbar button).
    Core cardholder fields persist via api/Cardholder (POST for new, PUT for edit).
    The photo persists via api/CardPhoto/{cardNumber} (saved/deleted right after the cardholder
    is saved, so it's keyed to the final card number).
-   Access levels, custom fields and bio data are UI-level only for now (no backing endpoint yet)
-   and are clearly grouped so they can be wired up later. *@
+   Access levels and bio data are UI-level only for now (no backing endpoint yet) and are clearly
+   grouped so they can be wired up later. *@
 
 @using DoorsWeb.Shared.Entities
 @using DoorsWeb.Shared.DTO
@@ -145,34 +147,90 @@
             </CardBody>
         </Card>
 
-        @* ---- Custom fields: the friendlier "add / remove fields" ---- *@
+        @* ---- Custom fields: driven by the global definitions (shared across every card) ---- *@
         <Card Size="CardSize.Default">
             <CardBody>
-                <div class="d-flex align-items-center mb-2">
-                    <CardTitle class="mb-0">Custom Fields</CardTitle>
-                    <button type="button" class="btn btn-sm btn-outline-success ms-auto" @onclick="AddCustomField" disabled="@busy">
-                        <Icon class="icon me-1" IconType="@TablerIcons.Plus" />Add Field
-                    </button>
-                </div>
+                <CardTitle class="mb-2">Custom Fields</CardTitle>
 
-                @if (customFields.Count == 0)
+                @if (customFields is null)
                 {
-                    <div class="text-muted small">No custom fields. Use “Add Field” to create one (e.g. Department, Vehicle Reg).</div>
+                    <div class="text-muted small">Loading…</div>
+                }
+                else if (customFields.Count == 0)
+                {
+                    <div class="text-muted small">
+                        No custom fields defined. Add them on the
+                        <a href="settings/custom-fields">Custom Fields settings</a> screen and they'll
+                        appear on every card record.
+                    </div>
                 }
                 else
                 {
                     @foreach (var field in customFields)
                     {
-                        <div class="row g-2 align-items-center mb-2">
-                            <div class="col-4">
-                                <input class="form-control" placeholder="Field name" @bind="field.Name" disabled="@busy" />
-                            </div>
-                            <div class="col">
-                                <input class="form-control" placeholder="Value" @bind="field.Value" disabled="@busy" />
-                            </div>
-                            <div class="col-auto">
-                                <Icon class="icon text-danger" style="cursor: pointer;" IconType="@TablerIcons.Trash"
-                                      @onclick="() => RemoveCustomField(field)" />
+                        <div class="row g-2 align-items-start mb-2">
+                            <label class="col-4 col-form-label text-end">@field.Name</label>
+                            <div class="col-8">
+                                @switch ((CustomFieldDataType)field.DataType)
+                                {
+                                    case CustomFieldDataType.Checkbox:
+                                        <label class="form-check mb-0 mt-2">
+                                            <input type="checkbox" class="form-check-input"
+                                                   checked="@(field.Value == "1")"
+                                                   @onchange="e => SetCheckbox(field, e)" disabled="@busy" />
+                                            <span class="form-check-label">Yes</span>
+                                        </label>
+                                        break;
+
+                                    case CustomFieldDataType.Combobox:
+                                        <div class="d-flex gap-2">
+                                            <select class="form-select" value="@field.Value"
+                                                    @onchange="e => field.Value = e.Value?.ToString()" disabled="@busy">
+                                                <option value="">— none —</option>
+                                                @foreach (var opt in field.Options)
+                                                {
+                                                    <option value="@opt.Code">@opt.Description</option>
+                                                }
+                                            </select>
+                                            <button type="button" class="btn btn-outline-success"
+                                                    title="Add a new option to this list"
+                                                    @onclick="() => ToggleAddOption(field.Slot)" disabled="@busy">
+                                                <Icon IconType="@TablerIcons.Plus" />
+                                            </button>
+                                        </div>
+                                        if (addingOptionSlot == field.Slot)
+                                        {
+                                            <div class="d-flex gap-2 mt-2">
+                                                <input class="form-control" maxlength="30" placeholder="New option"
+                                                       @bind="newOptionText" @bind:event="oninput" disabled="@busy" />
+                                                <button type="button" class="btn btn-primary"
+                                                        @onclick="() => AddOption(field)" disabled="@(busy || string.IsNullOrWhiteSpace(newOptionText))">
+                                                    Add
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" @onclick="CancelAddOption" disabled="@busy">
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                            if (optionError is not null)
+                                            {
+                                                <div class="text-danger small mt-1">@optionError</div>
+                                            }
+                                        }
+                                        break;
+
+                                    case CustomFieldDataType.Date:
+                                        <input type="date" class="form-control" value="@field.Value"
+                                               @onchange="e => field.Value = e.Value?.ToString()" disabled="@busy" />
+                                        break;
+
+                                    case CustomFieldDataType.Number:
+                                        <input type="number" class="form-control" @bind="field.Value" disabled="@busy" />
+                                        break;
+
+                                    default: @* Text and any unhandled type *@
+                                        <input class="form-control" maxlength="30" @bind="field.Value" disabled="@busy" />
+                                        break;
+                                }
                             </div>
                         </div>
                     }
@@ -336,7 +394,15 @@
 
     private List<AccessLevels>? accessLevels;
     private readonly HashSet<string> selectedAccessLevels = new();
-    private readonly List<CustomField> customFields = new();
+
+    // Custom fields for this card: the global definitions merged with this card's stored values.
+    // null while loading; the definitions are shared across every card (managed on a separate screen).
+    private List<CardCustomFieldDto>? customFields;
+
+    // Inline "add a combobox option" state: which field's add-row is open, the pending text, and any error.
+    private int? addingOptionSlot;
+    private string newOptionText = "";
+    private string? optionError;
 
     // Free-text filter for the access-level list (case-insensitive substring on the level name).
     // Filters the rendered view only; selections in selectedAccessLevels are untouched while searching.
@@ -385,6 +451,23 @@
         validFromDate = card.ValidFrom ?? DateTime.Today;
 
         await LoadAccessLevels();
+        await LoadCustomFields();
+    }
+
+    // Loads the global custom-field definitions merged with this card's stored values. For a new
+    // card no value row exists yet, so the fields come back with empty values. Keyed to the current
+    // card number (the suggested next number for a new card); values are saved after the card is.
+    private async Task LoadCustomFields()
+    {
+        try
+        {
+            customFields = await client.GetFromJsonAsync<List<CardCustomFieldDto>>(
+                $"api/CustomField/card/{card.CardNumber}") ?? new();
+        }
+        catch
+        {
+            customFields = new();
+        }
     }
 
     private async Task LoadAccessLevels()
@@ -426,8 +509,67 @@
         else selectedAccessLevels.Remove(key);
     }
 
-    private void AddCustomField() => customFields.Add(new CustomField());
-    private void RemoveCustomField(CustomField field) => customFields.Remove(field);
+    // Checkbox custom fields persist as "1"/"0" (the legacy convention).
+    private void SetCheckbox(CardCustomFieldDto field, ChangeEventArgs e) =>
+        field.Value = (e.Value is bool b && b) ? "1" : "0";
+
+    // Opens (or closes) the inline "add a new option" row under a combobox field.
+    private void ToggleAddOption(int slot)
+    {
+        optionError = null;
+        newOptionText = "";
+        addingOptionSlot = addingOptionSlot == slot ? null : slot;
+    }
+
+    private void CancelAddOption()
+    {
+        addingOptionSlot = null;
+        newOptionText = "";
+        optionError = null;
+    }
+
+    // Adds a new option to the field's global list (T_Custom) and selects it for this card.
+    private async Task AddOption(CardCustomFieldDto field)
+    {
+        var text = newOptionText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        optionError = null;
+        try
+        {
+            var response = await client.PostAsJsonAsync(
+                $"api/CustomField/definitions/{field.Slot}/options", new { Description = text });
+            if (!response.IsSuccessStatusCode)
+            {
+                optionError = $"Could not add option ({(int)response.StatusCode}).";
+                return;
+            }
+
+            var option = await response.Content.ReadFromJsonAsync<CustomFieldOptionDto>();
+            if (option is not null)
+            {
+                field.Options.Add(option);
+                field.Value = option.Code.ToString();   // select the freshly added option
+            }
+            CancelAddOption();
+        }
+        catch (Exception ex)
+        {
+            optionError = $"Could not add option: {ex.Message}";
+        }
+    }
+
+    // Persists this card's custom-field values. Called after the cardholder save succeeds, so the
+    // value row is keyed to the final card number. Skipped when no fields are defined.
+    private async Task SaveCustomFields()
+    {
+        if (customFields is null || customFields.Count == 0) return;
+
+        var values = customFields
+            .Select(f => new CardCustomFieldValueDto { Slot = f.Slot, Value = f.Value })
+            .ToList();
+        await client.PutAsJsonAsync($"api/CustomField/card/{card.CardNumber}", values);
+    }
 
     private async Task OnPhotoSelected(InputFileChangeEventArgs e)
     {
@@ -543,7 +685,9 @@
                 // After a successful create the record exists; switch to edit semantics
                 // so a follow-up Apply/OK issues a PUT rather than a duplicate POST.
                 isNew = false;
-                // Now that the card number is final, persist any photo change against it.
+                // Now that the card number is final, persist the custom-field values and any photo
+                // change against it.
+                await SaveCustomFields();
                 await SavePhoto();
                 return true;
             }
@@ -573,10 +717,4 @@
     }
 
     private void Cancel() => ModalService.Close(ModalResult.Cancel());
-
-    public class CustomField
-    {
-        public string Name { get; set; } = "";
-        public string Value { get; set; } = "";
-    }
 }

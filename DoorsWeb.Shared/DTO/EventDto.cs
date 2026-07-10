@@ -8,7 +8,7 @@ namespace DoorsWeb.Shared.DTO
     {
         public int EventId { get; set; }                 // T_Events.EventId (PK)
         public DateTime EventDate { get; set; }          // Time
-        public int CardNumber { get; set; }              // Card#
+        public int? CardNumber { get; set; }             // Card# (null when the event's card isn't an enrolled cardholder)
         public string? CardHolder { get; set; }          // Forname + Surname (CardNumberNavigation)
         public int DoorNumber { get; set; }
         public string? DoorName { get; set; }            // DoorNavigation.Name

@@ -1,6 +1,8 @@
 using System.Linq.Expressions;
+using DoorsWeb.API.Services.DoorState;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.Shared.DTO;
+using DoorsWeb.Shared.Entities;
 
 namespace DoorsWeb.API.Services
 {
@@ -51,15 +53,26 @@ namespace DoorsWeb.API.Services
                 .AsAsyncEnumerable();
         }
 
-        public async Task<EventDto?> RecordAsync(int door, DateTime when, int cardNumber, string? cardId,
+        public async Task<EventDto?> RecordAsync(int door, DateTime when, int? cardNumber, string? cardId,
             int readerId, int eventType, CancellationToken ct = default)
         {
+            // T_Events has a foreign key to T_EventTypes, and controllers can report codes that aren't
+            // seeded there (the reader-facing name is that table's Description). Insert a placeholder
+            // type first so the event isn't rejected — self-healing, and the row still reads sensibly.
+            await EnsureEventTypeExistsAsync(eventType, ct);
+
+            // CardNumber also has a foreign key (to T_Name_Header). A swipe can reference a card that
+            // isn't an enrolled cardholder (unknown/visitor badge, or a no-card event like door-forced).
+            // Store NULL in that case so the event still records — the raw swiped value is preserved in
+            // ActualCardId. CardNumber is nullable precisely so this is representable.
+            var card = await ResolveCardNumberAsync(cardNumber, ct);
+
             // EventId is database-generated (ValueGeneratedOnAdd), so we don't supply it; EF fills it
             // in on the entity after SaveChanges, which we then use to re-read the row with navigations.
             var entity = new Events
             {
                 EventDate = when,
-                CardNumber = cardNumber,
+                CardNumber = card,
                 DoorNumber = door,
                 EventType = eventType,
                 ReaderId = readerId,
@@ -73,6 +86,49 @@ namespace DoorsWeb.API.Services
                 .Where(e => e.EventId == entity.EventId)
                 .Select(ToDto)
                 .FirstOrDefaultAsync(ct);
+        }
+
+        // Ensures T_EventTypes has a row for the given code, creating a placeholder (named from the
+        // protocol decoder, blank icon) when the controller reports one that isn't seeded. Tolerates
+        // the race where a parallel drain inserts the same code between the check and our insert.
+        private async Task EnsureEventTypeExistsAsync(int eventType, CancellationToken ct)
+        {
+            if (await _context.EventTypes.AsNoTracking().AnyAsync(t => t.EventType == eventType, ct))
+                return;
+
+            var description = DoorStatusDecoder.EventName(eventType);
+            if (description.Length > 30) description = description[..30]; // T_EventTypes.Description is varchar(30)
+
+            _context.EventTypes.Add(new EventTypes
+            {
+                EventType = eventType,
+                Description = description,
+                Icon = "?" // NOT NULL column; placeholder icon for unknown/unseeded types
+            });
+
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                // Another drain created the same type first; drop our duplicate insert and carry on —
+                // the row now exists, so the event insert's foreign key is satisfied.
+                var pending = _context.ChangeTracker.Entries<EventTypes>()
+                    .FirstOrDefault(e => e.State == EntityState.Added && e.Entity.EventType == eventType);
+                if (pending is not null) pending.State = EntityState.Detached;
+            }
+        }
+
+        // Maps a reported card number to a value the T_Events.CardNumber foreign key will accept:
+        // the number itself when it belongs to an enrolled cardholder, otherwise null (unknown/visitor
+        // badge or a no-card event). Null in, null out — nothing to look up.
+        private async Task<int?> ResolveCardNumberAsync(int? cardNumber, CancellationToken ct)
+        {
+            if (cardNumber is not int number) return null;
+            var enrolled = await _context.Cardholder.AsNoTracking()
+                .AnyAsync(c => c.CardNumber == number, ct);
+            return enrolled ? number : null;
         }
 
         public async Task<int> GetCount(DateTime? from = null, DateTime? to = null)

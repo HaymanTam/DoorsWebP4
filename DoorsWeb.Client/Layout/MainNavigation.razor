@@ -44,9 +44,10 @@
                            top-right corner notification-dot positioning. *@
                         @if (auth.User.CanReadSiteSettings() && DoorStatus.AlarmCount > 0)
                         {
-                            <span class="badge bg-red text-white nav-count-badge ms-auto" title="@($"{DoorStatus.AlarmCount} in alarm")">
+                            <Badge BackgroundColor="TablerColor.Red" class="nav-count-badge ms-auto text-white"
+                                   title="@($"{DoorStatus.AlarmCount} in alarm")">
                                 @DoorStatus.AlarmCount
-                            </span>
+                            </Badge>
                         }
                     </NavLink>
                 </li>
@@ -99,10 +100,10 @@
                                            letting ms-auto push it to the right edge instead. *@
                                         @if (DoorStatus.InactiveCountFor(site.Site) > 0)
                                         {
-                                            <span class="badge bg-orange text-white nav-count-badge ms-auto"
-                                                  title="@($"{DoorStatus.InactiveCountFor(site.Site)} inactive")">
+                                            <Badge BackgroundColor="TablerColor.Orange" class="nav-count-badge ms-auto text-white"
+                                                   title="@($"{DoorStatus.InactiveCountFor(site.Site)} inactive")">
                                                 @DoorStatus.InactiveCountFor(site.Site)
-                                            </span>
+                                            </Badge>
                                         }
                                     </NavLink>
                                 </li>
@@ -373,11 +374,57 @@
         });
     }
 
-    private async Task DeleteAccessLevel(EntityListRow row)
+    // ---- Shared delete plumbing -------------------------------------------------
+    // ASP.NET Core ProblemDetails payload (camelCase on the wire; the Web JSON defaults
+    // match case-insensitively). Lets us surface a server-supplied reason — e.g. a 409
+    // "calendar still in use" — instead of failing silently or crashing the render.
+    private record ProblemResponse(string? Title, string? Detail, int? Status);
+
+    // Sends DELETE {url} and reports the outcome to the user; returns true on success.
+    // HttpClient.DeleteAsync only throws on transport failure (not on 4xx/5xx), and the
+    // old bare handlers never checked the status — so an in-use 409 or a server 500 just
+    // vanished, while a transport error bubbled up as an unhandled render exception.
+    // Centralising both paths here means the EntityListModal's OnDelete never throws.
+    private async Task<bool> DeleteEntity(string url, string noun)
     {
         var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/AccessLevel/" + row.Id);
+        try
+        {
+            var response = await client.DeleteAsync(url);
+            if (response.IsSuccessStatusCode) return true;
+
+            var problem = await TryReadProblem(response);
+            await ShowErrorDialog(
+                problem?.Title ?? $"Couldn't delete {noun.ToLower()}",
+                problem?.Detail ?? $"The server rejected the request ({(int)response.StatusCode}).");
+            return false;
+        }
+        catch (HttpRequestException)
+        {
+            await ShowErrorDialog(
+                $"Couldn't delete {noun.ToLower()}",
+                "We couldn't reach the server. Check your connection and try again.");
+            return false;
+        }
     }
+
+    private static async Task<ProblemResponse?> TryReadProblem(HttpResponseMessage response)
+    {
+        try { return await response.Content.ReadFromJsonAsync<ProblemResponse>(); }
+        catch { return null; } // body wasn't ProblemDetails JSON (e.g. empty / HTML error page)
+    }
+
+    private Task ShowErrorDialog(string title, string message) =>
+        ModalService.ShowDialogAsync(new TabBlazor.Components.Modals.DialogOptions
+        {
+            MainText = title,
+            SubText = message,
+            IconType = TablerIcons.Alert_triangle,
+            StatusColor = TablerColor.Danger
+        });
+
+    private Task DeleteAccessLevel(EntityListRow row) =>
+        DeleteEntity("api/AccessLevel/" + row.Id, "Access Level");
 
     // ---- Time Zones: name-only list modal (api/TimeZone, key { Site, TimeZone }) ----
     private async Task ShowTimeZonesModal(SiteDto site)
@@ -426,11 +473,8 @@
         });
     }
 
-    private async Task DeleteTimeZone(EntityListRow row)
-    {
-        var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/TimeZone/" + row.Id);
-    }
+    private Task DeleteTimeZone(EntityListRow row) =>
+        DeleteEntity("api/TimeZone/" + row.Id, "Time Zone");
 
     // ---- Calendars: name-only list modal (api/Calendar, key Code) ----
     private async Task ShowCalendarsModal(SiteDto site)
@@ -476,11 +520,8 @@
         });
     }
 
-    private async Task DeleteCalendar(EntityListRow row)
-    {
-        var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/Calendar/" + row.Id);
-    }
+    private Task DeleteCalendar(EntityListRow row) =>
+        DeleteEntity("api/Calendar/" + row.Id, "Calendar");
 
     // ---- Space Zones: name-only list modal (api/SpaceZone, key ZoneNumber) ----
     private async Task ShowSpaceZonesModal(SiteDto site)
@@ -528,11 +569,8 @@
         });
     }
 
-    private async Task DeleteSpaceZone(EntityListRow row)
-    {
-        var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/SpaceZone/" + row.Id);
-    }
+    private Task DeleteSpaceZone(EntityListRow row) =>
+        DeleteEntity("api/SpaceZone/" + row.Id, "Space Zone");
 
     // ---- Anti-Passback Zones: name-only list modal (api/ApbZone, key Apbnumber) ----
     private async Task ShowApbZonesModal(SiteDto site)
@@ -580,11 +618,8 @@
         });
     }
 
-    private async Task DeleteApbZone(EntityListRow row)
-    {
-        var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/ApbZone/" + row.Id);
-    }
+    private Task DeleteApbZone(EntityListRow row) =>
+        DeleteEntity("api/ApbZone/" + row.Id, "Anti-Passback Zone");
 
     // ---- Door Triggers: name-only list modal (api/Trigger where TriggerType == 1) ----
     private async Task ShowDoorTriggerModal(SiteDto site)
@@ -679,11 +714,8 @@
         });
     }
 
-    private async Task DeleteTrigger(EntityListRow row)
-    {
-        var client = ClientFactory.CreateClient("WebAPI");
-        await client.DeleteAsync("api/Trigger/" + row.Id);
-    }
+    private Task DeleteTrigger(EntityListRow row) =>
+        DeleteEntity("api/Trigger/" + row.Id, "Trigger");
 
     private async Task ShowBackupRestoreModal()
     {

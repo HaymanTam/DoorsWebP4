@@ -12,6 +12,11 @@ namespace DoorsWeb.Client.Auth
         public const string AccessTokenKey = "access_token";
         public const string RefreshTokenKey = "refresh_token";
 
+        // One-shot flag the login page reads (and clears) to show "you were signed out due to
+        // inactivity". Set only when the session ended on its own (token expiry / failed refresh),
+        // never on a deliberate logout — so the banner doesn't appear when the user clicks "Logout".
+        public const string SessionExpiredKey = "session_expired";
+
         // Fire the proactive logout a hair before the real expiry so the user is on the login
         // page by the time the token is actually dead (avoids a last in-flight call racing it).
         private static readonly TimeSpan ExpirySkew = TimeSpan.FromSeconds(2);
@@ -110,7 +115,7 @@ namespace DoorsWeb.Client.Auth
                     return;
                 }
 
-                await SignOutAsync();
+                await SignOutAsync(sessionExpired: true);
             }
             catch
             {
@@ -125,14 +130,18 @@ namespace DoorsWeb.Client.Auth
         /// Ends the current session: clears the stored tokens and notifies the app so the router
         /// re-evaluates authorization and drops the user to the login page (via RedirectToLogin).
         /// Safe to call when already signed out — it's an idempotent "the session is over" signal.
+        /// Pass <paramref name="sessionExpired"/> = true when the session ended on its own (token
+        /// expiry / failed refresh) so the login page can show an inactivity notice.
         /// </summary>
-        public async Task SignOutAsync()
+        public async Task SignOutAsync(bool sessionExpired = false)
         {
             CancelExpiryTimer();
             try
             {
                 await _js.InvokeVoidAsync("localStorage.removeItem", AccessTokenKey);
                 await _js.InvokeVoidAsync("localStorage.removeItem", RefreshTokenKey);
+                if (sessionExpired)
+                    await _js.InvokeVoidAsync("localStorage.setItem", SessionExpiredKey, "1");
             }
             catch
             {

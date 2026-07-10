@@ -24,6 +24,13 @@
             @if (!requirePasswordChange)
             {
                 <h2 class="h2 text-center mb-4">Sign in</h2>
+                @if (sessionExpiredNotice)
+                {
+                    <div class="alert alert-warning mb-3 d-flex align-items-center" role="alert">
+                        <Icon class="icon me-2" IconType="@TablerIcons.Alert_triangle" />
+                        <div>You were signed out due to inactivity. Please sign in again.</div>
+                    </div>
+                }
                 <EditForm Model="loginDto" OnValidSubmit="HandleLogin">
                     <DataAnnotationsValidator />
                     <div class="mb-3">
@@ -141,6 +148,7 @@
     private string? defaultUsernameHint;
     private bool isLoading;
     private bool requirePasswordChange;
+    private bool sessionExpiredNotice;
     private bool showLoginPwd;
     private bool showNewPwd;
     private bool showConfirmPwd;
@@ -158,6 +166,10 @@
                 return;
             }
         }
+
+        // If the session ended on its own (token expiry / failed refresh), show a one-shot
+        // inactivity notice. Reading the flag clears it so it doesn't reappear on later visits.
+        sessionExpiredNotice = await ConsumeSessionExpiredFlag();
 
         // Prefer the username last used on this machine: pre-fill it and fetch its hint.
         var lastUsername = await GetLastUsername();
@@ -210,6 +222,25 @@
         catch
         {
             // Non-fatal: login still works without the hint.
+        }
+    }
+
+    // Reads and immediately clears the one-shot "session expired" flag set by JwtAuthStateProvider
+    // when the session ended on its own. Returns true the first time only, so revisiting the login
+    // page (or a later deliberate logout) doesn't re-show the inactivity notice.
+    private async Task<bool> ConsumeSessionExpiredFlag()
+    {
+        try
+        {
+            var flag = await JS.InvokeAsync<string?>("localStorage.getItem", JwtAuthStateProvider.SessionExpiredKey);
+            if (string.IsNullOrEmpty(flag))
+                return false;
+            await JS.InvokeVoidAsync("localStorage.removeItem", JwtAuthStateProvider.SessionExpiredKey);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 

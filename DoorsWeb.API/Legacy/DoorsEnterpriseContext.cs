@@ -436,14 +436,17 @@ public partial class DoorsEnterpriseContext : DbContext
 
         modelBuilder.Entity<Events>(entity =>
         {
-            entity.HasKey(e => new { e.EventDate, e.CardNumber, e.DoorNumber, e.EventType, e.ReaderId, e.EventId })
+            // EventId is a database-generated surrogate and is the sole primary key. The legacy
+            // schema layered a 6-column "natural" PK (EventDate+CardNumber+DoorNumber+EventType+
+            // ReaderId+EventId) on top of an already-unique EventId, which forced CardNumber (and the
+            // other FK columns) to be NOT NULL — rejecting events for unenrolled cards. EventId alone
+            // is a valid key, so the surrogate is the PK and CardNumber can be optional.
+            entity.HasKey(e => e.EventId)
                 .HasName("PK_Events");
 
             entity.ToTable("T_Events");
 
             entity.HasIndex(e => e.EventDate, "IND_EventDate");
-
-            entity.HasIndex(e => e.EventId, "IND_EventID").IsUnique();
 
             entity.Property(e => e.EventDate).HasColumnType("timestamp without time zone");
             entity.Property(e => e.ReaderId).HasColumnName("ReaderID");

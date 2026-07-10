@@ -93,10 +93,37 @@
     border-radius: 0.5rem;
 }
 
-/* Each placed door is a round icon badge; the door name shows on hover (title tooltip). */
-.plan-marker {
+/* The anchor pins a placed door to its (x%, y%) point on the image. TabBlazor's
+   <Tooltip> nests the marker inside a position:relative wrapper, so the placement
+   lives here rather than on the button. line-height is reset because .plan-image-wrap
+   sets it to 0 (to kill image whitespace), which would otherwise clip the tooltip text. */
+.plan-marker-anchor {
     position: absolute;
     transform: translate(-50%, -50%);
+    line-height: normal;
+}
+
+.plan-marker-anchor:hover {
+    z-index: 5;
+}
+
+/* TabBlazor's tooltip bubble hardcodes `margin-left: -60px`, which only centers a
+   120px-wide bubble; anything else drifts off to the side. Reach into the child
+   Tooltip's markup with ::deep and centre it properly for any width, and keep the
+   name on one line so it reads cleanly above the marker. */
+.plan-marker-anchor ::deep .tooltip-wrapper > span {
+    left: 50%;
+    margin-left: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    /* TabBlazor sits the bubble's bottom right on the marker (bottom: 100%), so its
+       5px arrow pokes down into the circle. Nudge the whole bubble up so the arrow
+       tip just meets the top of the marker instead of overlapping it. */
+    bottom: calc(100% + 6px);
+}
+
+/* Each placed door is a round icon badge; the door name shows on hover (TabBlazor Tooltip). */
+.plan-marker {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -120,8 +147,7 @@
 }
 
 .plan-marker:hover {
-    z-index: 5;
-    transform: translate(-50%, -50%) scale(1.12);
+    transform: scale(1.12);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 

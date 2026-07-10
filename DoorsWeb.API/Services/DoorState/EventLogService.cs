@@ -154,7 +154,9 @@ namespace DoorsWeb.API.Services.DoorState
         private async Task RecordAndBroadcastAsync(int door, byte[] data)
         {
             var rec = DoorStatusDecoder.DecodeEvent(data);
-            int cardForDb = rec.CardNumber is >= 0 and <= int.MaxValue ? (int)rec.CardNumber : 0;
+            // A card number outside int range isn't a real cardholder id; pass null so RecordAsync
+            // stores no card rather than a bogus value (it also nulls unenrolled-but-in-range cards).
+            int? cardForDb = rec.CardNumber is >= 0 and <= int.MaxValue ? (int)rec.CardNumber : null;
             var when = rec.TimestampValid ? rec.TimestampLocal : DateTime.Now;
 
             try

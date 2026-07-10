@@ -17,6 +17,11 @@
     <PackageReference Include="Mapster.EFCore" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+    <!-- Direct pin to override the vulnerable Microsoft.OpenApi 2.0.0 pulled in transitively by
+         Microsoft.AspNetCore.OpenApi. 2.7.5 is the first 2.x release that patches CVE-2026-49451
+         (GHSA-v5pm-xwqc-g5wc): a DoS / stack overflow parsing circular schema references. Remove
+         this once the parent package references a patched Microsoft.OpenApi itself. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
       <PrivateAssets>all</PrivateAssets>

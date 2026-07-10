@@ -51,7 +51,7 @@ namespace DoorsWeb.Client.Auth
             // re-runs route authorization and sends the user to login (RedirectToLogin). This
             // is a no-op on the [AllowAnonymous] login page, so a failed sign-in attempt that
             // returns 401 won't bounce the user around — it just surfaces the error there.
-            await _authState.SignOutAsync();
+            await _authState.SignOutAsync(sessionExpired: true);
             return response;
         }
 

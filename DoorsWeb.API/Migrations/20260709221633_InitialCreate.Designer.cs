@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DoorsWeb.API.Migrations
 {
     [DbContext(typeof(DoorsEnterpriseContext))]
-    [Migration("20260623220241_DropCardholderOldCardId")]
-    partial class DropCardholderOldCardId
+    [Migration("20260709221633_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1207,22 +1207,6 @@ namespace DoorsWeb.API.Migrations
 
             modelBuilder.Entity("DoorsWeb.Shared.Entities.Events", b =>
                 {
-                    b.Property<DateTime>("EventDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("CardNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("DoorNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("EventType")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ReaderId")
-                        .HasColumnType("integer")
-                        .HasColumnName("ReaderID");
-
                     b.Property<int>("EventId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -1239,7 +1223,23 @@ namespace DoorsWeb.API.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("AlarmID");
 
-                    b.HasKey("EventDate", "CardNumber", "DoorNumber", "EventType", "ReaderId", "EventId")
+                    b.Property<int?>("CardNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DoorNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EventDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ReaderId")
+                        .HasColumnType("integer")
+                        .HasColumnName("ReaderID");
+
+                    b.HasKey("EventId")
                         .HasName("PK_Events");
 
                     b.HasIndex("CardNumber");
@@ -1249,9 +1249,6 @@ namespace DoorsWeb.API.Migrations
                     b.HasIndex("EventType");
 
                     b.HasIndex(new[] { "EventDate" }, "IND_EventDate");
-
-                    b.HasIndex(new[] { "EventId" }, "IND_EventID")
-                        .IsUnique();
 
                     b.ToTable("T_Events", (string)null);
                 });
@@ -2345,8 +2342,7 @@ namespace DoorsWeb.API.Migrations
                     b.HasOne("DoorsWeb.Shared.Entities.Cardholder", "CardNumberNavigation")
                         .WithMany("Events")
                         .HasForeignKey("CardNumber")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("DoorsWeb.Shared.Entities.Doors", "DoorNavigation")
                         .WithMany("Events")

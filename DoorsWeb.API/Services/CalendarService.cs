@@ -48,6 +48,19 @@ namespace DoorsWeb.API.Services
             var result = await _context.Calendar.FindAsync(id);
             if (result is null) return null;
 
+            // A calendar referenced by a time zone (header or interval) drives that schedule's
+            // holiday handling; removing it would orphan those rules, and the DB FK is NoAction,
+            // so the delete would otherwise fail with an opaque 500. Detect it up front and raise
+            // a clear, actionable message the controller turns into a 409.
+            var usedBy = await _context.TimeZones.CountAsync(t => t.Calendar == id)
+                       + await _context.TimeZoneInterval.CountAsync(t => t.Calendar == id);
+            if (usedBy > 0)
+            {
+                throw new EntityInUseException(
+                    $"This calendar is still used by {usedBy} time zone{(usedBy == 1 ? "" : "s")}. " +
+                    "Reassign or remove those time zones before deleting it.");
+            }
+
             var details = await _context.CalendarException.Where(d => d.Code == id).ToListAsync();
             _context.CalendarException.RemoveRange(details);
             _context.Calendar.Remove(result);

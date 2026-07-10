@@ -226,8 +226,9 @@ namespace DoorsWeb.API.Services
             var events = await _context.Events.AsNoTracking()
                 .Where(e => (e.EventType == 0 || e.EventType == 16)
                          && (e.ReaderId == 1 || e.ReaderId == 2 || e.ReaderId == 3)
+                         && e.CardNumber != null // no-card events can't belong to a timesheet
                          && e.EventDate >= dateFrom && e.EventDate <= dateTo)
-                .Select(e => new { e.CardNumber, e.DoorNumber, e.ReaderId, e.EventDate })
+                .Select(e => new { CardNumber = e.CardNumber!.Value, e.DoorNumber, e.ReaderId, e.EventDate })
                 .ToListAsync();
 
             if (events.Count == 0) return new List<TimeSheetReportRowDto>();

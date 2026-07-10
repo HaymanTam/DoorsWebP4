@@ -21,9 +21,10 @@ namespace DoorsWeb.API.Services.Interfaces
         /// Inserts one decoded controller event into T_Events and returns it shaped as an
         /// <see cref="EventDto"/> (with cardholder / door / event-type names resolved) ready to push
         /// to clients, or null if the inserted row could not be read back. <paramref name="cardNumber"/>
-        /// is 0 for events that don't carry a card; <paramref name="cardId"/> is the raw card string.
+        /// may be null (no-card event); a value that isn't an enrolled cardholder is stored as null so
+        /// the T_Events foreign key is satisfied. <paramref name="cardId"/> is the raw card string.
         /// </summary>
-        Task<EventDto?> RecordAsync(int door, DateTime when, int cardNumber, string? cardId,
+        Task<EventDto?> RecordAsync(int door, DateTime when, int? cardNumber, string? cardId,
             int readerId, int eventType, CancellationToken ct = default);
     }
 }

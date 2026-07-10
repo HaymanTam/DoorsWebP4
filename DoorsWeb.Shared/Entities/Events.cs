@@ -7,7 +7,7 @@ public partial class Events
 {
     public DateTime EventDate { get; set; }
 
-    public int CardNumber { get; set; }
+    public int? CardNumber { get; set; }
 
     public int DoorNumber { get; set; }
 

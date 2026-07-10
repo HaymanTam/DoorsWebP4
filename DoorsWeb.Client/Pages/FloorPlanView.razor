@@ -87,12 +87,19 @@
                         {
                             if (states.TryGetValue(p.Door, out var d) && d.Site == selectedSite)
                             {
-                                <button type="button"
-                                        class="plan-marker @StatusClass(d.Status) @(IsAlarm(d.Status) ? "alarm" : "")"
-                                        style="left:@(p.X.ToString(Inv))%; top:@(p.Y.ToString(Inv))%;"
-                                        title="@Tooltip(d)" aria-label="@d.Name" @onclick="() => SelectDoor(d)">
-                                    <Icon class="icon" IconType="@TablerIcons.Door" />
-                                </button>
+                                @* TabBlazor's <Tooltip> wraps its child in a position:relative span,
+                                   so the placement coords live on this anchor div (not the button) to
+                                   keep the marker pinned to the image; the door name shows on hover. *@
+                                <div class="plan-marker-anchor"
+                                     style="left:@(p.X.ToString(Inv))%; top:@(p.Y.ToString(Inv))%;">
+                                    <TabBlazor.Tooltip Text="@d.Name">
+                                        <button type="button"
+                                                class="plan-marker @StatusClass(d.Status) @(IsAlarm(d.Status) ? "alarm" : "")"
+                                                aria-label="@d.Name" @onclick="() => SelectDoor(d)">
+                                            <Icon class="icon" IconType="@TablerIcons.Door" />
+                                        </button>
+                                    </TabBlazor.Tooltip>
+                                </div>
                             }
                         }
                     </div>

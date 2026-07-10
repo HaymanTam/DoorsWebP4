@@ -108,7 +108,7 @@ namespace DoorsWeb.API.Reports
                 result.Rows.Add(new List<string?>
                 {
                     r.EventDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-                    r.CardNumber.ToString(CultureInfo.InvariantCulture),
+                    r.CardNumber?.ToString(CultureInfo.InvariantCulture),
                     string.IsNullOrWhiteSpace(r.CardHolder) ? null : r.CardHolder,
                     string.IsNullOrWhiteSpace(r.DoorName) ? $"Door {r.DoorNumber}" : r.DoorName,
                     r.EventName

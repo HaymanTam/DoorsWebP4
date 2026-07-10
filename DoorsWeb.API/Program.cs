@@ -270,6 +270,24 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DoorsEnterpriseContext>();
     db.Database.Migrate();
+
+    // Seed a default Super account so a fresh (empty) database is loginable out of the box.
+    // Idempotent: only runs when no Administrator exists, so a legacy restore (which imports its
+    // own users) is never overwritten. The password is the bcrypt hash of the well-known default
+    // "654321", which AuthService surfaces as the first-run login hint and forces changed on the
+    // first successful sign-in (RequiresPasswordReset). A Super implicitly has ReadWrite on every
+    // area, so the per-area access columns are left at their defaults.
+    if (!db.Users.Any(u => u.Administrator))
+    {
+        var pwHash = scope.ServiceProvider.GetRequiredService<IPwHashService>();
+        db.Users.Add(new Users
+        {
+            Description = "admin",
+            Password = pwHash.Hash("654321"),
+            Administrator = true
+        });
+        db.SaveChanges();
+    }
 }
 
 app.MapHub<EventHub>("/eventHub");

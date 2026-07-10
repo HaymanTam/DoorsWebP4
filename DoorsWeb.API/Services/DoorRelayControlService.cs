@@ -10,7 +10,7 @@ namespace DoorsWeb.API.Services
     /// Sends "5,4 Trigger Channel A/B" commands to door controllers over UDP and updates the live
     /// state so the floorplan reflects the action immediately. Channel A is treated as the door lock.
     /// </summary>
-    public class DoorCommandService : IDoorCommandService
+    public class DoorRelayControlService : IDoorRelayControlService
     {
         // 5,4 Trigger Channel A/B.
         private const byte TriggerGroup = 0x05;
@@ -25,13 +25,13 @@ namespace DoorsWeb.API.Services
         private readonly DoorsEnterpriseContext _context;
         private readonly IPendingCommandService _pending;
         private readonly IDoorStateService _doorState;
-        private readonly ILogger<DoorCommandService> _logger;
+        private readonly ILogger<DoorRelayControlService> _logger;
 
-        public DoorCommandService(
+        public DoorRelayControlService(
             DoorsEnterpriseContext context,
             IPendingCommandService pending,
             IDoorStateService doorState,
-            ILogger<DoorCommandService> logger)
+            ILogger<DoorRelayControlService> logger)
         {
             _context = context;
             _pending = pending;

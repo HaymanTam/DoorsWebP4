@@ -14,11 +14,11 @@ namespace DoorsWeb.API.Services.Interfaces
     public record DoorCommandResult(DoorCommandOutcome Outcome, DoorStateDto? State);
 
     /// <summary>
-    /// Builds and sends controller commands for the floorplan's click-to-act surface:
+    /// Builds and sends live relay-control commands for the floorplan's click-to-act surface:
     /// unlock (open forever), lock (close), momentary release (timed), and site/all lockdown.
     /// Maps to the "5,4 Trigger Channel A/B" protocol command and updates the live state optimistically.
     /// </summary>
-    public interface IDoorCommandService
+    public interface IDoorRelayControlService
     {
         Task<DoorCommandResult> SendAsync(int door, DoorCommandRequest request, CancellationToken ct = default);
 

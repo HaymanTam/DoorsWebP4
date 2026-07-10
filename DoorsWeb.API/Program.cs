@@ -242,7 +242,11 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<PendingCommandServ
 
 // Door control (unlock / lock / momentary / lockdown) — builds protocol commands and queues them
 // through the pending-command service above.
-builder.Services.AddScoped<IDoorCommandService, DoorCommandService>();
+builder.Services.AddScoped<IDoorRelayControlService, DoorRelayControlService>();
+
+// Door config sync: on a door save, mirror its settings (1,6 Engineers Pack + 1,5 Users Pack) to
+// the controller. Reuses the pending-command retry queue so each packet is resent until acked.
+builder.Services.AddScoped<IDoorConfigSyncService, DoorConfigSyncService>();
 
 // Floorplan layout (optional uploaded plan image + door placements), persisted per-site as JSON
 // on the settings volume. Singleton: the files are the single source of truth. Constructed up

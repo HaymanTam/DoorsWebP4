@@ -12,12 +12,15 @@ namespace DoorsWeb.API.Services
         private readonly DoorsEnterpriseContext _context;
         private readonly IAuditService _audit;
         private readonly ILicenseService _license;
+        private readonly IDoorConfigSyncService _configSync;
 
-        public DoorService(DoorsEnterpriseContext context, IAuditService audit, ILicenseService license)
+        public DoorService(DoorsEnterpriseContext context, IAuditService audit, ILicenseService license,
+            IDoorConfigSyncService configSync)
         {
             _context = context;
             _audit = audit;
             _license = license;
+            _configSync = configSync;
         }
 
         public async Task<List<DoorListDto>> GetAll()
@@ -61,6 +64,9 @@ namespace DoorsWeb.API.Services
             _context.Doors.Add(e);
             await _context.SaveChangesAsync();
             await _audit.LogAsync(AuditAction.Create, "Door", e.Door.ToString(), e.Name);
+            // Push the new settings down to the controller; the pending retry queue drives delivery,
+            // so don't block the save on the network sends.
+            _ = _configSync.SyncDoorAsync(e);
             return await GetAll();
         }
 
@@ -72,6 +78,9 @@ namespace DoorsWeb.API.Services
             await NormalizeTechnologyRefs(e);
             await _context.SaveChangesAsync();
             await _audit.LogAsync(AuditAction.Update, "Door", door.ToString(), e.Name);
+            // Re-program the controller with the saved settings; delivery is handled by the pending
+            // retry queue, so don't block the save on the network sends.
+            _ = _configSync.SyncDoorAsync(e);
             return await GetAll();
         }
 

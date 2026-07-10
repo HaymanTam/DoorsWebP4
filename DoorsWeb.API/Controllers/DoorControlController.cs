@@ -18,10 +18,10 @@ namespace DoorsWeb.API.Controllers
     public class DoorControlController : ControllerBase
     {
         private readonly IDoorStateService _state;
-        private readonly IDoorCommandService _commands;
+        private readonly IDoorRelayControlService _commands;
         private readonly IPendingCommandService _pending;
 
-        public DoorControlController(IDoorStateService state, IDoorCommandService commands, IPendingCommandService pending)
+        public DoorControlController(IDoorStateService state, IDoorRelayControlService commands, IPendingCommandService pending)
         {
             _state = state;
             _commands = commands;

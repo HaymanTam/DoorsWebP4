@@ -26,6 +26,9 @@ namespace DoorsWeb.API.Services.DoorState
         public const byte EventLogReply = 0x03;     // Command 2 (D,3 — one event entry)
         public const byte EventLogEnd = 0x04;       // Command 2 (D,4 — no more unread entries)
         public const int EventTypeIndex = 14;       // data[14] = event type byte
+        // Some firmware signals "queue empty" with an in-band D,3 whose event type is 255 (0xFF)
+        // instead of a D,4. It carries no real event: stop draining and never log it.
+        public const int NoMoreEventsType = 0xFF;
 
         // ---- Event-log reply (D,3) data-byte layout (0-indexed; P4 protocol / legacy Coms.bas). ----
         // Time fields are packed BCD; the card number is three big-endian 16-bit words.
@@ -166,6 +169,14 @@ namespace DoorsWeb.API.Services.DoorState
             => status is DoorLiveStatus.ForcedOpen or DoorLiveStatus.HeldOpen;
 
         // ---- Event-log reply (D,3) decoding ------------------------------------------
+
+        /// <summary>
+        /// True when a D,3 reply is the "no more unread events" sentinel (event type 255) that some
+        /// firmware sends in place of a D,4 end packet. Such a reply carries no real event, so the
+        /// drain must stop and must not log it. Tolerates short payloads (missing byte reads as 0).
+        /// </summary>
+        public static bool IsNoMoreEventsSentinel(byte[] data)
+            => Get(data, EventTypeIndex) == NoMoreEventsType;
 
         /// <summary>One decoded event-log entry pulled from a controller (D,3).</summary>
         /// <param name="TimestampLocal">The controller's local wall-clock time for the event.</param>

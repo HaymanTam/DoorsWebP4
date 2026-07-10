@@ -214,9 +214,6 @@
                 <Button BackgroundColor="TablerColor.Blue" Outline @onclick="() => SendCommand(DoorCommandAction.Unlock, DoorRelay.RelayB)" Disabled="busy">
                     <Icon class="icon me-1" IconType="@TablerIcons.Lock_open" />Open (hold)
                 </Button>
-                <Button BackgroundColor="TablerColor.Azure" Outline @onclick="() => SendCommand(DoorCommandAction.MomentaryRelease, DoorRelay.RelayB)" Disabled="busy">
-                    <Icon class="icon me-1" IconType="@TablerIcons.Walk" />Release
-                </Button>
                 <Button BackgroundColor="TablerColor.Green" Outline @onclick="() => SendCommand(DoorCommandAction.Lock, DoorRelay.RelayB)" Disabled="busy">
                     <Icon class="icon me-1" IconType="@TablerIcons.Lock" />Close
                 </Button>

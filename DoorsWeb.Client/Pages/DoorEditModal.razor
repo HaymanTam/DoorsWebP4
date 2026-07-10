@@ -1,3 +1,9 @@
+@using DoorsWeb.Client.Services
+@using DoorsWeb.Shared.Enums
+@implements IDisposable
+@inject DoorStatusStore DoorStatus
+@inject AuthenticationStateProvider AuthState
+
 <TablerForm Model="@dDetail" OnValidSubmit="Submit" >
     <Tabs>
         @* ============================= GENERAL ============================= *@
@@ -344,29 +350,52 @@
 
         @* ============================= STATUS ============================= *@
         <Tab Title="Status">
-            @* The whole Alert box is the status indicator for each relay; its colour
-               reflects the relay state (static placeholder until live status is wired). *@
+            @* Live hardware status decoded from the controller's last ping reply (B,2), fed by the
+               app-wide DoorStatusStore — the same real-time source the floorplan and doors table use.
+               Everything reads "Unknown" (blue) until the first reply arrives. *@
+            @if (dDetail.Door != 0)
+            {
+                <div class="text-muted small mb-2 d-flex align-items-center gap-2">
+                    <span class="badge @(DoorStatus.IsConnected ? "bg-green-lt" : "bg-secondary-lt")">
+                        @(DoorStatus.IsConnected ? "Live" : "Connecting…")
+                    </span>
+                    @if (!IsOnline)
+                    {
+                        @* Controller out of contact: the indicators below read Unknown rather than stale. *@
+                        <span class="badge bg-secondary-lt">Door offline</span>
+                    }
+                    @if (RawHw?.LastPolledUtc is DateTime polled)
+                    {
+                        <span>Last polled @polled.ToLocalTime().ToString("HH:mm:ss")</span>
+                    }
+                </div>
+            }
             <div class="row">
                 <div class="col-lg-6">
-                    <Alert BackgroundColor="relayAStatus">
+                    <Alert BackgroundColor="RelayColor(RelayAState)">
                         @* Title on its own row, buttons stacked on the next row. *@
                         <div>
-                            <div class="alert-title mb-2">Relay A</div>
+                            <div class="alert-title mb-2">Relay A — @RelayLabel(RelayAState)</div>
                             <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-outline-secondary">Open</button>
-                                <button type="button" class="btn btn-outline-secondary">Close</button>
-                                <button type="button" class="btn btn-outline-secondary">Release</button>
+                                <button type="button" class="btn btn-outline-secondary" disabled="@(!CanControl)"
+                                        @onclick="() => SendRelayCommand(DoorCommandAction.Unlock, DoorRelay.RelayA)">Open</button>
+                                <button type="button" class="btn btn-outline-secondary" disabled="@(!CanControl)"
+                                        @onclick="() => SendRelayCommand(DoorCommandAction.Lock, DoorRelay.RelayA)">Close</button>
+                                <button type="button" class="btn btn-outline-secondary" disabled="@(!CanControl)"
+                                        @onclick="() => SendRelayCommand(DoorCommandAction.MomentaryRelease, DoorRelay.RelayA)">Release</button>
                             </div>
                         </div>
                     </Alert>
                 </div>
                 <div class="col-lg-6">
-                    <Alert BackgroundColor="relayBStatus">
+                    <Alert BackgroundColor="RelayColor(RelayBState)">
                         <div>
-                            <div class="alert-title mb-2">Relay B</div>
+                            <div class="alert-title mb-2">Relay B — @RelayLabel(RelayBState)</div>
                             <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-outline-secondary">Open</button>
-                                <button type="button" class="btn btn-outline-secondary">Close</button>
+                                <button type="button" class="btn btn-outline-secondary" disabled="@(!CanControl)"
+                                        @onclick="() => SendRelayCommand(DoorCommandAction.Unlock, DoorRelay.RelayB)">Open</button>
+                                <button type="button" class="btn btn-outline-secondary" disabled="@(!CanControl)"
+                                        @onclick="() => SendRelayCommand(DoorCommandAction.Lock, DoorRelay.RelayB)">Close</button>
                             </div>
                         </div>
                     </Alert>
@@ -380,15 +409,18 @@
                     <div class="row gx-5">
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Door Monitor</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var doorMonitor = InputStatus(DoorMonitorBit); }
+                            <Status BackgroundColor="doorMonitor.Color" DotType="StatusDotType.Normal">@doorMonitor.Label</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Request to Exit</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var rte = InputStatus(RqeBit); }
+                            <Status BackgroundColor="rte.Color" DotType="StatusDotType.Normal">@rte.Label</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Interlock Input</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var interlock = InputStatus(InterlockBit); }
+                            <Status BackgroundColor="interlock.Color" DotType="StatusDotType.Normal">@interlock.Label</Status>
                         </div>
                     </div>
                 </CardBody>
@@ -398,32 +430,39 @@
                 <CardBody>
                     <div class="d-flex align-items-center justify-content-between mb-3">
                         <CardTitle class="mb-0">Alarms</CardTitle>
-                        <button type="button" class="btn btn-outline-secondary">Reset</button>
+                        @* No controller alarm-reset command is exposed by the API yet, so this stays disabled. *@
+                        <button type="button" class="btn btn-outline-secondary" disabled title="Alarm reset is not available yet">Reset</button>
                     </div>
                     <div class="row gx-5">
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Door Forced</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var forced = AlarmStatus(DoorAlarmFlags.Forced); }
+                            <Status BackgroundColor="forced.Color" DotType="StatusDotType.Normal">@forced.Label</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Duress</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var duress = AlarmStatus(DoorAlarmFlags.Duress); }
+                            <Status BackgroundColor="duress.Color" DotType="StatusDotType.Normal">@duress.Label</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Hacker</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var hacker = AlarmStatus(DoorAlarmFlags.Hacker); }
+                            <Status BackgroundColor="hacker.Color" DotType="StatusDotType.Normal">@hacker.Label</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Fire</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var fire = AlarmStatus(DoorAlarmFlags.Fire); }
+                            <Status BackgroundColor="fire.Color" DotType="StatusDotType.Normal">@fire.Label</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Intruder</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var intruder = AlarmStatus(DoorAlarmFlags.Intruder); }
+                            <Status BackgroundColor="intruder.Color" DotType="StatusDotType.Normal">@intruder.Label</Status>
                         </div>
                         <div class="col-lg-6 d-flex align-items-center justify-content-between mb-2">
                             <span>Door Failed to Close</span>
-                            <Status BackgroundColor="TablerColor.Blue" DotType="StatusDotType.Normal">Unknown</Status>
+                            @{ var pdo = AlarmStatus(DoorAlarmFlags.Pdo); }
+                            <Status BackgroundColor="pdo.Color" DotType="StatusDotType.Normal">@pdo.Label</Status>
                         </div>
                     </div>
                 </CardBody>
@@ -508,10 +547,90 @@
     // ---- Local backing field for UI-only controls (not persisted) ----
     private string biometricTarget = "Reader A";
 
-    // Relay status colours drive the Alert boxes on the Status tab. Static placeholders
-    // (matching the previous static-red indicator) until live controller status is wired up.
-    private TablerColor relayAStatus = TablerColor.Danger;
-    private TablerColor relayBStatus = TablerColor.Danger;
+    // ---- Live status (Status tab) ----
+    // Whether the current user may drive the relays (Site Settings write) — commands are gated on it.
+    private bool canWrite;
+    // True while a relay command is in flight, so the buttons disable to avoid double-fires.
+    private bool busy;
+
+    // Bit positions inside DoorHardwareStatusDto.Status1 (see DoorStatusDecoder):
+    // bit2 = door-release monitor, bit3 = request-to-exit, bit5 = interlock input.
+    private const int DoorMonitorBit = 2;
+    private const int RqeBit = 3;
+    private const int InterlockBit = 5;
+
+    // Live state for this door from the app-wide store (null until the first ping reply arrives).
+    private DoorStateDto? LiveState => dDetail.Door != 0 ? DoorStatus.TryGet(dDetail.Door) : null;
+
+    // True while the controller is in recent contact. Offline = no recent reply, so whatever we last
+    // decoded is now stale and must not be trusted.
+    private bool IsOnline => LiveState is { Status: not DoorLiveStatus.Offline };
+
+    // The last-decoded hardware snapshot, kept regardless of online state purely so we can still show
+    // "Last polled …" (which explains why the indicators read Unknown while offline).
+    private DoorHardwareStatusDto? RawHw => LiveState?.Hardware;
+
+    // The hardware snapshot the indicators actually decode. Null when offline, so relays, inputs and
+    // alarms fall back to Unknown (blue) instead of latching to the last-known state.
+    private DoorHardwareStatusDto? Hw => IsOnline ? RawHw : null;
+    private RelayState RelayAState => Hw?.RelayA ?? RelayState.Unknown;
+    private RelayState RelayBState => Hw?.RelayB ?? RelayState.Unknown;
+
+    // Relays can only be driven for a saved door the user is allowed to control, and not mid-command.
+    private bool CanControl => canWrite && !busy && dDetail.Door != 0;
+
+    private static bool Bit(byte b, int bit) => (b & (1 << bit)) != 0;
+
+    private static TablerColor RelayColor(RelayState s) => s switch
+    {
+        RelayState.Open => TablerColor.Azure,
+        RelayState.Closed => TablerColor.Green,
+        _ => TablerColor.Blue
+    };
+
+    private static string RelayLabel(RelayState s) => s switch
+    {
+        RelayState.Open => "Released",
+        RelayState.Closed => "Locked",
+        _ => "Unknown"
+    };
+
+    // A raw Status1 input bit → indicator colour/label. Blue "Unknown" until a reply is decoded.
+    private (TablerColor Color, string Label) InputStatus(int bit)
+    {
+        if (Hw is null) return (TablerColor.Blue, "Unknown");
+        return Bit(Hw.Status1, bit) ? (TablerColor.Green, "Active") : (TablerColor.Secondary, "Inactive");
+    }
+
+    // An alarm flag → indicator colour/label. Blue "Unknown" until a reply is decoded.
+    private (TablerColor Color, string Label) AlarmStatus(DoorAlarmFlags flag)
+    {
+        if (Hw is null) return (TablerColor.Blue, "Unknown");
+        return Hw.Alarms.HasFlag(flag) ? (TablerColor.Danger, "Alarm") : (TablerColor.Green, "Clear");
+    }
+
+    private void OnStatusChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task SendRelayCommand(DoorCommandAction action, DoorRelay relay)
+    {
+        if (!CanControl) return;
+        busy = true;
+        try
+        {
+            var client = ClientFactory.CreateClient("WebAPI");
+            await client.PostAsJsonAsync(
+                $"api/DoorControl/{dDetail.Door}/command",
+                new DoorCommandRequest { Action = action, Relay = relay });
+        }
+        catch
+        {
+            // Best-effort: the live feed will reflect the real relay state once the controller replies.
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
 
     // ---- Dropdown option sources ----
     private readonly Dictionary<byte, string> ReaderTechnologies = new()
@@ -540,6 +659,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Gate the Status-tab relay controls on the Site Settings write permission.
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        canWrite = authState.User.CanWriteSiteSettings();
+
         if (DoorId != 0){
             var client = ClientFactory.CreateClient("WebAPI");
             var result = await client.GetFromJsonAsync<DoorDetailDto?>("api/Door/" + DoorId);
@@ -553,7 +676,14 @@
             // New door: pin it to the site its "Add Door" button was launched under.
             dDetail.Site = SiteId;
         }
+
+        // Subscribe to the app-wide live feed so the Status tab tracks the controller in real time,
+        // and make sure it's running (idempotent — other components may already have started it).
+        DoorStatus.Changed += OnStatusChanged;
+        await DoorStatus.EnsureStartedAsync();
     }
+
+    public void Dispose() => DoorStatus.Changed -= OnStatusChanged;
 
     private void Cancel()
     {

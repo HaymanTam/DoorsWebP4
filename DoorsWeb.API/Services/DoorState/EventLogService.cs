@@ -101,6 +101,10 @@ namespace DoorsWeb.API.Services.DoorState
                 if (reply.CommandNumber == DoorStatusDecoder.EventLogEnd) return; // no more unread entries
                 if (reply.CommandNumber != DoorStatusDecoder.EventLogReply) return;
 
+                // Some firmware ends the queue with an in-band D,3 sentinel (event type 255) instead
+                // of a D,4. Treat it exactly like the end packet: stop draining and don't log it.
+                if (DoorStatusDecoder.IsNoMoreEventsSentinel(reply.Data)) return;
+
                 // Record (best-effort) then ack to advance the controller's queue — the legacy
                 // connector acks unconditionally, so a failed store must not stall the whole queue.
                 await RecordAndBroadcastAsync(door, reply.Data);

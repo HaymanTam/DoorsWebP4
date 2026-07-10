@@ -88,7 +88,7 @@
                     <div class="mb-3">
                         <label class="form-label">New password</label>
                         <div class="input-group input-group-flat">
-                            <InputText type="@(showNewPwd ? "text" : "password")" class="form-control" @bind-Value="changeModel.NewPassword" @bind-Value:event="oninput" placeholder="New password" />
+                            <InputText type="@(showNewPwd ? "text" : "password")" class="form-control" @bind-Value="changeModel.NewPassword" @oninput="OnNewPasswordInput" placeholder="New password" />
                             <span class="input-group-text">
                                 <a href="#" class="link-secondary" tabindex="-1" title="Show password"
                                    @onclick="() => showNewPwd = !showNewPwd" @onclick:preventDefault="true">
@@ -312,6 +312,14 @@
             isLoading = false;
         }
     }
+
+    // Update the bound value on every keystroke so PasswordStrengthMeter re-scores live. We can't use
+    // @bind-Value:event="oninput" here: that modifier is only valid on element @bind, and on a
+    // component's @bind-Value it wires a string-typed setter to the DOM oninput event, which delivers a
+    // ChangeEventArgs — throwing InvalidCastException (ChangeEventArgs -> String). A ChangeEventArgs
+    // handler binds correctly; InputText's own onchange still fires on blur to keep EditContext in sync.
+    private void OnNewPasswordInput(ChangeEventArgs e) =>
+        changeModel.NewPassword = e.Value?.ToString() ?? "";
 
     private async Task HandleChangePassword()
     {

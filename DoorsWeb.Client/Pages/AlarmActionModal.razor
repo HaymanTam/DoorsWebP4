@@ -1,0 +1,33 @@
+@inject TabBlazor.Services.IModalService ModalService
+
+@* Small dialog for actioning (acknowledging) an alarm: shows what's being actioned and captures an
+   optional note. Returns the note text via ModalResult.Ok(...) so the caller can POST it. *@
+<div class="modal-body">
+    <p class="mb-3">
+        You are actioning: <strong>@Description</strong>
+    </p>
+    <div class="mb-3">
+        <label class="form-label">Note (optional)</label>
+        <textarea class="form-control" rows="3" maxlength="255"
+                  placeholder="What was done about this alarm?"
+                  @bind="Note" @bind:event="oninput"></textarea>
+        <small class="form-hint">Recorded against the alarm and shown on the Actioned tab.</small>
+    </div>
+</div>
+<div class="modal-footer">
+    <Button BackgroundColor="TablerColor.Secondary" OnClick="Cancel">Cancel</Button>
+    <Button BackgroundColor="TablerColor.Primary" OnClick="Confirm">
+        <Icon class="icon me-1" IconType="@TablerIcons.Check" />Action alarm
+    </Button>
+</div>
+
+@code {
+    /// <summary>Human-readable description of the alarm being actioned (shown for confirmation).</summary>
+    [Parameter] public string? Description { get; set; }
+
+    private string Note = string.Empty;
+
+    private void Confirm() => ModalService.Close(ModalResult.Ok(Note));
+
+    private void Cancel() => ModalService.Close(ModalResult.Cancel());
+}

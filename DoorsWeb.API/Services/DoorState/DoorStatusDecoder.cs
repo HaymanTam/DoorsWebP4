@@ -91,7 +91,9 @@ namespace DoorsWeb.API.Services.DoorState
         private const int RelayBBit = 1;  // Relay B / auxiliary relay (1 = open)
         // bit2 door-release monitor, bit3 RQE, bit4 program, bit5 interlock, bit6 PWR, bit7 reserved.
 
-        // ---- Status byte 2 bits (alarms; 1 = active). ----
+        // ---- Status byte 2 bits (alarms). Most are active-high (1 = active), but the two external
+        // supervised inputs, Fire and Intruder, are active-low (1 = healthy loop, 0 = triggered).
+        // See AlarmsFrom / LiveStatusFromPing for the inversion. ----
         private const int FireBit = 0;
         private const int IntruderBit = 1;
         private const int TamperBit = 2;
@@ -293,15 +295,18 @@ namespace DoorsWeb.API.Services.DoorState
         {
             if (Bit(status2, ForcedBit)) return DoorLiveStatus.ForcedOpen;
             if (Bit(status2, PdoBit)) return DoorLiveStatus.HeldOpen;
-            if (Bit(status2, FireBit)) return DoorLiveStatus.Unlocked; // fire releases the door
+            if (!Bit(status2, FireBit)) return DoorLiveStatus.Unlocked; // fire (active-low) releases the door
             return Bit(status1, RelayABit) ? DoorLiveStatus.Unlocked : DoorLiveStatus.Locked;
         }
 
         private static DoorAlarmFlags AlarmsFrom(byte status2)
         {
             var flags = DoorAlarmFlags.None;
-            if (Bit(status2, FireBit)) flags |= DoorAlarmFlags.Fire;
-            if (Bit(status2, IntruderBit)) flags |= DoorAlarmFlags.Intruder;
+            // Fire and Intruder are external supervised loops wired active-low: the controller reports
+            // the bit as 1 while the loop is healthy and 0 when the input triggers. The remaining alarm
+            // bits are controller-generated and active-high (1 = active).
+            if (!Bit(status2, FireBit)) flags |= DoorAlarmFlags.Fire;
+            if (!Bit(status2, IntruderBit)) flags |= DoorAlarmFlags.Intruder;
             if (Bit(status2, TamperBit)) flags |= DoorAlarmFlags.Tamper;
             if (Bit(status2, DuressBit)) flags |= DoorAlarmFlags.Duress;
             if (Bit(status2, PdoBit)) flags |= DoorAlarmFlags.Pdo;

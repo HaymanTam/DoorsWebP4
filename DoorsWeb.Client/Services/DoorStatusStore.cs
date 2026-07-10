@@ -28,6 +28,9 @@ namespace DoorsWeb.Client.Services
         /// <summary>Raised on the snapshot load and on every pushed change. UI handlers should marshal to the renderer.</summary>
         public event Action? Changed;
 
+        /// <summary>Raised when the server logs or actions an alarm ("AlarmsChanged"), so the Alarms page can reload.</summary>
+        public event Action? AlarmsChanged;
+
         public DoorStatusStore(IHttpClientFactory clientFactory, IJSRuntime js)
         {
             _clientFactory = clientFactory;
@@ -139,6 +142,7 @@ namespace DoorsWeb.Client.Services
 
                     connection.On<DoorStateDto>("DoorStateChanged", OnDoorStateChanged);
                     connection.On<List<PendingCommandDto>>("PendingCommandsChanged", OnPendingChanged);
+                    connection.On("AlarmsChanged", () => AlarmsChanged?.Invoke());
                     await connection.StartAsync();
                     _connection = connection;
                 }

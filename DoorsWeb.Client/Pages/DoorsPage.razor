@@ -116,12 +116,20 @@
                             @{
                                 var live = DoorStatus.TryGet(context.Door);
                                 var inactive = live is null || live.Status == DoorLiveStatus.Offline;
+                                // Any active alarm folds into the single status badge (red, replacing "Active").
+                                var alarmText = inactive ? null : AlarmSummary(live!);
                             }
-                            <div class="d-flex flex-wrap align-items-center gap-1" title="@ActivityTooltip(live)">
+                            <div class="d-flex align-items-center" title="@ActivityTooltip(live)">
                                 @if (inactive)
                                 {
                                     <span class="badge bg-secondary text-white">
                                         <span class="status-dot me-1"></span>Inactive
+                                    </span>
+                                }
+                                else if (alarmText is not null)
+                                {
+                                    <span class="badge bg-red text-white">
+                                        <span class="status-dot status-dot-animated bg-white me-1"></span>@alarmText
                                     </span>
                                 }
                                 else
@@ -130,33 +138,23 @@
                                         <span class="status-dot status-dot-animated bg-green me-1"></span>Active
                                     </span>
                                 }
-                                @* Alarms are critical — surface them whenever we have a live reading. *@
-                                @if (live is not null)
-                                {
-                                    @foreach (var alarm in AlarmLabels(live))
-                                    {
-                                        <span class="badge bg-red text-white">@alarm</span>
-                                    }
-                                }
                             </div>
                         </Template>
                     </Column>
-                    @* Relay A position, separate from Activity. Blue "Unknown" = not yet decoded;
-                       a dash means there's no live reading for the door at all. *@
+                    @* Relay A position, separate from Activity. Blue "Unknown" whenever the door isn't
+                       in contact (offline or no reading yet): the last-seen position is stale then, so
+                       we don't keep showing "Locked"/"Released" for a controller we can't hear. *@
                     <Column Item="DoorListDto" title="Relay" Width="120px">
                         <Template>
                             @{
                                 var relayLive = DoorStatus.TryGet(context.Door);
+                                var relayInactive = relayLive is null || relayLive.Status == DoorLiveStatus.Offline;
+                                var relayState = relayInactive
+                                    ? RelayState.Unknown
+                                    : (relayLive!.Hardware?.RelayA ?? RelayState.Unknown);
+                                var (relayClass, relayLabel) = RelayChip(relayState);
                             }
-                            @if (relayLive is null)
-                            {
-                                <span class="text-muted">—</span>
-                            }
-                            else
-                            {
-                                var (relayClass, relayLabel) = RelayChip(relayLive.Hardware?.RelayA ?? RelayState.Unknown);
-                                <span class="badge @relayClass" title="Relay A position">@relayLabel</span>
-                            }
+                            <span class="badge @relayClass" title="Relay A position">@relayLabel</span>
                         </Template>
                     </Column>
                     @if (canWrite)
@@ -360,6 +358,14 @@
         }
     }
 
+    // A comma-joined summary of a door's active alarms, or null when there are none. Used to fold
+    // the alarm state into the single Activity badge.
+    private static string? AlarmSummary(DoorStateDto live)
+    {
+        var names = AlarmLabels(live).ToList();
+        return names.Count == 0 ? null : string.Join(", ", names);
+    }
+
     // Hover detail for the Activity cell: relays, firmware, supply, unread logs and poll time.
     private static string ActivityTooltip(DoorStateDto? live)
     {
@@ -374,7 +380,9 @@
         {
             $"State: {live.Status}",
             $"Relay A: {hw.RelayA}",
-            $"Relay B: {hw.RelayB}"
+            $"Relay B: {hw.RelayB}",
+            // Raw ping status bytes — handy for confirming input polarity (e.g. Fire/Intruder).
+            $"Status: 0x{hw.Status1:X2} / 0x{hw.Status2:X2}"
         };
         if (!string.IsNullOrWhiteSpace(hw.FirmwareVersion))
             parts.Add($"Firmware: {hw.FirmwareVersion}");

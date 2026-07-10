@@ -4,6 +4,7 @@ using System.Net;
 using DoorsWeb.API.Services.Interfaces;
 using DoorsWeb.API.Services.Protocol;
 using DoorsWeb.Shared.DTO;
+using DoorsWeb.Shared.Entities;
 using DoorsWeb.Shared.Enums;
 using Microsoft.AspNetCore.SignalR;
 
@@ -18,6 +19,7 @@ namespace DoorsWeb.API.Services.DoorState
     public sealed class DoorStateService : BackgroundService, IDoorStateService
     {
         private const string DoorStateChanged = "DoorStateChanged";
+        private const string AlarmsChanged = "AlarmsChanged";
         private static readonly TimeSpan SweepInterval = TimeSpan.FromSeconds(5);
         private static readonly TimeSpan MapRefreshInterval = TimeSpan.FromSeconds(60);
 
@@ -37,6 +39,9 @@ namespace DoorsWeb.API.Services.DoorState
         // Last status bytes written to the DB per door, so we only persist on an actual change
         // (a ping arrives every couple of seconds — we must not write to T_Doors that often).
         private readonly ConcurrentDictionary<int, (byte Status1, byte Status2)> _lastPersisted = new();
+        // Serializes T_Alarms inserts across all doors: the legacy Code PK is app-assigned (max+1,
+        // not a DB identity), so two doors raising at once must not race for the same number.
+        private readonly SemaphoreSlim _alarmGate = new(1, 1);
 
         public DoorStateService(
             ILogger<DoorStateService> logger,
@@ -183,9 +188,14 @@ namespace DoorsWeb.API.Services.DoorState
                 {
                     // Ping reply (B,2): the status bytes carry the live relay + alarm state.
                     var ping = DoorStatusDecoder.DecodePing(packet.Data, DateTime.UtcNow);
-                    var changed = ApplyPing(door, ping);
+                    var changed = ApplyPing(door, ping, out var risingAlarms);
                     await BroadcastAsync(changed, CancellationToken.None);
                     await PersistPingAsync(door, ping);
+
+                    // Log any alarm that has just gone active (a clear -> set edge) to T_Alarms,
+                    // stamped with the controller's own clock (from the same reply) when it's valid.
+                    if (risingAlarms != DoorAlarmFlags.None)
+                        await RaiseAlarmsAsync(door, risingAlarms, ping.ControllerTimeLocal);
 
                     // The reply also reports how many event-log entries the controller is holding
                     // unread; pull them when there are any (a no-op if a drain is already running).
@@ -273,8 +283,10 @@ namespace DoorsWeb.API.Services.DoorState
         /// the freshest hardware snapshot (voltage, last-polled, logs) but only returns a clone to
         /// broadcast when something a viewer would notice changed — status, a relay, the alarm set,
         /// the firmware string, or the very first reply (hardware was previously unknown).
+        /// <paramref name="risingAlarms"/> receives the alarm flags that went inactive -> active since
+        /// the previous reply (empty on the first reply, so a restart never replays still-active alarms).
         /// </summary>
-        private DoorStateDto? ApplyPing(int door, DoorStatusDecoder.PingResult ping)
+        private DoorStateDto? ApplyPing(int door, DoorStatusDecoder.PingResult ping, out DoorAlarmFlags risingAlarms)
         {
             lock (_gate)
             {
@@ -287,6 +299,13 @@ namespace DoorsWeb.API.Services.DoorState
                 _lastSeenUtc[door] = DateTime.UtcNow;
 
                 var prev = dto.Hardware;
+                // Rising edge = flags newly set this reply. On the first reply (prev is null) we adopt
+                // the current set as the baseline without raising, so an API restart while a door is
+                // already in alarm doesn't re-log it (it still shows live on the board).
+                risingAlarms = prev is null
+                    ? DoorAlarmFlags.None
+                    : ping.Hardware.Alarms & ~prev.Alarms;
+
                 bool material =
                     dto.Status != ping.Status ||
                     prev is null ||
@@ -300,6 +319,92 @@ namespace DoorsWeb.API.Services.DoorState
 
                 return material ? Clone(dto) : null;
             }
+        }
+
+        // Writes one T_Alarms row per newly-active alarm flag and tells clients to refresh the Alarms
+        // page. Runs off the UDP thread (called from HandlePacketAsync) and never throws: a failed
+        // insert is logged and dropped rather than stalling the live feed. The Code PK is app-assigned
+        // (legacy T_Alarms has no identity column), so inserts are serialized on _alarmGate and the
+        // next code is derived from the current max under that gate.
+        private async Task RaiseAlarmsAsync(int door, DoorAlarmFlags rising, DateTime? controllerTime)
+        {
+            // Site/name come from the live cache (populated by the door-map refresh).
+            int? site;
+            string name;
+            lock (_gate)
+            {
+                var dto = _states.TryGetValue(door, out var d) ? d : null;
+                site = dto?.Site;
+                name = string.IsNullOrWhiteSpace(dto?.Name) ? $"Door {door}" : dto!.Name;
+            }
+
+            await _alarmGate.WaitAsync();
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<DoorsEnterpriseContext>();
+
+                int nextCode = (await db.Alarms.MaxAsync(a => (int?)a.Code) ?? 0) + 1;
+                // Stamp with the controller's own RTC (from the ping reply) so the alarm time matches
+                // the device clock, like event-log entries. Fall back to server local time only when the
+                // controller's clock was implausible (TryDecodeRtc returned null). T_Alarms stores local
+                // wall-clock, like the rest of the schema.
+                var alarmDate = controllerTime ?? DateTime.Now;
+
+                foreach (var flag in SplitFlags(rising))
+                {
+                    db.Alarms.Add(new Alarms
+                    {
+                        Code = nextCode++,
+                        Site = site,
+                        AlarmType = (int)flag,
+                        EventType = (int)flag,
+                        ControllerNumber = door,
+                        AlarmDate = alarmDate,
+                        AlarmDescription = DescribeAlarm(flag, name),
+                        IsRead = false
+                    });
+                }
+
+                await db.SaveChangesAsync();
+                await _hub.Clients.All.SendAsync(AlarmsChanged);
+                _logger.LogInformation("Raised alarm(s) {Alarms} for door {Door}.", rising, door);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to raise alarm(s) {Alarms} for door {Door}.", rising, door);
+            }
+            finally
+            {
+                _alarmGate.Release();
+            }
+        }
+
+        // Explodes a combined flag set into its individual set bits (skipping None).
+        private static IEnumerable<DoorAlarmFlags> SplitFlags(DoorAlarmFlags flags)
+        {
+            foreach (DoorAlarmFlags f in Enum.GetValues<DoorAlarmFlags>())
+                if (f != DoorAlarmFlags.None && flags.HasFlag(f))
+                    yield return f;
+        }
+
+        // A short "<condition>: <door>" description for the Alarms page (T_Alarms.AlarmDescription is
+        // capped at 50 chars, so it's truncated to fit).
+        private static string DescribeAlarm(DoorAlarmFlags flag, string doorName)
+        {
+            string label = flag switch
+            {
+                DoorAlarmFlags.Fire => "Fire alarm",
+                DoorAlarmFlags.Intruder => "Intruder",
+                DoorAlarmFlags.Tamper => "Tamper",
+                DoorAlarmFlags.Duress => "Duress",
+                DoorAlarmFlags.Pdo => "Door open too long",
+                DoorAlarmFlags.Forced => "Door forced",
+                DoorAlarmFlags.Hacker => "Keypad attack",
+                _ => "Alarm"
+            };
+            string text = $"{label}: {doorName}";
+            return text.Length > 50 ? text[..50] : text;
         }
 
         // Writes the live status bytes (and, faithful to the legacy connector, the controller clock
@@ -366,6 +471,7 @@ namespace DoorsWeb.API.Services.DoorState
         public override void Dispose()
         {
             _udp.PacketReceived -= OnPacketReceived;
+            _alarmGate.Dispose();
             base.Dispose();
         }
     }
